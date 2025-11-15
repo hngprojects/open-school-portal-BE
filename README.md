@@ -57,7 +57,6 @@ The backend is built in a modular monorepo structure to keep each domain clean a
 | fee_payments | Payments made against invoices               |
 | audit_logs   | System activity logs                         |
 
-
 ## Modules Breakdown
 
 ### Auth Module
@@ -217,6 +216,20 @@ npm run build
 ```bash
 npm run start:prod
 ```
+
+## CI/CD
+
+This project uses GitHub Actions for continuous integration. The CI pipeline runs on:
+
+- Direct pushes to `main` branch
+- Pull requests targeting `main` branch
+
+The pipeline includes:
+
+1. **Test** - Runs unit testson Node.js 18.x and 20.x
+2. **Format Check** - Validates code formatting and linting
+3. **Build** - Compiles the application
+4. **Start** - Verifies the application starts successfully
 
 ## Contributing
 
