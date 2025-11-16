@@ -8,9 +8,12 @@ import { AttendanceModule } from './attendance-service/attendance.module';
 import { FeeModule } from './fee-service/fee.module';
 import { NotificationModule } from './notification-service/notification.module';
 import { AnalyticsModule } from './analytics-service/analytics.module';
+import { LoggingInterceptor } from './middleware/logging.interceptor';
+import { LoggerModule } from './common/logger.module';
 
 @Module({
   imports: [
+    LoggerModule,
     AuthModule,
     UserModule,
     AcademicModule,
@@ -20,6 +23,6 @@ import { AnalyticsModule } from './analytics-service/analytics.module';
     AnalyticsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, LoggingInterceptor],
 })
 export class AppModule {}
