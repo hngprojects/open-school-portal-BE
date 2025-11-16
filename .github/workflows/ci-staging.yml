@@ -3,14 +3,15 @@ name: CI Pipeline (Staging)
 on:
   push:
     branches:
-    - staging
+      - staging
   pull_request:
     branches:
-    - staging
+      - staging
 
 jobs:
-  ci-run:
+  ci:
     runs-on: ubuntu-latest
+    name: CI Checks
 
     steps:
       - name: Checkout repository
@@ -25,11 +26,27 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Run ESLint
-        run: npm run lint --if-present
+      - name: Check Code Formatting
+        run: npm run format:check
 
-      - name: Run Tests
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: TypeScript Type Check
+        run: npx tsc --noEmit
+
+      - name: Security Audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: Run Unit Tests
         run: npm test
+
+      - name: Generate Test Coverage
+        run: npm run test:cov
+
+      - name: Run E2E Tests
+        run: npm run test:e2e
 
       - name: Run Build
         run: npm run build
