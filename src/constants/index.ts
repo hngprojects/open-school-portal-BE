@@ -1,1 +1,1 @@
-export const LOGGER = "logger"
+export const LOGGER = 'logger';

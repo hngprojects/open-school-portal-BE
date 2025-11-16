@@ -1,9 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { Logger } from 'winston';
-import { LOGGER } from 'src/constants';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { Logger } from 'winston';
 
 @Injectable()
 export class UserService {
@@ -15,8 +12,8 @@ export class UserService {
       context: UserService.name,
     });
   }
-  create(createUserDto: CreateUserDto) {
-    this.logger.info("Logging action")
+  create() {
+    this.logger.info('Logging action');
     return 'This action adds a new user';
   }
 
@@ -28,7 +25,7 @@ export class UserService {
     return `This action returns a #${id} user`;
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
+  update(id: number) {
     return `This action updates a #${id} user`;
   }
 

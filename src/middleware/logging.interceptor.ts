@@ -6,10 +6,9 @@ import {
   Inject,
   type LoggerService,
 } from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
-import { throwError } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
+import { tap, catchError } from 'rxjs/operators';
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
@@ -19,7 +18,7 @@ export class LoggingInterceptor implements NestInterceptor {
     private readonly logger: LoggerService,
   ) {}
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const req = context
       .switchToHttp()
       .getRequest<{ method?: string; url?: string; body?: unknown }>();
