@@ -8,7 +8,7 @@ const dataSource = new DataSource({
   host: process.env.DB_HOST,
   port: parseInt(process.env.DB_PORT || '5432'),
   username: process.env.DB_USER,
-  password: process.env.DB_PASS,
+  password: String(process.env.DB_PASS || 'postgres'),
   database: process.env.DB_NAME,
   entities: ['src/**/*.entity.ts'],
   migrations: ['src/database/migrations/*.ts'],
