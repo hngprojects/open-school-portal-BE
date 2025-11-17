@@ -1,10 +1,15 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+
+import { LoggerModule } from './common/logger.module';
+import { LoggingInterceptor } from './middleware/logging.interceptor';
+import { UserModule } from './modules/user/user.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
 
 @Module({
   imports: [
+    LoggerModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -24,9 +29,10 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
         synchronize: false,
       }),
     }),
+    UserModule,
     WaitlistModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [LoggingInterceptor],
 })
 export class AppModule {}
