@@ -2,6 +2,7 @@ import {
   Injectable,
   ConflictException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -11,12 +12,15 @@ import { SYS_MSG } from '../../constants/system-messages';
 import { CreateWaitlistDto } from './dto/create-waitlist.dto';
 import { UpdateWaitlistDto } from './dto/update-waitlist.dto';
 import { Waitlist } from './entities/waitlist.entity';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class WaitlistService {
+  private readonly logger = new Logger(WaitlistService.name);
   constructor(
     @InjectRepository(Waitlist)
     private readonly waitlistRepository: Repository<Waitlist>,
+    private readonly emailService: EmailService,
   ) {}
 
   async create(createWaitlistDto: CreateWaitlistDto): Promise<Waitlist> {
@@ -31,8 +35,14 @@ export class WaitlistService {
     const waitlistEntry = this.waitlistRepository.create(createWaitlistDto);
     const savedEntry = await this.waitlistRepository.save(waitlistEntry);
 
-    // TODO: Add SMTP email notification in future
-    // this.sendWaitlistEmail(savedEntry);
+    this.emailService
+      .sendWaitlistWelcomeEmail(savedEntry)
+      .catch((err) => {
+        this.logger.error(
+          `Failed to send welcome email to ${savedEntry.email}`,
+          err,
+        );
+      });
 
     return savedEntry;
   }
