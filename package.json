@@ -28,8 +28,8 @@
   },
   "lint-staged": {
     "*.ts": [
-      "eslint --fix",
-      "prettier --write"
+      "eslint",
+      "prettier --check"
     ]
   },
   "dependencies": {
