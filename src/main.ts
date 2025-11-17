@@ -4,12 +4,12 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 import { AppModule } from './app.module';
+import { LoggingInterceptor } from './middleware/logging.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Use Winston logger
-  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 
   // Enable API versioning
   app.setGlobalPrefix('api');
@@ -38,11 +38,10 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  const port = process.env.PORT ?? 3000;
-  await app.listen(port);
+  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 
-  const logger = app.get(WINSTON_MODULE_NEST_PROVIDER);
-  logger.log(`Application is running on: http://localhost:${port}`);
-  logger.log(`Swagger documentation: http://localhost:${port}/api`);
+  const loggingInterceptor = app.get(LoggingInterceptor);
+  app.useGlobalInterceptors(loggingInterceptor);
+  await app.listen(3000);
 }
 bootstrap();

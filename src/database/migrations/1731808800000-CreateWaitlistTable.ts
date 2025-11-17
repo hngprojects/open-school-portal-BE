@@ -7,8 +7,8 @@ export class CreateWaitlistTable1731808800000 implements MigrationInterface {
     await queryRunner.query(`
       CREATE TABLE "waitlist" (
         "id" uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-        "firstName" varchar(120) NOT NULL,
-        "lastName" varchar(120) NOT NULL,
+        "first_name" varchar(120) NOT NULL,
+        "last_name" varchar(120) NOT NULL,
         "email" varchar(180) NOT NULL UNIQUE,
         "created_at" timestamp with time zone NOT NULL DEFAULT now(),
         "updated_at" timestamp with time zone NOT NULL DEFAULT now()
