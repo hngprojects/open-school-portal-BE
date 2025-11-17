@@ -5,6 +5,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerModule } from './common/logger.module';
 import { LoggingInterceptor } from './middleware/logging.interceptor';
 import { UserModule } from './modules/user/user.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { Session} from './modules/auth//entities/session.entity';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
 
 @Module({
@@ -31,6 +33,8 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     }),
     WaitlistModule,
     UserModule,
+    AuthModule,
+    Session,
   ],
   controllers: [],
   providers: [LoggingInterceptor],
