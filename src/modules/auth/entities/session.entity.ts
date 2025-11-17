@@ -25,5 +25,5 @@ export class Session {
   userId: string;
 
 //   @ManyToOne(() => User, (user) => user.sessions)
-//   user: User;
+//    user: User;
 }
