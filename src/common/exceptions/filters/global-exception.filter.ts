@@ -5,7 +5,7 @@ import {
     HttpException,
     HttpStatus,
     Inject,
-    type LoggerService,
+    LoggerService,
 } from "@nestjs/common";
 import { WINSTON_MODULE_NEST_PROVIDER } from "nest-winston";
 import { Request, Response } from "express";
@@ -27,7 +27,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         let message: string | string[];
         let error: string | null = null;
         let stack: string | undefined;
-        const isDevelopment = process.env.NODE_ENV !== "production";
+        const isDev = process.env.NODE_ENV !== "production";
 
         // Handle HttpException and its subclasses (including BaseException)
         if (exception instanceof HttpException) {
@@ -44,21 +44,24 @@ export class GlobalExceptionFilter implements ExceptionFilter {
                 message = "An error occurred";
             }
 
+            // Capture stack trace for HttpException
+            stack = (exception as any).stack;
+
             // Log BaseException with additional context
             if (exception instanceof BaseException) {
-                const logMessage = `BaseException: ${Array.isArray(message) ? message.join(", ") : message} - Status: ${status} - Path: ${request.method} ${request.url} - UserId: ${(request as any).user?.id || "anonymous"}`;
+                const logMessage = `${exception.name || "BaseException"}: ${Array.isArray(message) ? message.join(", ") : message} - Status: ${status} - Path: ${request.method} ${request.url} - UserId: ${(request as any).user?.id || "anonymous"}`;
                 const logLevel = status >= 500 ? "error" : "warn";
                 if (logLevel === "error") {
-                    this.logger.error(logMessage, undefined, GlobalExceptionFilter.name);
+                    this.logger.error(logMessage, stack, GlobalExceptionFilter.name);
                 } else {
                     this.logger.warn(logMessage, GlobalExceptionFilter.name);
                 }
             } else {
                 // Log other HttpExceptions
-                const logMessage = `HttpException: ${Array.isArray(message) ? message.join(", ") : message} - Status: ${status} - Path: ${request.method} ${request.url}`;
+                const logMessage = `${exception.name || "HttpException"}: ${Array.isArray(message) ? message.join(", ") : message} - Status: ${status} - Path: ${request.method} ${request.url}`;
                 const logLevel = status >= 500 ? "error" : "warn";
                 if (logLevel === "error") {
-                    this.logger.error(logMessage, undefined, GlobalExceptionFilter.name);
+                    this.logger.error(logMessage, stack, GlobalExceptionFilter.name);
                 } else {
                     this.logger.warn(logMessage, GlobalExceptionFilter.name);
                 }
@@ -69,7 +72,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             exception &&
             typeof exception === "object" &&
             "response" in exception &&
-            "status" in exception
+            ("message" in (exception as any).response || "status" in exception)
         ) {
             const validationError = exception as any;
             status = validationError.status || HttpStatus.BAD_REQUEST;
@@ -82,21 +85,22 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             );
         }
         // Handle database errors (TypeORM, Prisma, etc.)
-        else if (exception && typeof exception === "object" && "code" in exception) {
+        else if (
+            exception &&
+            typeof exception === "object" &&
+            ("code" in exception || "detail" in exception || "meta" in exception)
+        ) {
             const dbError = exception as any;
             status = HttpStatus.INTERNAL_SERVER_ERROR;
             message = "Database operation failed";
             error = dbError.code || "DATABASE_ERROR";
+            stack = dbError.stack;
 
             this.logger.error(
-                `Database Error: ${dbError.message || "Unknown database error"} - Code: ${dbError.code || "UNKNOWN"} - Path: ${request.method} ${request.url}`,
-                dbError.stack,
+                `Database Error: ${dbError.message || "Unknown database error"} - Code: ${error} - Path: ${request.method} ${request.url}`,
+                stack,
                 GlobalExceptionFilter.name
             );
-
-            if (isDevelopment && dbError.stack) {
-                stack = dbError.stack;
-            }
         }
         // Handle unknown errors
         else {
@@ -114,9 +118,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
                 GlobalExceptionFilter.name
             );
 
-            if (isDevelopment && errorStack) {
-                stack = errorStack;
-            }
+            stack = errorStack;
         }
 
         // Normalize message to array format for consistency
@@ -132,13 +134,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         };
 
         // Only include stack trace in development
-        if (isDevelopment && stack) {
+        if (isDev && stack) {
             errorResponse.stack = stack;
         }
 
         // Sanitize response in production for security
-        if (!isDevelopment && status >= 500) {
-            // In production, don't expose internal error details
+        if (!isDev && status >= 500) {
             errorResponse.message = ["An internal server error occurred"];
             errorResponse.error = "Internal Server Error";
         }
