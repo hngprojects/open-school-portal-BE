@@ -1,11 +1,13 @@
 import {
-  Injectable,
   ConflictException,
-  Logger,
+  Inject,
+  Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Repository } from 'typeorm';
+import { Logger } from 'winston';
 
 import { EmailTemplateID } from 'src/constants/email-constants';
 
@@ -20,12 +22,15 @@ import { Waitlist } from './entities/waitlist.entity';
 
 @Injectable()
 export class WaitlistService {
-  private readonly logger = new Logger(WaitlistService.name);
+  private readonly logger: Logger;
   constructor(
+    @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
     @InjectRepository(Waitlist)
     private readonly waitlistRepository: Repository<Waitlist>,
     private readonly emailService: EmailService,
-  ) {}
+  ) {
+    this.logger = baseLogger.child({ context: WaitlistService.name });
+  }
 
   async create(createWaitlistDto: CreateWaitlistDto): Promise<Waitlist> {
     const existingEntry = await this.waitlistRepository.findOne({
