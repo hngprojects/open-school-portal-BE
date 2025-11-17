@@ -16,13 +16,12 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
         host: config.get<string>('DB_HOST'),
         port: config.get<number>('DB_PORT'),
         username: config.get<string>('DB_USER'),
-        password: config.get<string>('DB_PASS'),
+        password: String(config.get<string>('DB_PASS') || 'postgres'), // ← FIXED LINE 17
         database: config.get<string>('DB_NAME'),
         autoLoadEntities: true,
         migrationsRun: false,
