@@ -8,12 +8,10 @@ import {
   HttpStatus,
   HttpCode,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-
-import { SYS_MSG } from '../../constants/system-messages';
-
-import { CreateWaitlistDto } from './dto/create-waitlist.dto';
 import { WaitlistService } from './waitlist.service';
+import { CreateWaitlistDto } from './dto/create-waitlist.dto';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { SYS_MSG } from '../../constants/system-messages';
 
 @ApiTags('Waitlist')
 @Controller('waitlist')
@@ -32,7 +30,8 @@ export class WaitlistController {
     description: 'Email already exists',
   })
   async create(@Body() createWaitlistDto: CreateWaitlistDto) {
-    const waitlistEntry = await this.waitlistService.create(createWaitlistDto);
+    const waitlistEntry =
+      await this.waitlistService.create(createWaitlistDto);
 
     return {
       status_code: HttpStatus.CREATED,

@@ -5,10 +5,12 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Waitlist } from './entities/waitlist.entity';
+
+import { SYS_MSG } from '../../constants/system-messages';
+
 import { CreateWaitlistDto } from './dto/create-waitlist.dto';
 import { UpdateWaitlistDto } from './dto/update-waitlist.dto';
-import { SYS_MSG } from '../../constants/system-messages';
+import { Waitlist } from './entities/waitlist.entity';
 
 @Injectable()
 export class WaitlistService {
@@ -28,7 +30,7 @@ export class WaitlistService {
 
     const waitlistEntry = this.waitlistRepository.create(createWaitlistDto);
     const savedEntry = await this.waitlistRepository.save(waitlistEntry);
-    
+
     // TODO: Add SMTP email notification in future
     // this.sendWaitlistEmail(savedEntry);
 
