@@ -3,8 +3,8 @@ import { APP_FILTER } from '@nestjs/core';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { LoggerModule } from './common/logger.module';
 import { GlobalExceptionFilter } from './common/exceptions/filters/global-exception.filter';
+import { LoggerModule } from './common/logger.module';
 import { LoggingInterceptor } from './middleware/logging.interceptor';
 import { UserModule } from './modules/user/user.module';
 
