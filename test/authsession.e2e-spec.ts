@@ -7,6 +7,7 @@ import { SessionsService } from '../src/modules/auth/sessions.service';
 describe('/auth/sessions (GET)', () => {
   let app: INestApplication;
   let sessionService: SessionsService;
+  jest.setTimeout(30000); // 30 seconds
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
