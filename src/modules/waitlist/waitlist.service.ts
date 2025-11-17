@@ -13,6 +13,8 @@ import { CreateWaitlistDto } from './dto/create-waitlist.dto';
 import { UpdateWaitlistDto } from './dto/update-waitlist.dto';
 import { Waitlist } from './entities/waitlist.entity';
 import { EmailService } from '../email/email.service';
+import { EmailTemplateID } from 'src/constants/email-constants';
+import { EmailPayload } from '../email/email.types';
 
 @Injectable()
 export class WaitlistService {
@@ -35,14 +37,21 @@ export class WaitlistService {
     const waitlistEntry = this.waitlistRepository.create(createWaitlistDto);
     const savedEntry = await this.waitlistRepository.save(waitlistEntry);
 
-    this.emailService
-      .sendWaitlistWelcomeEmail(savedEntry)
-      .catch((err) => {
-        this.logger.error(
-          `Failed to send welcome email to ${savedEntry.email}`,
-          err,
-        );
-      });
+    const emailPayload: EmailPayload = {
+      to: [{ email: savedEntry.email, name: savedEntry.firstName }],
+      subject: "You're on the Waitlist! | Open School Portal",
+      templateNameID: EmailTemplateID.WAITLIST_WELCOME,
+      context: {
+        greeting: `Hi ${savedEntry.firstName},`,
+      },
+    };
+
+    this.emailService.sendMail(emailPayload).catch((err) => {
+      this.logger.error(
+        `Failed to queue welcome email for ${savedEntry.email}`,
+        err.message,
+      );
+    });
 
     return savedEntry;
   }

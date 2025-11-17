@@ -1,9 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
-import * as handlebars from 'handlebars';
+import * as nunjucks from 'nunjucks';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+
+import { EmailPayload } from './email.types';
 
 @Injectable()
 export class EmailService {
@@ -22,56 +24,68 @@ export class EmailService {
       },
     });
   }
-
   /**
-   * Reads an email template and compiles it with Handlebars
+   * Compiles an email template using Nunjucks.
+   * @param templateName The filename of the template (e.g., "welcome.njk")
+   * @param context The data to inject
+   * @returns The compiled HTML string
    */
-  private async getEmailHtml(
+  private async compileTemplate(
     templateName: string,
-    data: Record<string, any>,
+    context: Record<string, unknown>,
   ): Promise<string> {
     const templatePath = path.join(
       process.cwd(),
-      'dist', 
-      'modules',
-      'email',
+      'dist',
       'templates',
-      `${templateName}.html`,
+      templateName,
     );
 
     try {
-      const templateSource = await fs.readFile(templatePath, 'utf-8');
-      const template = handlebars.compile(templateSource);
-      return template(data);
+      const template = await fs.readFile(templatePath, 'utf-8');
+
+      const fullContext = {
+        ...context,
+        copyRightYear: new Date().getFullYear(),
+      };
+
+      return nunjucks.renderString(template, fullContext);
     } catch (error) {
-      this.logger.error(`Error reading email template at path: ${templatePath}`, error);
-      throw new Error('Could not load email template');
+      this.logger.error(`Error reading or compiling template at: ${templatePath}`, error);
+      throw new Error('Could not load or compile email template.');
     }
   }
 
   /**
-   * Sends the waitlist welcome email
-   * @param user - User object with email, firstName, etc.
+   * Sends an email using the provided payload.
+   * This is the main public method for this service.
+   * @param payload The EmailPayload object
    */
-  async sendWaitlistWelcomeEmail(user: {
-    email: string;
-    firstName: string;
-  }) {
-    const { email, firstName } = user;
-    const html = await this.getEmailHtml('waitlist-welcome', { firstName });
+  async sendMail(payload: EmailPayload): Promise<void> {
+    const { from, to, subject, templateNameID, context, text } = payload;
 
-    const mailOptions = {
-      from: `"Open School Portal" <${this.configService.get<string>('MAIL_FROM_ADDRESS')}>`,
-      to: email,
-      subject: "You're on the waitlist! | Open School Portal",
+    const html = await this.compileTemplate(templateNameID, context);
+
+    const fromAddress =
+      from?.email ?? this.configService.get<string>('MAIL_FROM_ADDRESS');
+    const fromName =
+      from?.name ?? this.configService.get<string>('MAIL_FROM_NAME') ?? 'Open School Portal';
+    
+    const mailOptions: nodemailer.SendMailOptions = {
+      from: `"${fromName}" <${fromAddress}>`,
+      to: to.map((t) => (t.name ? `"${t.name}" <${t.email}>` : t.email)).join(', '),
+      subject: subject,
       html: html,
+      text: text, // Optional plain-text version
     };
 
+    // Send the email
     try {
       const info = await this.transporter.sendMail(mailOptions);
-      this.logger.log(`Waitlist email sent to ${email}: ${info.messageId}`);
+      this.logger.log(`Email sent successfully to ${mailOptions.to}: ${info.messageId}`);
     } catch (error) {
-      this.logger.error(`Failed to send waitlist email to ${email}`, error);
+      this.logger.error(`Failed to send email to ${mailOptions.to}`, error);
+      throw error;
     }
   }
 }
