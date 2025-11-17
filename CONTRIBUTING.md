@@ -90,6 +90,88 @@ Before writing any code:
    git push origin <your-branch>
    ```
 
+## Coding Standards & PR Requirements
+
+To maintain a clean, scalable, and predictable codebase across all developers, the following standards are mandatory for every contribution:
+
+---
+
+#### 1. Use HttpStatus (NestJS) — No Hardcoded Status Codes
+
+❌ Avoid:
+
+```ts
+return {
+  status_code: 200,
+  message: 'Account Created Successfully',
+  data: { id: 'uuid' },
+};
+```
+
+✅ Use:
+
+```ts
+import { HttpStatus } from '@nestjs/common';
+
+return {
+  status_code: HttpStatus.CREATED,
+  message: SYS_MSG.ACCOUNT_CREATED,
+  data: { id: 'uuid' },
+};
+```
+
+#### 2. Use System Message Codes (No Free-Text Messages)
+
+❌ Avoid:
+
+```ts
+message: 'Account created successfully';
+```
+
+✅ Use:
+
+```ts
+message: SYS_MSG.ACCOUNT_CREATED;
+```
+
+#### 3. No `any` allowed in the codebase
+
+Before any PR is merged, the codebase must contain zero any types:
+
+- Not in `DTOs`
+- Not in `services`
+- Not in `controllers`
+- Not in `helpers` or `utilities`
+
+**Use proper typing instead:**
+
+```ts
+async findUserById(id: string): Promise<User> {
+  // implementation
+}
+```
+
+#### 4. Strongly Typed Controller/Service Method Signatures
+
+Example for an authentication flow:
+
+```ts
+async register(
+  registerDto: RegisterDto,
+): Promise<BaseResponse<RegisterResponse>> {
+  // implementation
+}
+```
+
+#### 5. Testing Proof Is Required in Every PR
+
+Every PR must include at least one of the following:
+
+- Screenshot of Swagger UI showing the tested endpoint
+- OR Postman screenshot showing request + response
+
+   > PRs without test evidence **will not be reviewed or merged.**
+
 ## Branch Naming Rules
 
 Branches should follow this structure:
@@ -148,10 +230,10 @@ type: message
 1. Make sure your branch is updated with the latest changes from upstream:
 
    ```sh
-   git checkout dev
-   git pull origin dev
+   git checkout main
+   git pull origin main
    git checkout <your-branch>
-   git rebase dev
+   git rebase main
    ```
 
 2. Run tests:
@@ -165,7 +247,6 @@ type: message
 3. Submit a pull request from your branch to the upstream main branch.
 
 4. In the PR description:
-
    - Explain what you changed.
    - **Provide context**: link the issue or ticket.
    - Include any additional notes for the reviewers.
@@ -174,6 +255,3 @@ type: message
 
 Open School Portal follows the **Contributor Covenant Code of Conduct**.
 All contributors are expected to uphold respectful, inclusive, and professional interactions.
-
-For any concerns or reports of misconduct, contact:
-[email@example.com]()
