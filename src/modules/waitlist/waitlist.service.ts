@@ -23,7 +23,7 @@ import { Waitlist } from './entities/waitlist.entity';
 export class WaitlistService {
   private readonly logger: Logger;
   constructor(
-    @Inject(WINSTN_MODULE_PROVIDER) baseLogger: Logger,
+    @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
     @InjectRepository(Waitlist)
     private readonly waitlistRepository: Repository<Waitlist>,
     private readonly emailService: EmailService,
