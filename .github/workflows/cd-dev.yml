@@ -1,12 +1,12 @@
-name: Staging Deployment
+name: Dev Deployment
 
 on:
   workflow_run:
-    workflows: ['CI Checks']
+    workflows: ['CI Pipeline (Dev)']
     types:
       - completed
     branches:
-      - staging
+      - dev
 
 jobs:
   deploy:
@@ -34,7 +34,7 @@ jobs:
             cd ~/open-school-portal-BE/staging
             git reset --hard
             pm2 stop open-school-be-staging
-            git pull origin staging
+            git pull origin dev
             npm install
             npm run build
             pm2 restart open-school-be-staging --update-env
