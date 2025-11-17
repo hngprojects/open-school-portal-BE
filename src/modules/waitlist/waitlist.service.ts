@@ -2,9 +2,12 @@ import {
   Injectable,
   ConflictException,
   NotFoundException,
+  Inject,
+  type LoggerService,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 import { SYS_MSG } from '../../constants/system-messages';
 
@@ -17,6 +20,8 @@ export class WaitlistService {
   constructor(
     @InjectRepository(Waitlist)
     private readonly waitlistRepository: Repository<Waitlist>,
+    @Inject(WINSTON_MODULE_NEST_PROVIDER)
+    private readonly logger: LoggerService,
   ) {}
 
   async create(createWaitlistDto: CreateWaitlistDto): Promise<Waitlist> {
