@@ -100,4 +100,14 @@ export class AuthController {
   refreshToken(@Body('refresh_token') refreshToken: string) {
     return this.authService.refreshToken(refreshToken);
   }
+
+  @Post('forgot-password')
+  forgotPassword(@Body() payload: ForgetPasswordDto) {
+    return this.authService.forgetPassword();
+  }
+
+  @Post('reset-password')
+  resetPassword(@Body() payload: ResetPasswordDto) {
+    return this.authService.resetPassword();
+  }
 }

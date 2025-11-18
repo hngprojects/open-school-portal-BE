@@ -2,9 +2,10 @@
  * Defines the filenames for email templates.
  * This ensures we use constants instead of magic strings.
  */
-export const EmailTemplateID = {
-  WaitlistWelcome: 'waitlist-welcome.njk',
-} as const;
+export enum EmailTemplateID {
+  WAITLIST_WELCOME = 'waitlist-welcome.njk',
+  FORGOT_PASSWORD = 'forget-password.njk',
+}
 
 export type EmailTemplateID =
   (typeof EmailTemplateID)[keyof typeof EmailTemplateID];
