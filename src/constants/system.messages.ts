@@ -115,5 +115,3 @@ export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
 
 
-
-export const SYS_MSG ={}

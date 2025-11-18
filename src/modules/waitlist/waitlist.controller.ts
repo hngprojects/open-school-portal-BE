@@ -9,6 +9,7 @@ import {
   HttpCode,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+
 import * as SYS_MSG from '../../constants/system.messages';
 
 import { CreateWaitlistDto } from './dto/create-waitlist.dto';
