@@ -15,23 +15,23 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    // TypeOrmModule.forRootAsync({
-    //   imports: [ConfigModule],
-    //   inject: [ConfigService],
-    //   useFactory: (config: ConfigService) => ({
-    //     type: 'postgres',
-    //     host: config.get<string>('DB_HOST'),
-    //     port: config.get<number>('DB_PORT'),
-    //     username: config.get<string>('DB_USER'),
-    //     password: String(config.get<string>('DB_PASS') || 'postgres'), // ← FIXED LINE 17
-    //     database: config.get<string>('DB_NAME'),
-    //     autoLoadEntities: true,
-    //     migrationsRun: false,
-    //     synchronize: false,
-    //   }),
-    // }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres',
+        host: config.get<string>('DB_HOST'),
+        port: config.get<number>('DB_PORT'),
+        username: config.get<string>('DB_USER'),
+        password: String(config.get<string>('DB_PASS') || 'postgres'), // ← FIXED LINE 17
+        database: config.get<string>('DB_NAME'),
+        autoLoadEntities: true,
+        migrationsRun: false,
+        synchronize: false,
+      }),
+    }),
     UserModule,
-    // WaitlistModule,
+    WaitlistModule,
     AuthModule,
   ],
   controllers: [AppController],

@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { Logger } from 'winston';
 import { IUser } from './entities/user.entity'; // Even if the file is empty, the type is needed
 
 // In-memory array of users for demonstration purposes
@@ -18,20 +19,22 @@ const users: IUser[] = [
 
 @Injectable()
 export class UserService {
-  // private readonly logger: Logger;
-  constructor() {
-    // @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
-    // this.logger = logger.child({
-    //   context: UserService.name,
-    // });
-    // Hash the initial password
-    bcrypt.hash('password123', 10).then((hash) => {
+  private readonly logger: Logger;
+ 
+    constructor(
+      @Inject(WINSTON_MODULE_PROVIDER) private readonly baseLogger: Logger,
+      
+    ) {
+      // Attach service context to logs
+      this.logger = this.baseLogger.child({ context: UserService.name });
+    // Hash initial passwords for demonstration
+      bcrypt.hash('password123', 10).then((hash) => {
       const user = users.find((u) => u.id === '1');
       if (user) {
         user.password = hash;
       }
     });
-  }
+    }
 
   async findByEmail(email: string): Promise<IUser> {
     return users.find((user) => user.email === email);
