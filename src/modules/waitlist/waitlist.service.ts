@@ -28,9 +28,8 @@ export class WaitlistService {
     private readonly waitlistRepository: Repository<Waitlist>,
     private readonly emailService: EmailService,
   ) {
-      this.logger = baseLogger.child({ context: WaitlistService.name });
-    }
-
+    this.logger = baseLogger.child({ context: WaitlistService.name });
+  }
 
   async create(createWaitlistDto: CreateWaitlistDto): Promise<Waitlist> {
     const existingEntry = await this.waitlistRepository.findOne({

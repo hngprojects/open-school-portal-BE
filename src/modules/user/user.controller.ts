@@ -1,14 +1,29 @@
-import { Controller, Get, Param, Delete, Post, HttpCode, HttpStatus, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Delete,
+  Post,
+  HttpCode,
+  HttpStatus,
+  Body,
+} from '@nestjs/common';
 
-import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UserService } from './user.service';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
-
+  
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a new user' })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'The user has been successfully created.', 
+  })
   async create(@Body() createUserDto: CreateUserDto) {
     return await this.userService.create(createUserDto);
   }

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+
 import { CreateSchoolDto } from './dto/create-school.dto';
 import { UpdateSchoolDto } from './dto/update-school.dto';
 

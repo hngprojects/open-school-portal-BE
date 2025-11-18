@@ -1,9 +1,9 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
-import { UserModelAction } from './model-actions/user-actions';
-import { User } from './entities/user.entity';
-import { CreateUserDto } from './dto/create-user.dto';
-import { SYS_MSG } from 'src/constants/system-messages';
+import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
+
+import { CreateUserDto } from './dto/create-user.dto';
+import { User } from './entities/user.entity';
+import { UserModelAction } from './model-actions/user-actions';
 
 @Injectable()
 export class UserService {
@@ -21,12 +21,12 @@ export class UserService {
 
   async create(createPayload: CreateUserDto): Promise<User> {
     return this.dataSource.transaction(async (manager) => {
-       const newUser = await this.userModelAction.create({
+      const newUser = await this.userModelAction.create({
         createPayload: {
           ...createPayload,
           is_active: true,
         },
-        transactionOptions: {useTransaction: false},
+        transactionOptions: { useTransaction: false },
       });
       return newUser;
     });

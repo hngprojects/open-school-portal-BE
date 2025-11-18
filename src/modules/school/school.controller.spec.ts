@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+
 import { SchoolController } from './school.controller';
 import { SchoolService } from './school.service';
 

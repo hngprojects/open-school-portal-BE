@@ -1,5 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn, Unique } from 'typeorm';
-import { BaseEntity } from 'src/entities/base-entity'; 
+import { Entity, Column, Unique } from 'typeorm';
+
+import { BaseEntity } from 'src/entities/base-entity';
 
 export enum UserRole {
   ADMIN = 'ADMIN',
@@ -9,16 +10,15 @@ export enum UserRole {
 }
 
 @Entity({ name: 'users' })
-@Unique(['email']) 
+@Unique(['email'])
 export class User extends BaseEntity {
-
   @Column()
   first_name: string;
 
   @Column()
   last_name: string;
 
-  @Column({ nullable: true }) 
+  @Column({ nullable: true })
   middle_name: string;
 
   @Column()
@@ -36,8 +36,8 @@ export class User extends BaseEntity {
   @Column({
     type: 'enum',
     enum: UserRole,
-    array: true, 
-    default: [UserRole.STUDENT], 
+    array: true,
+    default: [UserRole.STUDENT],
   })
   role: UserRole[];
 
