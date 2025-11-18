@@ -113,3 +113,13 @@ export const SUBSCRIPTION_ACTIVE = 'subscription active';
 // Notifications
 export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
+
+//Roles
+export const roles_fetched_successfully = 'Roles fetched successfully';
+export const role_created_successfully = 'Role created successfully';
+export const role_name_conflict = (name: string) =>
+  `Role with the name ${name} already exists`;
+export const role_not_found = (name: string) =>
+  `Role with name ${name} not found`;
+export const role_fetched_successfully = (name: string) =>
+  `Role with name ${name} fetched successfully`;
