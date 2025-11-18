@@ -23,7 +23,7 @@ export class Session {
 
   @Column()
   userId: string;
-
+//This will be used when the user entity has been added
 //   @ManyToOne(() => User, (user) => user.sessions)
 //    user: User;
 }
