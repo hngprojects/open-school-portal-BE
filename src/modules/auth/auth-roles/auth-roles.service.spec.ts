@@ -1,6 +1,12 @@
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  HttpStatus,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+
+import { ROLE_UPDATED } from '../../../constants/system.messages';
 
 import { AuthRolesService } from './auth-roles.service';
 import { UpdateRoleDto } from './dto/update-role.dto';
@@ -103,6 +109,12 @@ describe('AuthRolesService', () => {
         name: 'new_unique_name',
       };
 
+      const expectedResponse = {
+        status_code: HttpStatus.OK,
+        message: ROLE_UPDATED,
+        data: updatedRole,
+      };
+
       mockRoleRepository.findOne
         .mockResolvedValueOnce(mockRole)
         .mockResolvedValueOnce(null);
@@ -112,7 +124,7 @@ describe('AuthRolesService', () => {
       const updateData: UpdateRoleDto = { name: 'new_unique_name' };
       const result = await service.updateRole('role-123', updateData);
 
-      expect(result).toEqual(updatedRole);
+      expect(result).toEqual(expectedResponse);
       expect(mockRoleRepository.save).toHaveBeenCalledWith(updatedRole);
     });
   });

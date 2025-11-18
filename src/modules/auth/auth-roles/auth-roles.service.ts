@@ -3,9 +3,21 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  HttpStatus,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+
+import {
+  ROLE_NOT_FOUND,
+  CANNOT_MODIFY_SYSTEM_ROLES,
+  ROLE_ALREADY_EXISTS,
+  PERMISSIONS_MUST_BE_ARRAY,
+  USER_NOT_FOUND,
+  USER_ALREADY_HAS_ROLE,
+  ROLE_UPDATED,
+  ROLE_ASSIGNED_SUCCESSFULLY,
+} from '../../../constants/system.messages';
 
 import { AssignRoleDto } from './dto/assign-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
@@ -19,7 +31,7 @@ export class AuthRolesService {
     @InjectRepository(User) private userRepository: Repository<User>,
   ) {}
 
-  async updateRole(roleId: string, updateData: UpdateRoleDto): Promise<Role> {
+  async updateRole(roleId: string, updateData: UpdateRoleDto) {
     // Find role by ID
     const role = await this.roleRepository.findOne({
       where: { id: roleId },
@@ -27,14 +39,12 @@ export class AuthRolesService {
 
     // Check if role exists
     if (!role) {
-      throw new NotFoundException('Role not found');
+      throw new NotFoundException(ROLE_NOT_FOUND);
     }
 
-    // rotect system roles from modification
+    // Protect system roles from modification
     if (role.is_system_role === true) {
-      throw new BadRequestException(
-        'Cannot modify system roles (admin, teacher, student, parent)',
-      );
+      throw new BadRequestException(CANNOT_MODIFY_SYSTEM_ROLES);
     }
 
     // Check for duplicate role name (if name is being updated)
@@ -44,48 +54,60 @@ export class AuthRolesService {
       });
 
       if (existingRole) {
-        throw new ConflictException('Role name already exists');
+        throw new ConflictException(ROLE_ALREADY_EXISTS);
       }
     }
 
     // Validate permissions format (if permissions are being updated)
     if (updateData.permissions && !Array.isArray(updateData.permissions)) {
-      throw new BadRequestException('Permissions must be an array');
+      throw new BadRequestException(PERMISSIONS_MUST_BE_ARRAY);
     }
 
     // Update role fields
     Object.assign(role, updateData);
 
     // Save updated role
-    return this.roleRepository.save(role);
+    const updatedRole = await this.roleRepository.save(role);
+
+    return {
+      status_code: HttpStatus.OK,
+      message: ROLE_UPDATED,
+      data: updatedRole,
+    };
   }
 
-  async assignRoleToUser(userId: string, dto: AssignRoleDto): Promise<User> {
-    //find user
+  async assignRoleToUser(userId: string, dto: AssignRoleDto) {
+    // Find user
     const user = await this.userRepository.findOne({
       where: { id: userId },
     });
-    //check if user exists
+    // Check if user exists
     if (!user) {
-      throw new NotFoundException();
+      throw new NotFoundException(USER_NOT_FOUND);
     }
-    //find role
+    // Find role
     const role = await this.roleRepository.findOne({
       where: { id: dto.role_id },
     });
-    //check if role exists
+    // Check if role exists
     if (!role) {
-      throw new NotFoundException();
+      throw new NotFoundException(ROLE_NOT_FOUND);
     }
-    //Check if user already has that role
+    // Check if user already has that role
     if (user.role_id === dto.role_id) {
-      throw new ConflictException();
+      throw new ConflictException(USER_ALREADY_HAS_ROLE);
     }
 
-    //Assign role
+    // Assign role
     user.role_id = dto.role_id;
     user.role = role;
 
-    return this.userRepository.save(user);
+    const updatedUser = await this.userRepository.save(user);
+
+    return {
+      status_code: HttpStatus.OK,
+      message: ROLE_ASSIGNED_SUCCESSFULLY,
+      data: updatedUser,
+    };
   }
 }

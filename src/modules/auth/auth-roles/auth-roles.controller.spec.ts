@@ -1,4 +1,10 @@
+import { HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+
+import {
+  ROLE_UPDATED,
+  ROLE_ASSIGNED_SUCCESSFULLY,
+} from '../../../constants/system.messages';
 
 import { AuthRolesController } from './auth-roles.controller';
 import { AuthRolesService } from './auth-roles.service';
@@ -38,6 +44,19 @@ describe('AuthRolesController', () => {
     is_active: true,
   };
 
+  // Mock service responses with the new format
+  const mockUpdateRoleResponse = {
+    status_code: HttpStatus.OK,
+    message: ROLE_UPDATED,
+    data: mockRole,
+  };
+
+  const mockAssignRoleResponse = {
+    status_code: HttpStatus.OK,
+    message: ROLE_ASSIGNED_SUCCESSFULLY,
+    data: mockUser,
+  };
+
   const mockAuthRolesService = {
     updateRole: jest.fn(),
     assignRoleToUser: jest.fn(),
@@ -73,7 +92,11 @@ describe('AuthRolesController', () => {
     it('should successfully update a role and return 200 status', async () => {
       // Arrange
       const updatedRole = { ...mockRole, ...updateRoleDto };
-      mockAuthRolesService.updateRole.mockResolvedValue(updatedRole);
+      const mockResponse = {
+        ...mockUpdateRoleResponse,
+        data: updatedRole,
+      };
+      mockAuthRolesService.updateRole.mockResolvedValue(mockResponse);
 
       // Act
       const result = await controller.updateRole(roleId, updateRoleDto);
@@ -83,14 +106,16 @@ describe('AuthRolesController', () => {
         roleId,
         updateRoleDto,
       );
-      expect(result).toEqual(updatedRole);
-      expect(result.name).toBe('updated_role');
-      expect(result.description).toBe('Updated description');
+      expect(result).toEqual(mockResponse);
+      expect(result.data.name).toBe('updated_role');
+      expect(result.data.description).toBe('Updated description');
+      expect(result.status_code).toBe(HttpStatus.OK);
+      expect(result.message).toBe(ROLE_UPDATED);
     });
 
     it('should call service with correct parameters', async () => {
       // Arrange
-      mockAuthRolesService.updateRole.mockResolvedValue(mockRole);
+      mockAuthRolesService.updateRole.mockResolvedValue(mockUpdateRoleResponse);
 
       // Act
       await controller.updateRole(roleId, updateRoleDto);
@@ -108,7 +133,11 @@ describe('AuthRolesController', () => {
         description: 'Only updating description',
       };
       const partiallyUpdatedRole = { ...mockRole, ...partialUpdateDto };
-      mockAuthRolesService.updateRole.mockResolvedValue(partiallyUpdatedRole);
+      const mockResponse = {
+        ...mockUpdateRoleResponse,
+        data: partiallyUpdatedRole,
+      };
+      mockAuthRolesService.updateRole.mockResolvedValue(mockResponse);
 
       // Act
       const result = await controller.updateRole(roleId, partialUpdateDto);
@@ -118,8 +147,8 @@ describe('AuthRolesController', () => {
         roleId,
         partialUpdateDto,
       );
-      expect(result.description).toBe('Only updating description');
-      expect(result.name).toBe(mockRole.name); // Unchanged
+      expect(result.data.description).toBe('Only updating description');
+      expect(result.data.name).toBe(mockRole.name); // Unchanged
     });
 
     it('should propagate NotFoundException from service', async () => {
@@ -161,7 +190,7 @@ describe('AuthRolesController', () => {
     it('should validate UUID parameter format', async () => {
       // This test is handled by NestJS ParseUUIDPipe automatically
       // The controller will reject invalid UUIDs before reaching service
-      mockAuthRolesService.updateRole.mockResolvedValue(mockRole);
+      mockAuthRolesService.updateRole.mockResolvedValue(mockUpdateRoleResponse);
 
       // Act
       const result = await controller.updateRole(roleId, updateRoleDto);
@@ -180,7 +209,11 @@ describe('AuthRolesController', () => {
     it('should successfully assign role to user and return 200 status', async () => {
       // Arrange
       const userWithNewRole = { ...mockUser, role_id: assignRoleDto.role_id };
-      mockAuthRolesService.assignRoleToUser.mockResolvedValue(userWithNewRole);
+      const mockResponse = {
+        ...mockAssignRoleResponse,
+        data: userWithNewRole,
+      };
+      mockAuthRolesService.assignRoleToUser.mockResolvedValue(mockResponse);
 
       // Act
       const result = await controller.assignRole(userId, assignRoleDto);
@@ -190,13 +223,17 @@ describe('AuthRolesController', () => {
         userId,
         assignRoleDto,
       );
-      expect(result).toEqual(userWithNewRole);
-      expect(result.role_id).toBe(assignRoleDto.role_id);
+      expect(result).toEqual(mockResponse);
+      expect(result.data.role_id).toBe(assignRoleDto.role_id);
+      expect(result.status_code).toBe(HttpStatus.OK);
+      expect(result.message).toBe(ROLE_ASSIGNED_SUCCESSFULLY);
     });
 
     it('should call service with correct parameters', async () => {
       // Arrange
-      mockAuthRolesService.assignRoleToUser.mockResolvedValue(mockUser);
+      mockAuthRolesService.assignRoleToUser.mockResolvedValue(
+        mockAssignRoleResponse,
+      );
 
       // Act
       await controller.assignRole(userId, assignRoleDto);
@@ -246,7 +283,9 @@ describe('AuthRolesController', () => {
 
     it('should validate both UUID parameters format', async () => {
       // Arrange
-      mockAuthRolesService.assignRoleToUser.mockResolvedValue(mockUser);
+      mockAuthRolesService.assignRoleToUser.mockResolvedValue(
+        mockAssignRoleResponse,
+      );
 
       // Act
       const result = await controller.assignRole(userId, assignRoleDto);
@@ -257,7 +296,9 @@ describe('AuthRolesController', () => {
 
     it('should return 200 OK for POST request (using @HttpCode)', async () => {
       // Arrange
-      mockAuthRolesService.assignRoleToUser.mockResolvedValue(mockUser);
+      mockAuthRolesService.assignRoleToUser.mockResolvedValue(
+        mockAssignRoleResponse,
+      );
 
       // Act
       const result = await controller.assignRole(userId, assignRoleDto);
@@ -269,12 +310,11 @@ describe('AuthRolesController', () => {
   // Edge Cases and Integration Tests
   describe('Edge Cases', () => {
     const roleId = '123e4567-e89b-12d3-a456-426614174000';
-    // const userId = '123e4567-e89b-12d3-a456-426614174001';
 
     it('should handle empty update body', async () => {
       // Arrange
       const emptyUpdateDto: UpdateRoleDto = {};
-      mockAuthRolesService.updateRole.mockResolvedValue(mockRole);
+      mockAuthRolesService.updateRole.mockResolvedValue(mockUpdateRoleResponse);
 
       // Act
       const result = await controller.updateRole(roleId, emptyUpdateDto);
@@ -284,7 +324,7 @@ describe('AuthRolesController', () => {
         roleId,
         emptyUpdateDto,
       );
-      expect(result).toEqual(mockRole);
+      expect(result).toEqual(mockUpdateRoleResponse);
     });
 
     it('should handle service returning null', async () => {
@@ -303,9 +343,18 @@ describe('AuthRolesController', () => {
       const updateRoleDto1: UpdateRoleDto = { name: 'role1' };
       const updateRoleDto2: UpdateRoleDto = { name: 'role2' };
 
+      const mockResponse1 = {
+        ...mockUpdateRoleResponse,
+        data: { ...mockRole, name: 'role1' },
+      };
+      const mockResponse2 = {
+        ...mockUpdateRoleResponse,
+        data: { ...mockRole, name: 'role2' },
+      };
+
       mockAuthRolesService.updateRole
-        .mockResolvedValueOnce({ ...mockRole, name: 'role1' })
-        .mockResolvedValueOnce({ ...mockRole, name: 'role2' });
+        .mockResolvedValueOnce(mockResponse1)
+        .mockResolvedValueOnce(mockResponse2);
 
       // Act - simulate concurrent calls
       const [result1, result2] = await Promise.all([
@@ -314,8 +363,8 @@ describe('AuthRolesController', () => {
       ]);
 
       // Assert
-      expect(result1.name).toBe('role1');
-      expect(result2.name).toBe('role2');
+      expect(result1.data.name).toBe('role1');
+      expect(result2.data.name).toBe('role2');
       expect(authRolesService.updateRole).toHaveBeenCalledTimes(2);
     });
   });

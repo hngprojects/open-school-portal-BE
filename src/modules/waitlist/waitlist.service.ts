@@ -1,12 +1,19 @@
 import {
-  Injectable,
   ConflictException,
+  Inject,
+  Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Repository } from 'typeorm';
+import { Logger } from 'winston';
 
-import { SYS_MSG } from '../../constants/system-messages';
+import { EmailTemplateID } from 'src/constants/email-constants';
+
+import * as sysMsg from '../../constants/system.messages';
+import { EmailService } from '../email/email.service';
+import { EmailPayload } from '../email/email.types';
 
 import { CreateWaitlistDto } from './dto/create-waitlist.dto';
 import { UpdateWaitlistDto } from './dto/update-waitlist.dto';
@@ -14,10 +21,15 @@ import { Waitlist } from './entities/waitlist.entity';
 
 @Injectable()
 export class WaitlistService {
+  private readonly logger: Logger;
   constructor(
+    @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
     @InjectRepository(Waitlist)
     private readonly waitlistRepository: Repository<Waitlist>,
-  ) {}
+    private readonly emailService: EmailService,
+  ) {
+    this.logger = baseLogger.child({ context: WaitlistService.name });
+  }
 
   async create(createWaitlistDto: CreateWaitlistDto): Promise<Waitlist> {
     const existingEntry = await this.waitlistRepository.findOne({
@@ -25,18 +37,33 @@ export class WaitlistService {
     });
 
     if (existingEntry) {
-      throw new ConflictException(SYS_MSG.EMAIL_ALREADY_EXISTS);
+      throw new ConflictException(sysMsg.EMAIL_ALREADY_EXISTS);
     }
 
     const waitlistEntry = this.waitlistRepository.create(createWaitlistDto);
     const savedEntry = await this.waitlistRepository.save(waitlistEntry);
-    await this.sendWaitlistEmail(savedEntry);
+
+    const emailPayload: EmailPayload = {
+      to: [{ email: savedEntry.email, name: savedEntry.firstName }],
+      subject: "You're on the Waitlist! | Open School Portal",
+      templateNameID: EmailTemplateID.WaitlistWelcome,
+      context: {
+        greeting: `Hi ${savedEntry.firstName},`,
+      },
+    };
+
+    this.emailService.sendMail(emailPayload).catch((err) => {
+      this.logger.error(
+        `Failed to queue welcome email for ${savedEntry.email}`,
+        err.message,
+      );
+    });
 
     return savedEntry;
   }
 
   async findAll(): Promise<Waitlist[]> {
-    return await this.waitlistRepository.find({
+    return this.waitlistRepository.find({
       order: {
         createdAt: 'DESC',
       },
@@ -49,6 +76,7 @@ export class WaitlistService {
     });
 
     if (!entry) {
+      this.logger.warn('Waitlist entry not found', { id });
       throw new NotFoundException(`Waitlist entry with ID ${id} not found`);
     }
 
@@ -67,48 +95,16 @@ export class WaitlistService {
       });
 
       if (existingEmail) {
-        throw new ConflictException(SYS_MSG.EMAIL_ALREADY_EXISTS);
+        throw new ConflictException(sysMsg.EMAIL_ALREADY_EXISTS);
       }
     }
 
     Object.assign(entry, updateWaitlistDto);
-    return await this.waitlistRepository.save(entry);
+    return this.waitlistRepository.save(entry);
   }
 
   async remove(id: string): Promise<void> {
     const entry = await this.findOne(id);
     await this.waitlistRepository.remove(entry);
-  }
-
-  private async sendWaitlistEmail(entry: Waitlist): Promise<void> {
-    console.log(`
-╔════════════════════════════════════════════════════════════════╗
-║           WAITLIST CONFIRMATION EMAIL                          ║
-╚════════════════════════════════════════════════════════════════╝
-
-To: ${entry.email}
-Subject: Welcome to Open School Portal Waitlist! ���
-
-Dear ${entry.firstName} ${entry.lastName},
-
-Thank you for joining the Open School Portal waitlist!
-
-We're excited to have you as one of our early supporters. You'll be 
-among the first to know when we officially launch.
-
-What happens next?
-✓ You're now on our priority list
-✓ You'll receive exclusive updates about our progress
-✓ You'll get early access when we launch
-
-We'll keep you posted on our journey!
-
-Best regards,
-The Open School Portal Team
-
-════════════════════════════════════════════════════════════════
-
-[Note: This is a console log. Real email will be sent in production]
-    `);
   }
 }
