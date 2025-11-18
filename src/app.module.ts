@@ -6,6 +6,7 @@ import { LoggerModule } from './common/logger.module';
 import { LoggingInterceptor } from './middleware/logging.interceptor';
 import { UserModule } from './modules/user/user.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
+import { AuthRolesModule } from './modules/auth/auth-roles/auth-roles.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     }),
     UserModule,
     WaitlistModule,
+    AuthRolesModule,
   ],
   controllers: [],
   providers: [LoggingInterceptor],

@@ -35,11 +35,10 @@
     "@nestjs/typeorm": "^11.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
-    "pg": "^8.16.3",
     "nest-winston": "^1.10.2",
+    "pg": "^8.16.3",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
-    "typeorm": "^0.3.27",
     "winston": "^3.18.3"
   },
   "devDependencies": {
@@ -71,6 +70,7 @@
     "ts-loader": "^9.5.0",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
+    "typeorm": "^0.3.27",
     "typescript": "^5.7.0"
   },
   "jest": {
