@@ -8,7 +8,7 @@ import {
   USER_NOT_FOUND,
   MFA_SETUP_SUCCESS,
 } from '../../constants/system.messages';
-import { User } from '../user/entities/user.entity';
+import { User } from '../user/models/user.model';
 
 import { User2fa } from './entities/user-2fa.entity';
 

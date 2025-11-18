@@ -1,7 +1,7 @@
 import { Entity, Column, JoinColumn, OneToOne } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
-import { User } from '../../user/entities/user.entity';
+import { User } from '../../user/models/user.model';
 
 @Entity('user_2fa')
 export class User2fa extends BaseEntity {
