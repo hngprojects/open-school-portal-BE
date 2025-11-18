@@ -5,8 +5,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
-import { Repository } from 'typeorm';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Repository } from 'typeorm';
 import { Logger } from 'winston';
@@ -30,9 +28,8 @@ export class WaitlistService {
     private readonly waitlistRepository: Repository<Waitlist>,
     private readonly emailService: EmailService,
   ) {
-      this.logger = baseLogger.child({ context: WaitlistService.name });
-    }
-
+    this.logger = baseLogger.child({ context: WaitlistService.name });
+  }
 
   async create(createWaitlistDto: CreateWaitlistDto): Promise<Waitlist> {
     const existingEntry = await this.waitlistRepository.findOne({
