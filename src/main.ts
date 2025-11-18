@@ -15,7 +15,7 @@ async function bootstrap() {
   const apiPrefix = configService.get<string>('API_PREFIX', 'api');
   const apiVersion = configService.get<string>('API_VERSION', 'v1');
   // const globalPrefix = `${apiPrefix}/${apiVersion}`;
-  configService.get<string>('SWAGGER_SERVER_PATH');
+  configService.get<string>('SWAGGER_SERVER_PATH', 'docs');
 
   // app.setGlobalPrefix(globalPrefix, {
   //   exclude: ['docs'],
@@ -39,10 +39,10 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  const swaggerPath = configService.get<string>('SWAGGER_PATH', 'docs');
-  const fullSwaggerPath = `${apiPrefix}/${apiVersion}/${swaggerPath}`;
+  // const swaggerPath = configService.get<string>('SWAGGER_PATH', 'docs');
+  // const fullSwaggerPath = `${apiPrefix}/${apiVersion}/${swaggerPath}`;
 
-  SwaggerModule.setup(fullSwaggerPath, app, document);
+  SwaggerModule.setup('docs', app, document);
 
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 
