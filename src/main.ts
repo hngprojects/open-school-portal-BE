@@ -9,16 +9,14 @@ import { LoggingInterceptor } from './middleware/logging.interceptor';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Use Winston logger
+  app.enableCors();
 
-  // Enable API versioning
   app.setGlobalPrefix('api');
   app.enableVersioning({
     type: VersioningType.URI,
     defaultVersion: '1',
   });
 
-  // Enable validation
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -27,7 +25,6 @@ async function bootstrap() {
     }),
   );
 
-  // Setup Swagger
   const config = new DocumentBuilder()
     .setTitle('Open School Portal API')
     .setDescription('API documentation for Open School Portal')

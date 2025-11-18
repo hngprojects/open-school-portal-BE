@@ -6,8 +6,8 @@ import {
   type LoggerService,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import { Repository } from 'typeorm';
 
 import { SYS_MSG } from '../../constants/system-messages';
 
@@ -36,14 +36,13 @@ export class WaitlistService {
     const waitlistEntry = this.waitlistRepository.create(createWaitlistDto);
     const savedEntry = await this.waitlistRepository.save(waitlistEntry);
 
-
     return savedEntry;
   }
 
   async findAll(): Promise<Waitlist[]> {
     return this.waitlistRepository.find({
       order: {
-        createdAt: 'DESC',
+        created_at: 'DESC',
       },
     });
   }
