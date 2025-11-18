@@ -11,6 +11,7 @@ import {
   LoggingInterceptor,
 } from './common/interceptors';
 import { LoggerModule } from './common/logger.module';
+import { EmailModule } from './modules/email/email.module';
 import { UserModule } from './modules/user/user.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
 
@@ -38,6 +39,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     }),
     WaitlistModule,
     UserModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [
