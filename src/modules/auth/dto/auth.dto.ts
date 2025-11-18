@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import {
   IsNotEmpty,
   IsEmail,
@@ -7,7 +8,6 @@ import {
   IsEnum,
   MinLength,
 } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
 
 export enum UserRole {
   ADMIN = 'ADMIN',

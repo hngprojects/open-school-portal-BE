@@ -15,10 +15,7 @@ async function bootstrap() {
   const apiPrefix = configService.get<string>('API_PREFIX', 'api');
   const apiVersion = configService.get<string>('API_VERSION', 'v1');
   const globalPrefix = `${apiPrefix}/${apiVersion}`;
-  const swaggerServerPath = configService.get<string>(
-    'SWAGGER_SERVER_PATH',
-    globalPrefix,
-  );
+  configService.get<string>('SWAGGER_SERVER_PATH', globalPrefix);
 
   app.setGlobalPrefix(globalPrefix, {
     exclude: ['docs'],

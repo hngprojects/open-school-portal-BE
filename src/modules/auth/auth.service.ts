@@ -1,27 +1,46 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  Inject,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { Logger } from 'winston';
+
 import { UserService } from '../user/user.service';
+import { WaitlistService } from '../waitlist/waitlist.service';
+
 import { AuthDto } from './dto/auth.dto';
 import { LoginDto } from './dto/login.dto';
-import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
+  private readonly logger: Logger;
   constructor(
     private readonly userService: UserService,
+    @Inject(WINSTON_MODULE_PROVIDER) logger: Logger,
     private readonly jwtService: JwtService,
-  ) {}
+  ) {
+    this.logger = logger.child({ context: WaitlistService.name });
+  }
 
   async signup(signupPayload: AuthDto) {
     // Check if user already exists
-    const existingUser = await this.userService.findByEmail(signupPayload.email);
+    const existingUser = await this.userService.findByEmail(
+      signupPayload.email,
+    );
     if (existingUser) {
       throw new ConflictException('User with this email already exists');
     }
 
     // Hash password
     const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(signupPayload.password, saltRounds);
+    const hashedPassword = await bcrypt.hash(
+      signupPayload.password,
+      saltRounds,
+    );
 
     // Create user
     const newUser = await this.userService.create({
@@ -30,7 +49,11 @@ export class AuthService {
     });
 
     // Generate tokens
-    const tokens = await this.generateTokens(newUser.id, newUser.email, newUser.role);
+    const tokens = await this.generateTokens(
+      newUser.id,
+      newUser.email,
+      newUser.role,
+    );
 
     return {
       user: {
@@ -94,6 +117,7 @@ export class AuthService {
 
       return tokens;
     } catch (error) {
+      this.logger.error('Invalid refresh token: ', error?.message);
       throw new UnauthorizedException('Invalid refresh token');
     }
   }
