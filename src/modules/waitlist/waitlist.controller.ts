@@ -10,7 +10,11 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
-import { SYS_MSG } from '../../constants/system-messages';
+import {
+   WAITLIST_ADDED_SUCCESSFULLY,
+   WAITLIST_RETRIEVED_SUCCESSFULLY,
+   OPERATION_SUCCESSFUL,
+    WAITLIST_REMOVED_SUCCESSFULLY } from  '../../constants/system.messages';
 
 import { CreateWaitlistDto } from './dto/create-waitlist.dto';
 import { WaitlistService } from './waitlist.service';
@@ -36,7 +40,7 @@ export class WaitlistController {
 
     return {
       status_code: HttpStatus.CREATED,
-      message: SYS_MSG.waitlistAddedSuccessfully,
+      message: WAITLIST_ADDED_SUCCESSFULLY,
       data: {
         id: waitlistEntry.id,
         firstName: waitlistEntry.firstName,
@@ -59,7 +63,7 @@ export class WaitlistController {
 
     return {
       status_code: HttpStatus.OK,
-      message: SYS_MSG.waitlistRetrievedSuccessfully,
+      message: WAITLIST_RETRIEVED_SUCCESSFULLY,
       data: entries.map((entry) => ({
         id: entry.id,
         firstName: entry.firstName,
@@ -78,7 +82,7 @@ export class WaitlistController {
 
     return {
       status_code: HttpStatus.OK,
-      message: SYS_MSG.operationSuccessful,
+      message: OPERATION_SUCCESSFUL,
       data: {
         id: entry.id,
         firstName: entry.firstName,
@@ -97,7 +101,7 @@ export class WaitlistController {
 
     return {
       status_code: HttpStatus.OK,
-      message: SYS_MSG.waitlistRemovedSuccessfully,
+      message: WAITLIST_REMOVED_SUCCESSFULLY,
       data: null,
     };
   }
