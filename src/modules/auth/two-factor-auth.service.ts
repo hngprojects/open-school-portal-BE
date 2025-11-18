@@ -4,7 +4,10 @@ import * as qrCode from 'qrcode';
 import * as speakeasy from 'speakeasy';
 import { Repository } from 'typeorm';
 
-import { SYS_MSG } from '../../constants/system-messages';
+import {
+  USER_NOT_FOUND,
+  MFA_SETUP_SUCCESS,
+} from '../../constants/system.messages';
 import { User } from '../user/entities/user.entity';
 
 import { User2fa } from './entities/user-2fa.entity';
@@ -39,7 +42,7 @@ export class TwoFactorAuthService {
     // Find the user
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
-      throw new NotFoundException(SYS_MSG.userNotFound);
+      throw new NotFoundException(USER_NOT_FOUND);
     }
 
     // Generate a secret for the user
@@ -79,7 +82,7 @@ export class TwoFactorAuthService {
 
     return {
       status_code: HttpStatus.OK,
-      message: SYS_MSG.twoFactorAuthEnabledSuccessfully,
+      message: MFA_SETUP_SUCCESS,
       data: {
         secret: secret.base32,
         qrCodeUrl,
