@@ -33,7 +33,7 @@ export class TwoFactorAuthService {
 
   /**
    * Enable 2FA for a user
-   * Generates a new secret, creates QR code, and generates backup codes
+   * Generates a new secret, creates QR code, and generates backup codes.
    */
   async enable2fa(userId: string): Promise<IEnable2faResponse> {
     // Find the user
