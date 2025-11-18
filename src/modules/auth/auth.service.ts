@@ -18,8 +18,8 @@ import { WaitlistService } from '../waitlist/waitlist.service';
 import { AuthDto, ForgotPasswordDto, ResetPasswordDto } from './dto/auth.dto';
 import { LoginDto } from './dto/login.dto';
 
-import dotenv from 'dotenv';
-dotenv.config();
+import { EmailPayload } from '../email/email.types';
+import { EmailTemplateID } from 'src/constants/email-constants';
 
 @Injectable()
 export class AuthService {

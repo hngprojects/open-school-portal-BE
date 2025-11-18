@@ -6,6 +6,3 @@ export enum EmailTemplateID {
   WAITLIST_WELCOME = 'waitlist-welcome.njk',
   FORGOT_PASSWORD = 'forget-password.njk',
 }
-
-export type EmailTemplateID =
-  (typeof EmailTemplateID)[keyof typeof EmailTemplateID];

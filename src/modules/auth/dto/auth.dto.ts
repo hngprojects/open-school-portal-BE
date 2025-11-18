@@ -7,6 +7,7 @@ import {
   IsArray,
   IsEnum,
   MinLength,
+  Matches,
 } from 'class-validator';
 
 export enum UserRole {

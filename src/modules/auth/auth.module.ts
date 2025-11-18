@@ -7,10 +7,12 @@ import { UserService } from '../user/user.service';
 
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
     UserModule,
+    EmailModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
@@ -24,4 +26,4 @@ import { AuthService } from './auth.service';
   providers: [AuthService, UserService],
   exports: [AuthService],
 })
-export class AuthModule {}
+export class AuthModule { }
