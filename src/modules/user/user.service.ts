@@ -1,17 +1,35 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
+import { UserModelAction } from './model-actions/user-actions';
+import { User } from './entities/user.entity';
+import { CreateUserDto } from './dto/create-user.dto';
+import { SYS_MSG } from 'src/constants/system-messages';
+import { DataSource } from 'typeorm';
 
 @Injectable()
 export class UserService {
   // private readonly logger: Logger;
-  constructor() {
+
+  constructor(
+    private readonly userModelAction: UserModelAction,
+    private readonly dataSource: DataSource,
+  ) {
     // @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
     // this.logger = logger.child({
     //   context: UserService.name,
     // });
   }
-  create() {
-    // this.logger.info('Logging action');
-    return 'This action adds a new user';
+
+  async create(createPayload: CreateUserDto): Promise<User> {
+    return this.dataSource.transaction(async (manager) => {
+       const newUser = await this.userModelAction.create({
+        createPayload: {
+          ...createPayload,
+          is_active: true,
+        },
+        transactionOptions: {useTransaction: false},
+      });
+      return newUser;
+    });
   }
 
   findAll() {
