@@ -113,3 +113,7 @@ export const SUBSCRIPTION_ACTIVE = 'subscription active';
 // Notifications
 export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
+
+// Invites
+export const PENDING_INVITES_FETCHED = 'Pending invites retrieved successfully';
+export const NO_PENDING_INVITES = 'No pending invites found';
