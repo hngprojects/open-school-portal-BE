@@ -1,6 +1,5 @@
 import { Entity, Column, Unique } from 'typeorm';
-
-import { BaseEntity } from 'src/entities/base-entity';
+import { BaseEntity } from '../../../entities/base-entity';
 
 export enum UserRole {
   ADMIN = 'ADMIN',
@@ -42,7 +41,7 @@ export class User extends BaseEntity {
   role: UserRole[];
 
   @Column()
-  password_hash: string;
+  password: string;
 
   @Column({ default: true })
   is_active: boolean;

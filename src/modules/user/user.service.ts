@@ -32,12 +32,20 @@ export class UserService {
     });
   }
 
-  findAll() {
-    return `This action returns all user`;
+  async findByEmail(email: string) {
+    return this.userModelAction.get({
+      identifierOptions: { email },
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findOne(id: string) {
+    return this.userModelAction.get({
+      identifierOptions: { id },
+    });
+  }
+
+  findAll() {
+    return `This action returns all user`;
   }
 
   update(id: number) {

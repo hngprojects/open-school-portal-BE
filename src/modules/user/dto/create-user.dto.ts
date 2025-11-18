@@ -51,7 +51,7 @@ export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
   @MinLength(8)
-  password_hash: string;
+  password: string;
 
   @IsBoolean()
   is_active?: boolean = true;
