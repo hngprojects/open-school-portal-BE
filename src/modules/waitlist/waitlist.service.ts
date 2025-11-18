@@ -5,10 +5,12 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Waitlist } from './entities/waitlist.entity';
+
+import { SYS_MSG } from '../../constants/system-messages';
+
 import { CreateWaitlistDto } from './dto/create-waitlist.dto';
 import { UpdateWaitlistDto } from './dto/update-waitlist.dto';
-import { SYS_MSG } from '../../constants/system-messages';
+import { Waitlist } from './entities/waitlist.entity';
 
 @Injectable()
 export class WaitlistService {
@@ -85,7 +87,7 @@ export class WaitlistService {
 ╚════════════════════════════════════════════════════════════════╝
 
 To: ${entry.email}
-Subject: Welcome to Open School Portal Waitlist! ���
+Subject: Welcome to Open School Portal Waitlist! ���
 
 Dear ${entry.firstName} ${entry.lastName},
 

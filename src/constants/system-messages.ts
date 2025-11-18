@@ -10,4 +10,12 @@ export const SYS_MSG = {
   INTERNAL_SERVER_ERROR: 'Internal server error occurred',
   NOT_FOUND: 'Resource not found',
   BAD_REQUEST: 'Bad request',
+
+  // Auth messages
+  REQUEST_PASSWORD_RESET_SUCCESS:
+    'Password reset request received. If a user with this email exists, an OTP will be sent.',
+  RESET_PASSWORD_SUCCESS: 'Password has been reset successfully',
+  EMAIL_NOT_FOUND: 'User with this email address not found',
+  INVALID_OTP: 'The provided OTP is invalid or has expired',
+  USER_NOT_FOUND: 'User not found',
 };
