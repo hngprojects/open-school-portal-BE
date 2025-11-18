@@ -14,12 +14,12 @@ async function bootstrap() {
   // Enable API versioning
   const apiPrefix = configService.get<string>('API_PREFIX', 'api');
   const apiVersion = configService.get<string>('API_VERSION', 'v1');
-  const globalPrefix = `${apiPrefix}/${apiVersion}`;
-  configService.get<string>('SWAGGER_SERVER_PATH', globalPrefix);
+  // const globalPrefix = `${apiPrefix}/${apiVersion}`;
+  configService.get<string>('SWAGGER_SERVER_PATH');
 
-  app.setGlobalPrefix(globalPrefix, {
-    exclude: ['docs'],
-  });
+  // app.setGlobalPrefix(globalPrefix, {
+  //   exclude: ['docs'],
+  // });
 
   // Enable validation
   app.useGlobalPipes(
