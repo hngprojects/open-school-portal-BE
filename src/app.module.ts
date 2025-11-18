@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AppController } from './app.controller';
 
 import { LoggerModule } from './common/logger.module';
 import { LoggingInterceptor } from './middleware/logging.interceptor';
@@ -36,7 +37,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     AuthModule,
     Session,
   ],
-  controllers: [],
+  controllers: [AppController],
   providers: [LoggingInterceptor],
 })
 export class AppModule {}

@@ -32,6 +32,8 @@ describe('/auth/sessions (GET)', () => {
   });
 
   afterAll(async () => {
+    if (app) {
     await app.close();
+    }
   });
 });
