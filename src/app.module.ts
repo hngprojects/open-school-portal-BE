@@ -13,6 +13,7 @@ import { EmailModule } from './modules/email/email.module';
 import { SchoolModule } from './modules/school/school.module';
 import { UserModule } from './modules/user/user.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
+import { AcademicModule } from './modules/academic/academic.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     EmailModule,
     SchoolModule,
     AuthModule,
+    AcademicModule
   ],
   controllers: [AppController],
   providers: [

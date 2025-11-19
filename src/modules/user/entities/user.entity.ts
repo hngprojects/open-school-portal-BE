@@ -1,7 +1,6 @@
 import { Entity, Column, JoinColumn, ManyToOne, Unique } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
-
 import { Stream } from '../../academic/entities/stream.entity';
 
 export enum UserRole {

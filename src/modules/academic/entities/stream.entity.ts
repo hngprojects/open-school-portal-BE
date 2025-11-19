@@ -13,7 +13,7 @@ import { User } from '../../user/entities/user.entity';
 import { Class } from './class.entity';
 
 @Entity('streams')
-@Unique(['name', 'class']) 
+@Unique(['name', 'class'])
 export class Stream extends BaseEntity {
   @Column()
   name: string; // e.g. "Gold", "A", "Blue"

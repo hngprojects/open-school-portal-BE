@@ -1,10 +1,11 @@
 import { Column, Entity, OneToMany, Unique } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
+
 import { Stream } from './stream.entity';
 
 @Entity('classes')
-@Unique(['name']) 
+@Unique(['name'])
 export class Class extends BaseEntity {
   @Column()
   name: string;

@@ -4,9 +4,9 @@ import { Repository } from 'typeorm';
 
 import { CLASS_NOT_FOUND } from 'src/constants/system.messages';
 
+import { StreamResponseDto } from '../dto/stream-response.dto';
 import { Class } from '../entities/class.entity';
 import { Stream } from '../entities/stream.entity';
-import { StreamResponseDto } from '../dto/stream-response.dto';
 
 @Injectable()
 export class StreamService {
