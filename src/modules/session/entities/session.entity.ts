@@ -1,6 +1,7 @@
 import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
-import { User } from '../../user/entities/user.entity';
+
 import { BaseEntity } from '../../../entities/base-entity';
+import { User } from '../../user/entities/user.entity';
 
 @Entity('sessions')
 export class Session extends BaseEntity {
@@ -21,9 +22,8 @@ export class Session extends BaseEntity {
 
   @Column({ nullable: true })
   revoked_at?: Date;
-  
-  @ManyToOne(() => User, user => user.sessions)
+
+  @ManyToOne(() => User, (user) => user.sessions)
   @JoinColumn({ name: 'user_id' })
   user!: User;
-
 }
