@@ -8,9 +8,9 @@ import * as SYS_MSG from '../../constants/system.messages';
 
 import { Session } from './entities/session.entity';
 import {
-  RevokeSessionData,
-  CreateSessionData,
-  RevokeAllSessionsData,
+  IRevokeSessionData,
+  ICreateSessionData,
+  IRevokeAllSessionsData,
 } from './interface/session-response.interface';
 
 @Injectable()
@@ -28,7 +28,7 @@ export class SessionService {
   async create_session(
     user_id: string,
     refresh_token: string,
-  ): Promise<CreateSessionData> {
+  ): Promise<ICreateSessionData> {
     const expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     const refresh_token_hash = await this.hash_refresh_token(refresh_token);
@@ -52,7 +52,7 @@ export class SessionService {
   async revoke_session(
     session_id: string,
     current_user_id: string,
-  ): Promise<RevokeSessionData> {
+  ): Promise<IRevokeSessionData> {
     const session = await this.sessionRepository.findOne({
       where: { id: session_id },
       relations: ['user'],
@@ -85,7 +85,7 @@ export class SessionService {
   async revoke_all_user_sessions(
     user_id: string,
     exclude_session_id?: string,
-  ): Promise<RevokeAllSessionsData> {
+  ): Promise<IRevokeAllSessionsData> {
     const query = this.sessionRepository
       .createQueryBuilder()
       .update(Session)

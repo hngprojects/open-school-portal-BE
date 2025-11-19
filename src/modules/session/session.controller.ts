@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
-import { BaseResponse } from '../../common/types/base-response.interface';
+import { IBaseResponse } from '../../common/types/base-response.interface';
 import * as SYS_MSG from '../../constants/system.messages';
 
 import {
@@ -16,8 +16,8 @@ import {
   RevokeAllSessionsDto,
 } from './dto/session-revoke.dto';
 import {
-  RevokeSessionData,
-  RevokeAllSessionsData,
+  IRevokeSessionData,
+  IRevokeAllSessionsData,
 } from './interface/session-response.interface';
 import { SessionService } from './session.service';
 
@@ -53,7 +53,7 @@ export class SessionController {
   })
   async revoke_session(
     @Body() revoke_session_dto: RevokeSessionDto,
-  ): Promise<BaseResponse<RevokeSessionData>> {
+  ): Promise<IBaseResponse<IRevokeSessionData>> {
     const result = await this.session_service.revoke_session(
       revoke_session_dto.session_id,
       revoke_session_dto.user_id,
@@ -84,7 +84,7 @@ export class SessionController {
   })
   async revoke_all_sessions(
     @Body() revoke_all_sessions_dto: RevokeAllSessionsDto,
-  ): Promise<BaseResponse<RevokeAllSessionsData>> {
+  ): Promise<IBaseResponse<IRevokeAllSessionsData>> {
     const result = await this.session_service.revoke_all_user_sessions(
       revoke_all_sessions_dto.user_id,
       revoke_all_sessions_dto.exclude_current,

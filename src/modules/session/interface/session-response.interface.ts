@@ -1,13 +1,13 @@
-export interface RevokeAllSessionsData {
+export interface IRevokeAllSessionsData {
   revoked_count: number;
 }
 
-export interface RevokeSessionData {
+export interface IRevokeSessionData {
   revoked: boolean;
   session_id: string;
 }
 
-export interface CreateSessionData {
+export interface ICreateSessionData {
   session_id: string;
   expires_at: Date;
 }
