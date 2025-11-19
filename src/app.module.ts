@@ -33,7 +33,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
         database: config.get<string>('DB_NAME'),
         autoLoadEntities: true,
         migrationsRun: false,
-        synchronize: false,
+        synchronize: true,
       }),
     }),
     AuthModule,
