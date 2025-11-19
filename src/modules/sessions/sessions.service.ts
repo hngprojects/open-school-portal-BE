@@ -1,10 +1,13 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
+
 import { Session } from './entities/session.entity';
 
 @Injectable()
 export class SessionsService {
+  private readonly logger = new Logger(SessionsService.name);
+
   constructor(
     @InjectRepository(Session)
     private readonly sessionRepo: Repository<Session>,
@@ -21,9 +24,11 @@ export class SessionsService {
         order: { createdAt: 'DESC' },
       });
     } catch (error) {
-      throw new InternalServerErrorException(
-        'Failed to fetch active sessions',
+      this.logger.error(
+        `Failed to fetch active sessions for user ${userId}`,
+        error,
       );
+      throw error;
     }
   }
 }

@@ -1,8 +1,14 @@
 import { Controller, Get, Req, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { SessionsService } from './sessions.service';
+import {
+  ApiBearerAuth,
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+import { SessionsService } from './sessions.service';
 
 @ApiTags('Sessions')
 @ApiBearerAuth()
@@ -29,7 +35,6 @@ export class SessionsController {
     },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-
   async getActiveSessions(@Req() req) {
     return this.sessionsService.getActiveSessions(req.user.userId);
   }
