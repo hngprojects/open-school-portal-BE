@@ -20,6 +20,7 @@ import { EmailPayload } from '../email/email.types';
 import { SessionService } from '../session/session.service';
 import { UserService } from '../user/user.service';
 
+import { AdminResetPasswordResponseDto } from './dto/admin-reset-password.dto';
 import { AuthDto, ForgotPasswordDto, ResetPasswordDto } from './dto/auth.dto';
 import { LoginDto } from './dto/login.dto';
 
@@ -249,6 +250,38 @@ export class AuthService {
     this.logger.info(`Password successfully reset for user: ${user.email}`);
 
     return { message: 'Password has been successfully reset' };
+  }
+
+  async adminResetPassword(
+    userId: string,
+    newPassword: string,
+  ): Promise<AdminResetPasswordResponseDto> {
+    const user = await this.userService.findOne(userId);
+    if (!user) {
+      throw new BadRequestException(`User with ID ${userId} doesn't exist`);
+    }
+
+    if (user.is_active === false) {
+      throw new BadRequestException('Cannot reset password for inactive user');
+    }
+
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    user.password = hashedPassword;
+    user.updatedAt = new Date();
+
+    await this.userService.updateUser(
+      { password: hashedPassword },
+      { id: userId },
+      { useTransaction: false },
+    );
+
+    return {
+      success: true,
+      message: 'Password has been reset successfully',
+      resetAt: user.updatedAt,
+    };
   }
 
   async activateUserAccount(id: string) {

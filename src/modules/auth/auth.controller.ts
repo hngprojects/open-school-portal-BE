@@ -1,19 +1,34 @@
 import {
-  Body,
   Controller,
+  Post,
+  Body,
   HttpCode,
   HttpStatus,
+  UseGuards,
   Param,
   Patch,
-  Post,
 } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import * as sysMsg from '../../constants/system.messages';
 
 import { AuthService } from './auth.service';
+import { Roles } from './decorators/roles.decorator';
+import {
+  AdminResetPasswordDto,
+  AdminResetPasswordResponseDto,
+} from './dto/admin-reset-password.dto';
 import { AuthDto, ForgotPasswordDto, ResetPasswordDto } from './dto/auth.dto';
 import { LoginDto } from './dto/login.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -119,6 +134,38 @@ export class AuthController {
   @Post('reset-password')
   resetPassword(@Body() payload: ResetPasswordDto) {
     return this.authService.resetPassword(payload);
+  }
+
+  @Post('users/:user-id/reset')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Admin force password reset',
+    description: "Allows administrators to reset a user's password",
+  })
+  @ApiParam({
+    name: 'userId',
+    type: 'string',
+    description: 'The ID of the user whose password will be reset',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset successfully',
+    type: AdminResetPasswordResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async adminResetPassword(
+    @Param('userId') userId: string,
+    @Body() adminResetPasswordDto: AdminResetPasswordDto,
+  ): Promise<AdminResetPasswordResponseDto> {
+    return this.authService.adminResetPassword(
+      userId,
+      adminResetPasswordDto.newPassword,
+    );
   }
 
   @Patch('users/:user_id/activate')
