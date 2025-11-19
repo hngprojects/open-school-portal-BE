@@ -16,7 +16,7 @@ import {
 } from './entities/academic-session.entity';
 import { AcademicSessionModelAction } from './model-actions/academic-session-actions';
 
-export interface ListSessionsOptions {
+export interface IListSessionsOptions {
   page?: number;
   limit?: number;
   order?: FindOptionsOrder<AcademicSession>;
@@ -88,11 +88,7 @@ export class AcademicSessionService {
     return sessions.payload[0];
   }
 
-  /**
-   * Lists sessions with optional pagination parameters.
-   * Falls back to a simple list (ordered by start date) when no pagination is supplied.
-   */
-  async findAll(options: ListSessionsOptions = {}) {
+  async findAll(options: IListSessionsOptions = {}) {
     const normalizedPage = Math.max(1, Math.floor(options.page ?? 1));
     const normalizedLimit = Math.max(1, Math.floor(options.limit ?? 20));
 
