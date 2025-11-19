@@ -1,32 +1,29 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
 import { BaseEntity } from '../../../entities/base-entity';
 
 @Entity('sessions')
 export class Session extends BaseEntity {
-  @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  @Column()
+  user_id!: string;
 
   @Column()
-  userId!: string;
+  expires_at!: Date;
 
-  @Column()
-  expiresAt!: Date;
+  @Column({ type: 'text' })
+  refresh_token!: string;
 
-  @Column({ nullable: true })
-  refreshToken?: string;
-
-  @Column({ default: 'session' })
+  @Column({ default: 'jwt' })
   provider!: string;
 
   @Column({ default: true })
-  isActive!: boolean;
+  is_active!: boolean;
 
   @Column({ nullable: true })
-  revokedAt?: Date;
+  revoked_at?: Date;
   
-  @ManyToOne(() => User)
-  @JoinColumn({ name: 'userId' })
+  @ManyToOne(() => User, user => user.sessions)
+  @JoinColumn({ name: 'user_id' })
   user!: User;
 
 }
