@@ -126,3 +126,8 @@ export const DUPLICATE_SESSION_NAME =
 export const INVALID_DATE_RANGE = 'End date must be after start date.';
 export const START_DATE_IN_PAST = 'Start date cannot be in the past.';
 export const END_DATE_IN_PAST = 'End date cannot be in the past.';
+// Session management messages
+export const SESSION_REVOKED = 'session revoked successfully';
+export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
+export const SESSION_NOT_FOUND = 'session not found';
+export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
