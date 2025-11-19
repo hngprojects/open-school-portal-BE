@@ -123,3 +123,9 @@ export const INVITE_SENT = 'INVITE_SENT';
 export const PENDING_INVITES_FETCHED = 'Pending invites retrieved successfully';
 export const NO_PENDING_INVITES = 'No pending invites found';
 export const INVITE_ALREADY_SENT = 'INVITE_ALREADY_SENT';
+
+// Session management messages
+export const SESSION_REVOKED = 'session revoked successfully';
+export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
+export const SESSION_NOT_FOUND = 'session not found';
+export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
