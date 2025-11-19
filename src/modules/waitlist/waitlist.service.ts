@@ -9,9 +9,8 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Repository } from 'typeorm';
 import { Logger } from 'winston';
 
-import { EmailTemplateID } from 'src/constants/email-constants';
-
-import { SYS_MSG } from '../../constants/system-messages';
+import { EmailTemplateID } from '../../constants/email-constants';
+import * as sysMsg from '../../constants/system.messages';
 import { EmailService } from '../email/email.service';
 import { EmailPayload } from '../email/email.types';
 
@@ -28,9 +27,8 @@ export class WaitlistService {
     private readonly waitlistRepository: Repository<Waitlist>,
     private readonly emailService: EmailService,
   ) {
-      this.logger = baseLogger.child({ context: WaitlistService.name });
-    }
-
+    this.logger = baseLogger.child({ context: WaitlistService.name });
+  }
 
   async create(createWaitlistDto: CreateWaitlistDto): Promise<Waitlist> {
     const existingEntry = await this.waitlistRepository.findOne({
@@ -38,7 +36,7 @@ export class WaitlistService {
     });
 
     if (existingEntry) {
-      throw new ConflictException(SYS_MSG.emailAlreadyExists);
+      throw new ConflictException(sysMsg.EMAIL_ALREADY_EXISTS);
     }
 
     const waitlistEntry = this.waitlistRepository.create(createWaitlistDto);
@@ -47,8 +45,8 @@ export class WaitlistService {
     const emailPayload: EmailPayload = {
       to: [{ email: savedEntry.email, name: savedEntry.firstName }],
       subject: "You're on the Waitlist! | Open School Portal",
-      templateNameID: EmailTemplateID.WaitlistWelcome,
-      context: {
+      templateNameID: EmailTemplateID.WAITLIST_WELCOME,
+      templateData: {
         greeting: `Hi ${savedEntry.firstName},`,
       },
     };
@@ -96,7 +94,7 @@ export class WaitlistService {
       });
 
       if (existingEmail) {
-        throw new ConflictException(SYS_MSG.emailAlreadyExists);
+        throw new ConflictException(sysMsg.EMAIL_ALREADY_EXISTS);
       }
     }
 
