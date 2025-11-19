@@ -3,12 +3,19 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
+import { FindOptionsOrder } from 'typeorm';
 
 import * as sysMsg from '../../constants/system.messages';
 
 import { CreateAcademicSessionDto } from './dto/create-academic-session.dto';
 import { AcademicSession } from './entities/academic-session.entity';
 import { AcademicSessionModelAction } from './model-actions/academic-session-actions';
+
+type ListSessionsOptions = {
+  page?: number;
+  limit?: number;
+  order?: FindOptionsOrder<AcademicSession>;
+};
 
 @Injectable()
 export class AcademicSessionService {
@@ -52,8 +59,26 @@ export class AcademicSessionService {
     return newSession;
   }
 
-  findAll() {
-    return `This action returns all academicSession`;
+  /**
+   * Lists sessions with optional pagination parameters.
+   * Falls back to a simple list (ordered by start date) when no pagination is supplied.
+   */
+  async findAll(options: ListSessionsOptions = {}) {
+    const normalizedPage = Math.max(1, Math.floor(options.page ?? 1));
+    const normalizedLimit = Math.max(1, Math.floor(options.limit ?? 20));
+
+    const { payload, paginationMeta } = await this.sessionModelAction.list({
+      order: options.order ?? { startDate: 'ASC' },
+      paginationPayload: {
+        page: normalizedPage,
+        limit: normalizedLimit,
+      },
+    });
+
+    return {
+      data: payload,
+      meta: paginationMeta,
+    };
   }
 
   findOne(id: number) {
