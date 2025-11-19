@@ -247,7 +247,7 @@ export class AuthService {
       resetAt: user.updatedAt,
     };
   }
-  
+
   async activateUserAccount(id: string) {
     const user = await this.userService.findOne(id);
 
