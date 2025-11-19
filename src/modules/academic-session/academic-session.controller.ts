@@ -7,10 +7,13 @@ import {
   Param,
   Delete,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
 
 import { AcademicSessionService } from './academic-session.service';
+import { AcademicSessionSwagger } from './docs/academic-session.swagger';
 import { CreateAcademicSessionDto } from './dto/create-academic-session.dto';
 
+@ApiTags('Academic Session')
 @Controller('academic-session')
 export class AcademicSessionController {
   constructor(
@@ -18,6 +21,9 @@ export class AcademicSessionController {
   ) {}
 
   @Post()
+  @ApiOperation(AcademicSessionSwagger.decorators.create.operation)
+  @ApiBody(AcademicSessionSwagger.decorators.create.body)
+  @ApiResponse(AcademicSessionSwagger.decorators.create.response)
   create(@Body() createAcademicSessionDto: CreateAcademicSessionDto) {
     return this.academicSessionService.create(createAcademicSessionDto);
   }
