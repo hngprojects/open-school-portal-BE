@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { CLASS_NOT_FOUND } from 'src/constants/system.messages';
+import { CLASS_NOT_FOUND } from '../../../constants/system.messages';
 
 import { StreamResponseDto } from '../dto/stream-response.dto';
 import { Class } from '../entities/class.entity';

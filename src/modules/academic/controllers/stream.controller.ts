@@ -10,7 +10,7 @@ import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   CLASS_NOT_FOUND,
   STREAMS_RETRIEVED,
-} from 'src/constants/system.messages';
+} from '../../../constants/system.messages';
 
 import { StreamResponseDto } from '../dto/stream-response.dto';
 import { StreamService } from '../services/stream.service';
