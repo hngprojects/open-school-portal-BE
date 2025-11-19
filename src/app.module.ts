@@ -9,12 +9,17 @@ import { GlobalExceptionFilter } from './common/exceptions/filters/global-except
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { LoggerModule } from './common/logger.module';
 import { LoggingInterceptor } from './middleware/logging.interceptor';
+import { AcademicSessionModule } from './modules/academic-session/academic-session.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { EmailModule } from './modules/email/email.module';
+import { InviteModule } from './modules/invites/invites.module';
 import { SchoolModule } from './modules/school/school.module';
 import { StreamModule } from './modules/stream/stream.module';
+import { SessionModule } from './modules/session/session.module';
 import { UserModule } from './modules/user/user.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
+import { TeachersModule } from './modules/teacher/teacher.module';
+import { ClassesModule } from './modules/classes/classes.module';
 
 @Module({
   imports: [
@@ -43,8 +48,13 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     UserModule,
     EmailModule,
     SchoolModule,
+    SessionModule,
     AuthModule,
     StreamModule,
+    TeachersModule,
+    ClassesModule,
+    InviteModule,
+    AcademicSessionModule,
   ],
   controllers: [AppController],
   providers: [
