@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 
-import { ApiSuccessResponseDto } from 'src/common/dto/response.dto';
-import { UserNotFoundException } from 'src/common/exceptions/domain.exceptions';
-import { ACCOUNT_DELETED } from 'src/constants/system.messages';
+import { ApiSuccessResponseDto } from '../../common/dto/response.dto';
+import { UserNotFoundException } from '../../common/exceptions/domain.exceptions';
+import * as sysMsg from '../../constants/system.messages';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { User } from './entities/user.entity';
@@ -90,6 +90,6 @@ export class UserService {
       updatePayload: { deleted_at: new Date() },
       transactionOptions: { useTransaction: false },
     });
-    return new ApiSuccessResponseDto(ACCOUNT_DELETED);
+    return new ApiSuccessResponseDto(sysMsg.ACCOUNT_DELETED);
   }
 }

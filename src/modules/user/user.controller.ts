@@ -17,7 +17,7 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 
-import { ApiSuccessResponseDto } from 'src/common/dto/response.dto';
+import { ApiSuccessResponseDto } from '../../common/dto/response.dto';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UserService } from './user.service';
