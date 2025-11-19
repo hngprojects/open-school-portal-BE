@@ -115,3 +115,12 @@ export const SUBSCRIPTION_ACTIVE = 'subscription active';
 // Notifications
 export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
+
+//Academic Session
+export const ACADEMIC_SESSION_CREATED =
+  'Academic session created successfully.';
+export const DUPLICATE_SESSION_NAME =
+  'An academic session with this name already exists.';
+export const INVALID_DATE_RANGE = 'End date must be after start date.';
+export const START_DATE_IN_PAST = 'Start date cannot be in the past.';
+export const END_DATE_IN_PAST = 'End date cannot be in the past.';
