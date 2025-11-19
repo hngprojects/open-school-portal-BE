@@ -3,12 +3,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 
 import { EmailModule } from '../email/email.module';
+import { SessionModule } from '../session/session.module';
 import { UserModule } from '../user/user.module';
 import { UserService } from '../user/user.service';
 
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { SessionModule } from '../session/session.module';
 
 @Module({
   imports: [

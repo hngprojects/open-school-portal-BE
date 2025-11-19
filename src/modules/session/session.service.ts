@@ -4,7 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
 
 import { CannotRevokeOtherSessionsException } from '../../common/exceptions/domain.exceptions';
-import * as SYS_MSG from '../../constants/system.messages';
+import * as sysMsg from '../../constants/system.messages';
 
 import { Session } from './entities/session.entity';
 import {
@@ -20,56 +20,56 @@ export class SessionService {
     private readonly sessionRepository: Repository<Session>,
   ) {}
 
-  private async hash_refresh_token(refresh_token: string): Promise<string> {
-    const salt_rounds = 10;
-    return bcrypt.hash(refresh_token, salt_rounds);
+  private async hashRefreshToken(refreshToken: string): Promise<string> {
+    const saltRounds = 10;
+    return bcrypt.hash(refreshToken, saltRounds);
   }
 
-  async create_session(
-    user_id: string,
-    refresh_token: string,
+  async createSession(
+    userId: string,
+    refreshToken: string,
   ): Promise<ICreateSessionData> {
-    const expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    const refresh_token_hash = await this.hash_refresh_token(refresh_token);
+    const refreshTokenHash = await this.hashRefreshToken(refreshToken);
 
     const session = this.sessionRepository.create({
-      user_id,
-      refresh_token: refresh_token_hash,
-      expires_at,
+      user_id: userId,
+      refresh_token: refreshTokenHash,
+      expires_at: expiresAt,
       provider: 'jwt',
       is_active: true,
     });
 
-    const saved_session = await this.sessionRepository.save(session);
+    const savedSession = await this.sessionRepository.save(session);
 
     return {
-      session_id: saved_session.id,
-      expires_at: saved_session.expires_at,
+      session_id: savedSession.id,
+      expires_at: savedSession.expires_at,
     };
   }
 
-  async revoke_session(
-    session_id: string,
-    current_user_id: string,
+  async revokeSession(
+    sessionId: string,
+    currentUserId: string,
   ): Promise<IRevokeSessionData> {
     const session = await this.sessionRepository.findOne({
-      where: { id: session_id },
+      where: { id: sessionId },
       relations: ['user'],
     });
 
     if (!session) {
-      return { revoked: false, session_id };
+      return { revoked: false, session_id: sessionId };
     }
 
-    if (session.user_id !== current_user_id) {
+    if (session.user_id !== currentUserId) {
       throw new CannotRevokeOtherSessionsException(
-        SYS_MSG.CANNOT_REVOKE_OTHER_SESSIONS,
+        sysMsg.CANNOT_REVOKE_OTHER_SESSIONS,
       );
     }
 
     const result = await this.sessionRepository.update(
-      { id: session_id, is_active: true },
+      { id: sessionId, is_active: true },
       {
         is_active: false,
         revoked_at: new Date(),
@@ -78,13 +78,13 @@ export class SessionService {
 
     return {
       revoked: result.affected > 0,
-      session_id,
+      session_id: sessionId,
     };
   }
 
-  async revoke_all_user_sessions(
-    user_id: string,
-    exclude_session_id?: string,
+  async revokeAllUserSessions(
+    userId: string,
+    excludeSessionId?: string,
   ): Promise<IRevokeAllSessionsData> {
     const query = this.sessionRepository
       .createQueryBuilder()
@@ -93,11 +93,13 @@ export class SessionService {
         is_active: false,
         revoked_at: new Date(),
       })
-      .where('user_id = :user_id', { user_id })
+      .where('user_id = :user_id', { user_id: userId })
       .andWhere('is_active = :is_active', { is_active: true });
 
-    if (exclude_session_id) {
-      query.andWhere('id != :exclude_session_id', { exclude_session_id });
+    if (excludeSessionId) {
+      query.andWhere('id != :exclude_session_id', {
+        exclude_session_id: excludeSessionId,
+      });
     }
 
     const result = await query.execute();

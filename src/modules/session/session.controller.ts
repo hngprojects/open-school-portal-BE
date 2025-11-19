@@ -9,7 +9,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 import { IBaseResponse } from '../../common/types/base-response.interface';
-import * as SYS_MSG from '../../constants/system.messages';
+import * as sysMsg from '../../constants/system.messages';
 
 import {
   RevokeSessionDto,
@@ -24,7 +24,7 @@ import { SessionService } from './session.service';
 @ApiTags('Authentication')
 @Controller('auth/sessions')
 export class SessionController {
-  constructor(private readonly session_service: SessionService) {}
+  constructor(private readonly sessionService: SessionService) {}
 
   @Post('revoke')
   @HttpCode(HttpStatus.OK)
@@ -51,19 +51,19 @@ export class SessionController {
       },
     },
   })
-  async revoke_session(
-    @Body() revoke_session_dto: RevokeSessionDto,
+  async revokeSession(
+    @Body() revokeSessionDto: RevokeSessionDto,
   ): Promise<IBaseResponse<IRevokeSessionData>> {
-    const result = await this.session_service.revoke_session(
-      revoke_session_dto.session_id,
-      revoke_session_dto.user_id,
+    const result = await this.sessionService.revokeSession(
+      revokeSessionDto.session_id,
+      revokeSessionDto.user_id,
     );
     if (!result.revoked) {
-      throw new NotFoundException(SYS_MSG.SESSION_NOT_FOUND);
+      throw new NotFoundException(sysMsg.SESSION_NOT_FOUND);
     }
     return {
       status_code: HttpStatus.OK,
-      message: SYS_MSG.SESSION_REVOKED,
+      message: sysMsg.SESSION_REVOKED,
       data: result,
     };
   }
@@ -82,16 +82,16 @@ export class SessionController {
       },
     },
   })
-  async revoke_all_sessions(
-    @Body() revoke_all_sessions_dto: RevokeAllSessionsDto,
+  async revokeAllSessions(
+    @Body() revokeAllSessionsDto: RevokeAllSessionsDto,
   ): Promise<IBaseResponse<IRevokeAllSessionsData>> {
-    const result = await this.session_service.revoke_all_user_sessions(
-      revoke_all_sessions_dto.user_id,
-      revoke_all_sessions_dto.exclude_current,
+    const result = await this.sessionService.revokeAllUserSessions(
+      revokeAllSessionsDto.user_id,
+      revokeAllSessionsDto.exclude_current,
     );
     return {
       status_code: HttpStatus.OK,
-      message: SYS_MSG.SESSIONS_REVOKED,
+      message: sysMsg.SESSIONS_REVOKED,
       data: result,
     };
   }

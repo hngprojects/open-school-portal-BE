@@ -16,11 +16,11 @@ import { EmailTemplateID } from 'src/constants/email-constants';
 
 import { EmailService } from '../email/email.service';
 import { EmailPayload } from '../email/email.types';
+import { SessionService } from '../session/session.service';
 import { UserService } from '../user/user.service';
 
 import { AuthDto, ForgotPasswordDto, ResetPasswordDto } from './dto/auth.dto';
 import { LoginDto } from './dto/login.dto';
-import { SessionService } from '../session/session.service';
 
 @Injectable()
 export class AuthService {
@@ -67,7 +67,10 @@ export class AuthService {
     // Create session in DB
     let sessionInfo = null;
     if (this.sessionService && tokens.refresh_token) {
-      sessionInfo = await this.sessionService.create_session(newUser.id, tokens.refresh_token);
+      sessionInfo = await this.sessionService.createSession(
+        newUser.id,
+        tokens.refresh_token,
+      );
     }
 
     return {
@@ -110,7 +113,10 @@ export class AuthService {
 
     let sessionInfo = null;
     if (this.sessionService && tokens.refresh_token) {
-      sessionInfo = await this.sessionService.create_session(user.id, tokens.refresh_token);
+      sessionInfo = await this.sessionService.createSession(
+        user.id,
+        tokens.refresh_token,
+      );
     }
 
     return {
@@ -142,7 +148,10 @@ export class AuthService {
       // Create session in DB
       let sessionInfo = null;
       if (this.sessionService && tokens.refresh_token) {
-        sessionInfo = await this.sessionService.create_session(payload.sub, tokens.refresh_token);
+        sessionInfo = await this.sessionService.createSession(
+          payload.sub,
+          tokens.refresh_token,
+        );
       }
 
       return {
