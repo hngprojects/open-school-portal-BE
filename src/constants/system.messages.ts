@@ -91,9 +91,11 @@ export const RETRY_LATER = 'retry later';
 
 // Waitlist messages
 export const WAITLIST_ADDED_SUCCESSFULLY = 'Successfully added to waitlist';
-export const WAITLIST_RETRIEVED_SUCCESSFULLY ='Waitlist entries retrieved successfully';
+export const WAITLIST_RETRIEVED_SUCCESSFULLY =
+  'Waitlist entries retrieved successfully';
 export const EMAIL_ALREADY_EXISTS = 'Email already exists in waitlist';
-export const WAITLIST_REMOVED_SUCCESSFULLY ='Entry removed from waitlist successfully';
+export const WAITLIST_REMOVED_SUCCESSFULLY =
+  'Entry removed from waitlist successfully';
 
 // Rate limits
 export const TOO_MANY_REQUESTS = 'too many requests';
@@ -115,3 +117,10 @@ export const SUBSCRIPTION_ACTIVE = 'subscription active';
 // Notifications
 export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
+
+// Streams
+export const STREAM_NAME_REQUIRED = 'Stream name is required';
+export const CLASS_NOT_FOUND = 'Class not found';
+export const STREAM_ALREADY_EXISTS_IN_CLASS =
+  'Stream name already exists within this class';
+export const STREAM_CREATED_SUCCESSFULLY = 'Stream created successfully';
