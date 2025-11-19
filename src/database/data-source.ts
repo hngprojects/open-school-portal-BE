@@ -11,8 +11,9 @@ const dataSource = new DataSource({
   password: String(process.env.DB_PASS || 'postgres'),
   database: process.env.DB_NAME,
   entities: ['src/**/*.entity.ts'],
-  migrations: ['src/database/migrations/*.ts'],
-  synchronize: false,
+  migrations: [],
+  synchronize: true,
+  migrationsRun: false,
   migrationsTableName: 'migrations',
   ssl: process.env.DB_SSL === 'true',
 });
@@ -25,3 +26,4 @@ export async function initializeDataSource() {
 }
 
 export default dataSource;
+
