@@ -10,7 +10,7 @@ on:
 
 jobs:
   ci-run:
-    runs-on: ubuntu-latest
+    runs-on: hng-13-runner
 
     steps:
       - name: Checkout repository

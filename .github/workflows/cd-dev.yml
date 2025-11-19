@@ -10,7 +10,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: hng-13-runner
     # Only deploy if CI passed
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     
@@ -31,12 +31,12 @@ jobs:
       - name: Deploy to Staging
         run: |
           sshpass -p $PASSWORD ssh -o StrictHostKeyChecking=no $USERNAME@$HOST << 'EOF'
-            cd staging/open-school-portal-BE
+            cd open-school/dev/open-school-portal-BE
             git reset --hard
-            pm2 stop open-school-be-staging
+            pm2 stop osp-be-dev
             git pull origin dev
             npm install
             npm run build
-            pm2 restart open-school-be-staging --update-env
+            pm2 restart osp-be-dev --update-env
           EOF
           
