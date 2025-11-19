@@ -164,4 +164,31 @@ export class AuthController {
       adminResetPasswordDto.newPassword,
     );
   }
+
+  @Patch('users/:user_id/activate')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: sysMsg.ACTIVATE_ACCOUNT })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: sysMsg.USER_ACTIVATED,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: sysMsg.USER_NOT_FOUND,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: sysMsg.TOKEN_INVALID,
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: sysMsg.PERMISSION_DENIED,
+  })
+  async activateAccount(@Param('user_id') userId: string) {
+    const message = await this.authService.activateUserAccount(userId);
+    return {
+      status: HttpStatus.OK,
+      message,
+    };
+  }
 }

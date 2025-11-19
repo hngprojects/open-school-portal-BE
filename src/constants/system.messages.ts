@@ -16,6 +16,10 @@ export const INVALID_CREDENTIALS = 'invalid credentials';
 export const TOKEN_EXPIRED = 'token expired';
 export const TOKEN_INVALID = 'token invalid';
 
+export const ACTIVATE_ACCOUNT = 'Activate a user account';
+export const USER_IS_ACTIVATED = 'user already activated';
+export const USER_ACTIVATED = 'user activated';
+
 // User / Account
 export const ACCOUNT_CREATED = 'account created';
 export const ACCOUNT_NOT_FOUND = 'account not found';
