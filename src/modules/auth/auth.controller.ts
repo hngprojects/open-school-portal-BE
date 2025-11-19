@@ -1,5 +1,13 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { AuthService } from './auth.service';
 import { AuthDto, ForgotPasswordDto, ResetPasswordDto } from './dto/auth.dto';
@@ -109,5 +117,33 @@ export class AuthController {
   @Post('reset-password')
   resetPassword(@Body() payload: ResetPasswordDto) {
     return this.authService.resetPassword(payload);
+  }
+
+  @Patch('users/:user_id/activate')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Activate a user account by ID' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'The user was successfully activated.',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'No user found with the provided ID.',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Request is missing a valid JWT or token is invalid.',
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description:
+      'The authenticated user does not have permission to activate this user.',
+  })
+  async activateAccount(@Param('user_id') userId: string) {
+    const message = await this.authService.activateUserAccount(userId);
+    return {
+      status: HttpStatus.OK,
+      message,
+    };
   }
 }
