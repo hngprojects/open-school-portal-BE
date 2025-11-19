@@ -47,6 +47,9 @@ export class User extends BaseEntity {
   @Column({ default: true })
   is_active: boolean;
 
+  @Column({ default: true, nullable: true })
+  is_verified?: boolean;
+
   @Column({ type: 'timestamp', nullable: true, default: null })
   last_login_at: Date | null;
 
