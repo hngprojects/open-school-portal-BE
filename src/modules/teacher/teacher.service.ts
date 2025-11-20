@@ -2,11 +2,10 @@ import {
   Injectable,
   ConflictException,
   NotFoundException,
-  InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
-import { Repository, DataSource } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 
 import { UserRole } from '../shared/enums';
 import { FileService } from '../shared/file/file.service';
@@ -15,6 +14,7 @@ import {
   generateStrongPassword,
 } from '../shared/utils/password.util';
 import { User } from '../user/entities/user.entity';
+import { UserModelAction } from '../user/model-actions/user-actions';
 
 import {
   CreateTeacherDto,
@@ -24,17 +24,19 @@ import {
 } from './dto';
 import { GeneratePasswordResponseDto } from './dto/generate-password-response.dto';
 import { Teacher } from './entities/teacher.entity';
+import { TeacherModelAction } from './model-actions/teacher-actions';
 import { generateEmploymentId } from './utils/employment-id.util';
 
 @Injectable()
 export class TeacherService {
   constructor(
+    private readonly teacherModelAction: TeacherModelAction,
+    private readonly userModelAction: UserModelAction,
+    private readonly dataSource: DataSource,
+    private readonly fileService: FileService,
+    // Keep repository for complex queries and employment ID generation
     @InjectRepository(Teacher)
-    private teacherRepository: Repository<Teacher>,
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
-    private dataSource: DataSource,
-    private fileService: FileService,
+    private readonly teacherRepository: Repository<Teacher>,
   ) {}
 
   // --- PASSWORD GENERATION ---
@@ -61,74 +63,77 @@ export class TeacherService {
 
   // --- CREATE ---
   async create(createDto: CreateTeacherDto): Promise<TeacherResponseDto> {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+    // 1. Check for existing user with email
+    const existingUser = await this.userModelAction.get({
+      identifierOptions: { email: createDto.email },
+    });
+    if (existingUser) {
+      throw new ConflictException(
+        `User with email ${createDto.email} already exists.`,
+      );
+    }
 
-    try {
-      // 1. Check for existing user with email
-      const existingUser = await this.userRepository.findOne({
-        where: { email: createDto.email },
-      });
-      if (existingUser) {
-        throw new ConflictException(
-          `User with email ${createDto.email} already exists.`,
-        );
-      }
+    // 2. Generate Employment ID
+    const employmentId =
+      createDto.employment_id ||
+      (await generateEmploymentId(this.teacherRepository));
+    const existingTeacher = await this.teacherModelAction.get({
+      identifierOptions: { employmentId },
+    });
+    if (existingTeacher) {
+      throw new ConflictException(
+        `Employment ID ${employmentId} already exists.`,
+      );
+    }
 
-      // 2. Generate Employment ID
-      const employmentId =
-        createDto.employment_id ||
-        (await generateEmploymentId(this.teacherRepository));
-      const existingTeacher = await this.teacherRepository.findOne({
-        where: { employmentId },
-      });
-      if (existingTeacher) {
-        throw new ConflictException(
-          `Employment ID ${employmentId} already exists.`,
-        );
-      }
+    // 3. Prepare User data
+    const rawPassword = createDto.password || generateStrongPassword(12);
+    const hashedPassword = await hashPassword(rawPassword);
 
-      // 3. Prepare User data
-      const rawPassword = createDto.password || generateStrongPassword(12);
-      const hashedPassword = await hashPassword(rawPassword);
+    // 4. Validate Photo URL if provided
+    let photoUrl: string | undefined = undefined;
+    if (createDto.photo_url) {
+      photoUrl = this.fileService.validatePhotoUrl(createDto.photo_url);
+    }
 
-      const newUser = this.userRepository.create({
-        first_name: createDto.first_name,
-        last_name: createDto.last_name,
-        middle_name: createDto.middle_name,
-        email: createDto.email,
-        phone: createDto.phone,
-        gender: createDto.gender,
-        dob: new Date(createDto.date_of_birth),
-        homeAddress: createDto.home_address,
-        password: hashedPassword,
-        role: [UserRole.TEACHER],
-        is_active: createDto.is_active ?? true,
-      });
-
-      const savedUser = await queryRunner.manager.save(User, newUser);
-
-      // 4. Validate Photo URL if provided
-      let photoUrl: string | undefined = undefined;
-      if (createDto.photo_url) {
-        photoUrl = this.fileService.validatePhotoUrl(createDto.photo_url);
-      }
-
-      // 5. Prepare Teacher data
-      const newTeacher = this.teacherRepository.create({
-        userId: savedUser.id,
-        employmentId: employmentId,
-        title: createDto.title,
-        photoUrl: photoUrl,
-        isActive: createDto.is_active ?? true,
+    return this.dataSource.transaction(async (manager) => {
+      // 5. Create User using model action within transaction
+      const savedUser = await this.userModelAction.create({
+        createPayload: {
+          first_name: createDto.first_name,
+          last_name: createDto.last_name,
+          middle_name: createDto.middle_name,
+          email: createDto.email,
+          phone: createDto.phone,
+          gender: createDto.gender,
+          dob: new Date(createDto.date_of_birth),
+          homeAddress: createDto.home_address,
+          password: hashedPassword,
+          role: [UserRole.TEACHER],
+          is_active: createDto.is_active ?? true,
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
       });
 
-      const savedTeacher = await queryRunner.manager.save(Teacher, newTeacher);
+      // 6. Create Teacher using model action within transaction
+      const savedTeacher = await this.teacherModelAction.create({
+        createPayload: {
+          userId: savedUser.id,
+          employmentId: employmentId,
+          title: createDto.title,
+          photoUrl: photoUrl,
+          isActive: createDto.is_active ?? true,
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
 
-      await queryRunner.commitTransaction();
-
-      // 6. Return response (Transform User/Teacher entities into DTO)
+      // 7. Return response (Transform User/Teacher entities into DTO)
       const response = {
         ...savedTeacher,
         first_name: savedUser.first_name,
@@ -149,15 +154,7 @@ export class TeacherService {
       return plainToInstance(TeacherResponseDto, response, {
         excludeExtraneousValues: true,
       });
-    } catch (err) {
-      await queryRunner.rollbackTransaction();
-      if (err instanceof ConflictException) throw err;
-      throw new InternalServerErrorException(
-        `Teacher creation failed: ${err.message}`,
-      );
-    } finally {
-      await queryRunner.release();
-    }
+    });
   }
 
   // --- READ (LIST) ---
@@ -241,9 +238,9 @@ export class TeacherService {
 
   // --- READ (ONE) ---
   async findOne(id: number): Promise<TeacherResponseDto> {
-    const teacher = await this.teacherRepository.findOne({
-      where: { id },
-      relations: ['user'],
+    const teacher = await this.teacherModelAction.get({
+      identifierOptions: { id },
+      relations: { user: true },
     });
 
     if (!teacher) {
@@ -277,9 +274,9 @@ export class TeacherService {
     id: number,
     updateDto: UpdateTeacherDto,
   ): Promise<TeacherResponseDto> {
-    const teacher = await this.teacherRepository.findOne({
-      where: { id },
-      relations: ['user'],
+    const teacher = await this.teacherModelAction.get({
+      identifierOptions: { id },
+      relations: { user: true },
     });
 
     if (!teacher) {
@@ -296,48 +293,60 @@ export class TeacherService {
       );
     }
 
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+    // Prepare update payloads
+    const userUpdatePayload: Partial<User> = {};
+    if (updateDto.first_name !== undefined)
+      userUpdatePayload.first_name = updateDto.first_name;
+    if (updateDto.last_name !== undefined)
+      userUpdatePayload.last_name = updateDto.last_name;
+    if (updateDto.middle_name !== undefined)
+      userUpdatePayload.middle_name = updateDto.middle_name;
+    if (updateDto.phone !== undefined)
+      userUpdatePayload.phone = updateDto.phone;
+    if (updateDto.gender !== undefined)
+      userUpdatePayload.gender = updateDto.gender;
+    if (updateDto.date_of_birth !== undefined)
+      userUpdatePayload.dob = new Date(updateDto.date_of_birth);
+    if (updateDto.home_address !== undefined)
+      userUpdatePayload.homeAddress = updateDto.home_address;
+    if (updateDto.is_active !== undefined)
+      userUpdatePayload.is_active = updateDto.is_active;
 
-    try {
-      // 1. Update User Data (Common fields)
-      if (updateDto.first_name !== undefined)
-        teacher.user.first_name = updateDto.first_name;
-      if (updateDto.last_name !== undefined)
-        teacher.user.last_name = updateDto.last_name;
-      if (updateDto.middle_name !== undefined)
-        teacher.user.middle_name = updateDto.middle_name;
-      if (updateDto.phone !== undefined) teacher.user.phone = updateDto.phone;
-      if (updateDto.gender !== undefined)
-        teacher.user.gender = updateDto.gender;
-      if (updateDto.date_of_birth !== undefined)
-        teacher.user.dob = new Date(updateDto.date_of_birth);
-      if (updateDto.home_address !== undefined)
-        teacher.user.homeAddress = updateDto.home_address;
-      if (updateDto.is_active !== undefined)
-        teacher.user.is_active = updateDto.is_active;
+    const teacherUpdatePayload: Partial<Teacher> = {};
+    if (updateDto.title !== undefined)
+      teacherUpdatePayload.title = updateDto.title;
+    if (updateDto.is_active !== undefined)
+      teacherUpdatePayload.isActive = updateDto.is_active;
 
-      const updatedUser = await queryRunner.manager.save(User, teacher.user);
+    // Handle Photo URL Update
+    if (updateDto.photo_url !== undefined) {
+      teacherUpdatePayload.photoUrl = updateDto.photo_url
+        ? this.fileService.validatePhotoUrl(updateDto.photo_url)
+        : null;
+    }
 
-      // 2. Update Teacher Data (Teacher-specific fields)
-      if (updateDto.title !== undefined) teacher.title = updateDto.title;
-      if (updateDto.is_active !== undefined)
-        teacher.isActive = updateDto.is_active;
+    return this.dataSource.transaction(async (manager) => {
+      // Update User Data using model action within transaction
+      const updatedUser = await this.userModelAction.update({
+        identifierOptions: { id: teacher.userId },
+        updatePayload: userUpdatePayload,
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
 
-      // 3. Handle Photo URL Update
-      if (updateDto.photo_url !== undefined) {
-        // Validate the new photo URL
-        teacher.photoUrl = updateDto.photo_url
-          ? this.fileService.validatePhotoUrl(updateDto.photo_url)
-          : null;
-      }
+      // Update Teacher Data using model action within transaction
+      const updatedTeacher = await this.teacherModelAction.update({
+        identifierOptions: { id },
+        updatePayload: teacherUpdatePayload,
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
 
-      const updatedTeacher = await queryRunner.manager.save(Teacher, teacher);
-
-      await queryRunner.commitTransaction();
-
-      // 4. Return response
+      // Return response
       const response = {
         ...updatedTeacher,
         first_name: updatedUser.first_name,
@@ -358,33 +367,40 @@ export class TeacherService {
       return plainToInstance(TeacherResponseDto, response, {
         excludeExtraneousValues: true,
       });
-    } catch (err) {
-      await queryRunner.rollbackTransaction();
-      throw new InternalServerErrorException(
-        `Teacher update failed: ${err.message}`,
-      );
-    } finally {
-      await queryRunner.release();
-    }
+    });
   }
 
   // --- DELETE (Soft Delete / Deactivate) ---
   async remove(id: number): Promise<void> {
-    const teacher = await this.teacherRepository.findOne({
-      where: { id },
-      relations: ['user'],
+    const teacher = await this.teacherModelAction.get({
+      identifierOptions: { id },
+      relations: { user: true },
     });
 
     if (!teacher) {
       throw new NotFoundException(`Teacher with ID ${id} not found`);
     }
 
-    // Set isActive to false (Deactivate)
-    teacher.isActive = false;
-    await this.teacherRepository.save(teacher);
+    return this.dataSource.transaction(async (manager) => {
+      // Set isActive to false (Deactivate) within transaction
+      await this.teacherModelAction.update({
+        identifierOptions: { id },
+        updatePayload: { isActive: false },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
 
-    // Also deactivate the associated user account
-    teacher.user.is_active = false;
-    await this.userRepository.save(teacher.user);
+      // Also deactivate the associated user account within transaction
+      await this.userModelAction.update({
+        identifierOptions: { id: teacher.userId },
+        updatePayload: { is_active: false },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+    });
   }
 }

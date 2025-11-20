@@ -5,18 +5,18 @@ import {
   OneToOne,
   JoinColumn,
   OneToMany,
-  CreateDateColumn,
-  UpdateDateColumn,
 } from 'typeorm';
 
+import { BaseEntity } from '../../../entities/base-entity';
 import { ClassTeacher } from '../../classes/entities/class-teacher.entity';
 import { User } from '../../user/entities/user.entity';
 import { TeacherTitle } from '../enums/teacher.enum';
 
 @Entity('teachers')
-export class Teacher {
+export class Teacher extends BaseEntity {
   @PrimaryGeneratedColumn()
-  id: number;
+  // @ts-expect-error - Teacher uses numeric ID instead of UUID from BaseEntity
+  declare id: number;
 
   @Column({ type: 'uuid', unique: true, name: 'user_id' })
   userId: string; // Foreign key to User entity
@@ -34,16 +34,10 @@ export class Teacher {
   isActive: boolean; // For setting a teacher as active or inactive
 
   // --- Relationships ---
-  @OneToOne(() => User, { onDelete: 'CASCADE' }) // If a user is deleted, delete teacher record
+  @OneToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })
   user: User;
 
   @OneToMany(() => ClassTeacher, (assignment) => assignment.teacher)
   class_assignments: ClassTeacher[];
-
-  @CreateDateColumn({ name: 'created_at', type: 'timestamp with time zone' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at', type: 'timestamp with time zone' })
-  updatedAt: Date;
 }

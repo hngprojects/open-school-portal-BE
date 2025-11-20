@@ -7,10 +7,12 @@ import { UserRole } from '../shared/enums';
 import { FileService } from '../shared/file/file.service';
 import * as passwordUtil from '../shared/utils/password.util';
 import { User } from '../user/entities/user.entity';
+import { UserModelAction } from '../user/model-actions/user-actions';
 
 import { CreateTeacherDto, UpdateTeacherDto, GetTeachersQueryDto } from './dto';
 import { Teacher } from './entities/teacher.entity';
 import { TeacherTitle } from './enums/teacher.enum';
+import { TeacherModelAction } from './model-actions/teacher-actions';
 import { TeacherService } from './teacher.service';
 import { generateEmploymentId } from './utils/employment-id.util';
 
@@ -24,9 +26,10 @@ jest.mock('../shared/utils/password.util', () => ({
 describe('TeacherService', () => {
   let service: TeacherService;
   let teacherRepository: jest.Mocked<Repository<Teacher>>;
-  let userRepository: jest.Mocked<Repository<User>>;
   let dataSource: jest.Mocked<DataSource>;
   let fileService: jest.Mocked<FileService>;
+  let teacherModelAction: jest.Mocked<TeacherModelAction>;
+  let userModelAction: jest.Mocked<UserModelAction>;
   let queryRunner: jest.Mocked<QueryRunner>;
 
   const mockUser: Partial<User> = {
@@ -79,15 +82,13 @@ describe('TeacherService', () => {
       createQueryBuilder: jest.fn(),
     } as unknown as jest.Mocked<Repository<Teacher>>;
 
-    userRepository = {
-      create: jest.fn(),
-      save: jest.fn(),
-      findOne: jest.fn(),
-    } as unknown as jest.Mocked<Repository<User>>;
-
     // Mock DataSource
     dataSource = {
       createQueryRunner: jest.fn().mockReturnValue(queryRunner),
+      transaction: jest.fn().mockImplementation(async (callback) => {
+        // Simulate transaction by calling callback with queryRunner.manager
+        return callback(queryRunner.manager);
+      }),
     } as unknown as jest.Mocked<DataSource>;
 
     // Mock FileService
@@ -95,16 +96,34 @@ describe('TeacherService', () => {
       validatePhotoUrl: jest.fn().mockImplementation((url: string) => url),
     } as unknown as jest.Mocked<FileService>;
 
+    // Mock Model Actions
+    teacherModelAction = {
+      get: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      list: jest.fn(),
+    } as unknown as jest.Mocked<TeacherModelAction>;
+
+    userModelAction = {
+      get: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    } as unknown as jest.Mocked<UserModelAction>;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TeacherService,
         {
-          provide: getRepositoryToken(Teacher),
-          useValue: teacherRepository,
+          provide: TeacherModelAction,
+          useValue: teacherModelAction,
         },
         {
-          provide: getRepositoryToken(User),
-          useValue: userRepository,
+          provide: UserModelAction,
+          useValue: userModelAction,
+        },
+        {
+          provide: getRepositoryToken(Teacher),
+          useValue: teacherRepository,
         },
         {
           provide: DataSource,
@@ -162,11 +181,10 @@ describe('TeacherService', () => {
 
     beforeEach(() => {
       (generateEmploymentId as jest.Mock).mockResolvedValue('EMP-2025-014');
-      userRepository.findOne.mockResolvedValue(null);
-      teacherRepository.findOne.mockResolvedValue(null);
-      (queryRunner.manager.save as jest.Mock)
-        .mockResolvedValueOnce(mockUser as User)
-        .mockResolvedValueOnce(mockTeacher as Teacher);
+      userModelAction.get.mockResolvedValue(null);
+      teacherModelAction.get.mockResolvedValue(null);
+      userModelAction.create.mockResolvedValue(mockUser as User);
+      teacherModelAction.create.mockResolvedValue(mockTeacher as Teacher);
     });
 
     it('should create a teacher successfully', async () => {
@@ -176,8 +194,7 @@ describe('TeacherService', () => {
       expect(result).toHaveProperty('employment_id');
       expect(result).toHaveProperty('first_name');
       expect(result).toHaveProperty('last_name');
-      expect(queryRunner.startTransaction).toHaveBeenCalled();
-      expect(queryRunner.commitTransaction).toHaveBeenCalled();
+      expect(dataSource.transaction).toHaveBeenCalled();
     });
 
     it('should auto-generate employment ID if not provided', async () => {
@@ -191,7 +208,7 @@ describe('TeacherService', () => {
 
     it('should use provided employment ID if given', async () => {
       const dtoWithId = { ...createDto, employment_id: 'EMP-2025-999' };
-      teacherRepository.findOne.mockResolvedValueOnce(null);
+      teacherModelAction.get.mockResolvedValueOnce(null);
 
       await service.create(dtoWithId);
 
@@ -199,21 +216,21 @@ describe('TeacherService', () => {
     });
 
     it('should throw ConflictException if email already exists', async () => {
-      userRepository.findOne.mockResolvedValue(mockUser as User);
+      userModelAction.get.mockResolvedValue(mockUser as User);
 
       await expect(service.create(createDto)).rejects.toThrow(
         ConflictException,
       );
-      expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
+      // Transaction is not called if validation fails before transaction starts
     });
 
     it('should throw ConflictException if employment ID already exists', async () => {
-      teacherRepository.findOne.mockResolvedValue(mockTeacher as Teacher);
+      teacherModelAction.get.mockResolvedValue(mockTeacher as Teacher);
 
       await expect(service.create(createDto)).rejects.toThrow(
         ConflictException,
       );
-      expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
+      // Transaction is not called if validation fails before transaction starts
     });
 
     it('should validate photo URL if provided', async () => {
@@ -237,14 +254,12 @@ describe('TeacherService', () => {
 
     it('should rollback transaction on error', async () => {
       // Reset mocks
-      (queryRunner.manager.save as jest.Mock).mockReset();
-      (queryRunner.manager.save as jest.Mock).mockRejectedValueOnce(
-        new Error('Database error'),
-      );
+      userModelAction.create.mockReset();
+      userModelAction.create.mockRejectedValueOnce(new Error('Database error'));
 
       await expect(service.create(createDto)).rejects.toThrow();
-      expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
-      expect(queryRunner.release).toHaveBeenCalled();
+      // Transaction will automatically rollback on error
+      expect(dataSource.transaction).toHaveBeenCalled();
     });
   });
 
@@ -346,21 +361,21 @@ describe('TeacherService', () => {
 
   describe('findOne', () => {
     it('should return a teacher by ID', async () => {
-      teacherRepository.findOne.mockResolvedValue(mockTeacher as Teacher);
+      teacherModelAction.get.mockResolvedValue(mockTeacher as Teacher);
 
       const result = await service.findOne(1);
 
       expect(result).toBeDefined();
       expect(result.id).toBe(1);
       expect(result.employment_id).toBe('EMP-2025-014');
-      expect(teacherRepository.findOne).toHaveBeenCalledWith({
-        where: { id: 1 },
-        relations: ['user'],
+      expect(teacherModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: 1 },
+        relations: { user: true },
       });
     });
 
     it('should throw NotFoundException if teacher not found', async () => {
-      teacherRepository.findOne.mockResolvedValue(null);
+      teacherModelAction.get.mockResolvedValue(null);
 
       await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
     });
@@ -373,22 +388,23 @@ describe('TeacherService', () => {
     };
 
     beforeEach(() => {
-      teacherRepository.findOne.mockResolvedValue(mockTeacher as Teacher);
-      (queryRunner.manager.save as jest.Mock)
-        .mockResolvedValueOnce({ ...mockUser, ...updateDto } as User)
-        .mockResolvedValueOnce(mockTeacher as Teacher);
+      teacherModelAction.get.mockResolvedValue(mockTeacher as Teacher);
+      userModelAction.update.mockResolvedValue({
+        ...mockUser,
+        ...updateDto,
+      } as User);
+      teacherModelAction.update.mockResolvedValue(mockTeacher as Teacher);
     });
 
     it('should update teacher successfully', async () => {
       const result = await service.update(1, updateDto);
 
       expect(result).toBeDefined();
-      expect(queryRunner.startTransaction).toHaveBeenCalled();
-      expect(queryRunner.commitTransaction).toHaveBeenCalled();
+      expect(dataSource.transaction).toHaveBeenCalled();
     });
 
     it('should throw NotFoundException if teacher not found', async () => {
-      teacherRepository.findOne.mockResolvedValue(null);
+      teacherModelAction.get.mockResolvedValue(null);
 
       await expect(service.update(999, updateDto)).rejects.toThrow(
         NotFoundException,
@@ -425,41 +441,51 @@ describe('TeacherService', () => {
       await service.update(1, updateWithNullPhoto);
 
       // Should not throw and should complete successfully
-      expect(queryRunner.commitTransaction).toHaveBeenCalled();
+      expect(dataSource.transaction).toHaveBeenCalled();
     });
 
     it('should rollback transaction on error', async () => {
       // Reset mocks
-      (queryRunner.manager.save as jest.Mock).mockReset();
-      (queryRunner.manager.save as jest.Mock).mockRejectedValueOnce(
-        new Error('Update failed'),
-      );
+      userModelAction.update.mockReset();
+      userModelAction.update.mockRejectedValueOnce(new Error('Update failed'));
 
       await expect(service.update(1, updateDto)).rejects.toThrow();
-      expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
+      // Transaction will automatically rollback on error
+      expect(dataSource.transaction).toHaveBeenCalled();
     });
   });
 
   describe('remove', () => {
     beforeEach(() => {
-      teacherRepository.findOne.mockResolvedValue(mockTeacher as Teacher);
-      teacherRepository.save.mockResolvedValue(mockTeacher as Teacher);
-      userRepository.save.mockResolvedValue(mockUser as User);
+      teacherModelAction.get.mockResolvedValue(mockTeacher as Teacher);
+      teacherModelAction.update.mockResolvedValue(mockTeacher as Teacher);
+      userModelAction.update.mockResolvedValue(mockUser as User);
     });
 
     it('should deactivate teacher and user', async () => {
       await service.remove(1);
 
-      expect(teacherRepository.save).toHaveBeenCalledWith(
-        expect.objectContaining({ isActive: false }),
-      );
-      expect(userRepository.save).toHaveBeenCalledWith(
-        expect.objectContaining({ is_active: false }),
-      );
+      expect(dataSource.transaction).toHaveBeenCalled();
+      expect(teacherModelAction.update).toHaveBeenCalledWith({
+        identifierOptions: { id: 1 },
+        updatePayload: { isActive: false },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: queryRunner.manager,
+        },
+      });
+      expect(userModelAction.update).toHaveBeenCalledWith({
+        identifierOptions: { id: mockUser.id },
+        updatePayload: { is_active: false },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: queryRunner.manager,
+        },
+      });
     });
 
     it('should throw NotFoundException if teacher not found', async () => {
-      teacherRepository.findOne.mockResolvedValue(null);
+      teacherModelAction.get.mockResolvedValue(null);
 
       await expect(service.remove(999)).rejects.toThrow(NotFoundException);
     });
