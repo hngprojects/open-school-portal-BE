@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -58,6 +59,9 @@ export class UserController {
   })
   @ApiNotFoundResponse({
     description: 'User not found',
+  })
+  @ApiForbiddenResponse({
+    description: 'Forbidden resource',
   })
   @ApiOkResponse({
     description: 'Account deleted successfully',
