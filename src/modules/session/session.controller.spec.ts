@@ -47,7 +47,7 @@ describe('SessionController', () => {
         { id: 'session1', user_id: 'user1', is_active: true },
         { id: 'session2', user_id: 'user1', is_active: true },
       ];
-      const mockRequest = { user: { id: 'user1' } };
+      const mockRequest = { user: { userId: 'user1' } };
 
       mockSessionService.findByUserId.mockResolvedValue(mockSessions);
 
@@ -58,7 +58,7 @@ describe('SessionController', () => {
     });
 
     it('should return empty array when no sessions found', async () => {
-      const mockRequest = { user: { id: 'user1' } };
+      const mockRequest = { user: { userId: 'user1' } };
       mockSessionService.findByUserId.mockResolvedValue([]);
 
       const result = await controller.findByUserId(mockRequest);
