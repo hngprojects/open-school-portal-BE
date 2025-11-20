@@ -1,6 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { ApiSuccessResponseDto } from '../../common/dto/response.dto';
 import * as sysMsg from '../../constants/system.messages';
 
 import {
@@ -14,16 +15,20 @@ describe('SessionController', () => {
   let controller: SessionController;
   let service: SessionService;
 
+  const mockSessionService = {
+    findByUserId: jest.fn(),
+    findOne: jest.fn(),
+    revokeSession: jest.fn(),
+    revokeAllUserSessions: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SessionController],
       providers: [
         {
           provide: SessionService,
-          useValue: {
-            revokeSession: jest.fn(),
-            revokeAllUserSessions: jest.fn(),
-          },
+          useValue: mockSessionService,
         },
       ],
     }).compile();
@@ -32,45 +37,169 @@ describe('SessionController', () => {
     service = module.get<SessionService>(SessionService);
   });
 
-  describe('revoke_session', () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('findByUserId', () => {
+    it('should return user sessions when found', async () => {
+      const mockSessions = [
+        { id: 'session1', user_id: 'user1', is_active: true },
+        { id: 'session2', user_id: 'user1', is_active: true },
+      ];
+      const mockRequest = { user: { id: 'user1' } };
+
+      mockSessionService.findByUserId.mockResolvedValue(mockSessions);
+
+      const result = await controller.findByUserId(mockRequest);
+
+      expect(service.findByUserId).toHaveBeenCalledWith('user1');
+      expect(result).toEqual(mockSessions);
+    });
+
+    it('should return empty array when no sessions found', async () => {
+      const mockRequest = { user: { id: 'user1' } };
+      mockSessionService.findByUserId.mockResolvedValue([]);
+
+      const result = await controller.findByUserId(mockRequest);
+
+      expect(service.findByUserId).toHaveBeenCalledWith('user1');
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('findOne', () => {
+    it('should return session when found', async () => {
+      const mockSession = { id: 'session1', user_id: 'user1', is_active: true };
+      mockSessionService.findOne.mockResolvedValue(mockSession);
+
+      const result = await controller.findOne('session1');
+
+      expect(service.findOne).toHaveBeenCalledWith('session1');
+      expect(result).toEqual(mockSession);
+    });
+
+    it('should return null when session not found', async () => {
+      mockSessionService.findOne.mockResolvedValue(null);
+
+      const result = await controller.findOne('non-existent-id');
+
+      expect(service.findOne).toHaveBeenCalledWith('non-existent-id');
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('revokeSession', () => {
     it('should return success response when session is revoked', async () => {
-      const dto: RevokeSessionDto = { session_id: 'id1', user_id: 'user1' };
-      (service.revokeSession as jest.Mock).mockResolvedValue({
-        revoked: true,
-        session_id: 'id1',
-      });
-      const result = await controller.revokeSession(dto);
-      expect(result).toEqual({
-        status_code: 200,
-        message: sysMsg.SESSION_REVOKED,
-        data: { revoked: true, session_id: 'id1' },
-      });
+      const dto: RevokeSessionDto = { session_id: 'session1' };
+      const mockRequest = { user: { userId: 'user1' } };
+      const mockResponse = new ApiSuccessResponseDto(sysMsg.SESSION_REVOKED);
+
+      mockSessionService.revokeSession.mockResolvedValue(mockResponse);
+
+      const result = await controller.revokeSession(mockRequest, dto);
+
+      expect(service.revokeSession).toHaveBeenCalledWith('session1', 'user1');
+      expect(result).toEqual(mockResponse);
     });
 
     it('should throw NotFoundException when session is not found', async () => {
-      const dto: RevokeSessionDto = { session_id: 'id2', user_id: 'user2' };
-      (service.revokeSession as jest.Mock).mockResolvedValue({
-        revoked: false,
-        session_id: 'id2',
-      });
-      await expect(controller.revokeSession(dto)).rejects.toThrow(
+      const dto: RevokeSessionDto = { session_id: 'non-existent' };
+      const mockRequest = { user: { userId: 'user1' } };
+
+      mockSessionService.revokeSession.mockRejectedValue(
+        new NotFoundException(sysMsg.SESSION_NOT_FOUND),
+      );
+
+      await expect(controller.revokeSession(mockRequest, dto)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(service.revokeSession).toHaveBeenCalledWith(
+        'non-existent',
+        'user1',
+      );
+    });
+
+    it('should throw CannotRevokeOtherSessionsException when trying to revoke other user session', async () => {
+      const dto: RevokeSessionDto = { session_id: 'other-user-session' };
+      const mockRequest = { user: { userId: 'user1' } };
+
+      mockSessionService.revokeSession.mockRejectedValue(
+        new NotFoundException(sysMsg.CANNOT_REVOKE_OTHER_SESSIONS),
+      );
+
+      await expect(controller.revokeSession(mockRequest, dto)).rejects.toThrow(
         NotFoundException,
       );
     });
   });
 
-  describe('revoke_all_sessions', () => {
-    it('should return success response for revoke all', async () => {
-      const dto: RevokeAllSessionsDto = { user_id: 'user1' };
-      (service.revokeAllUserSessions as jest.Mock).mockResolvedValue({
-        revoked_count: 2,
-      });
-      const result = await controller.revokeAllSessions(dto);
-      expect(result).toEqual({
-        status_code: 200,
-        message: sysMsg.SESSIONS_REVOKED,
+  describe('revokeAllSessions', () => {
+    it('should revoke all sessions excluding current when exclude_current is true', async () => {
+      const dto: RevokeAllSessionsDto = { exclude_current: true };
+      const mockRequest = {
+        user: {
+          userId: 'user1',
+          sessionId: 'current-session',
+        },
+      };
+      const mockResponse = {
+        ...new ApiSuccessResponseDto(sysMsg.SESSIONS_REVOKED),
         data: { revoked_count: 2 },
-      });
+      };
+
+      mockSessionService.revokeAllUserSessions.mockResolvedValue(mockResponse);
+
+      const result = await controller.revokeAllSessions(mockRequest, dto);
+
+      expect(service.revokeAllUserSessions).toHaveBeenCalledWith(
+        'user1',
+        'current-session',
+      );
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should revoke all sessions including current when exclude_current is false', async () => {
+      const dto: RevokeAllSessionsDto = { exclude_current: false };
+      const mockRequest = {
+        user: {
+          userId: 'user1',
+          sessionId: 'current-session',
+        },
+      };
+      const mockResponse = {
+        ...new ApiSuccessResponseDto(sysMsg.SESSIONS_REVOKED),
+        data: { revoked_count: 3 },
+      };
+
+      mockSessionService.revokeAllUserSessions.mockResolvedValue(mockResponse);
+
+      const result = await controller.revokeAllSessions(mockRequest, dto);
+
+      expect(service.revokeAllUserSessions).toHaveBeenCalledWith(
+        'user1',
+        undefined,
+      );
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should handle revoke all when no sessionId in request', async () => {
+      const dto: RevokeAllSessionsDto = { exclude_current: true };
+      const mockRequest = { user: { userId: 'user1' } }; // No sessionId
+      const mockResponse = {
+        ...new ApiSuccessResponseDto(sysMsg.SESSIONS_REVOKED),
+        data: { revoked_count: 2 },
+      };
+
+      mockSessionService.revokeAllUserSessions.mockResolvedValue(mockResponse);
+
+      const result = await controller.revokeAllSessions(mockRequest, dto);
+
+      expect(service.revokeAllUserSessions).toHaveBeenCalledWith(
+        'user1',
+        undefined,
+      );
+      expect(result).toEqual(mockResponse);
     });
   });
 });

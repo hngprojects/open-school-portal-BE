@@ -1,4 +1,9 @@
-import { HttpStatus, ForbiddenException } from '@nestjs/common';
+// doamain
+import {
+  HttpStatus,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 
 import { BaseException } from './base-exception';
 
@@ -17,6 +22,12 @@ export class ForbiddenActionException extends BaseException {
 export class CannotRevokeOtherSessionsException extends ForbiddenException {
   constructor(message?: string) {
     super(message);
+  }
+}
+
+export class SessionNotFoundException extends NotFoundException {
+  constructor(sessionId?: string, message?: string) {
+    super(message || `Session with ID ${sessionId} not found`);
   }
 }
 

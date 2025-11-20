@@ -1,24 +1,27 @@
 import {
   Controller,
+  Get,
+  Param,
   Post,
-  Body,
   HttpCode,
   HttpStatus,
-  NotFoundException,
+  Body,
+  ParseUUIDPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 
-import { IBaseResponse } from '../../common/types/base-response.interface';
-import * as sysMsg from '../../constants/system.messages';
+import { ApiSuccessResponseDto } from '../../common/dto/response.dto';
 
 import {
   RevokeSessionDto,
   RevokeAllSessionsDto,
 } from './dto/session-revoke.dto';
-import {
-  IRevokeSessionData,
-  IRevokeAllSessionsData,
-} from './interface/session-response.interface';
 import { SessionService } from './session.service';
 
 @ApiTags('Authentication')
@@ -26,73 +29,55 @@ import { SessionService } from './session.service';
 export class SessionController {
   constructor(private readonly sessionService: SessionService) {}
 
+  @Get('user/:userId')
+  @ApiOperation({ summary: 'Get all active sessions for a user' })
+  @ApiOkResponse({ description: 'User sessions retrieved successfully' })
+  async findByUserId(@Param('userId', ParseUUIDPipe) userId: string) {
+    return this.sessionService.findByUserId(userId);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get a specific session' })
+  @ApiOkResponse({ description: 'Session retrieved successfully' })
+  @ApiNotFoundResponse({ description: 'Session not found' })
+  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.sessionService.findOne(id);
+  }
+
   @Post('revoke')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Revoke a specific session for a user' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Session successfully revoked',
-    schema: {
-      example: {
-        status_code: 200,
-        message: 'Session revoked successfully',
-        data: { session_id: '...', user_id: '...', revoked: true },
-      },
-    },
+  @ApiOperation({ summary: 'Revoke a specific session' })
+  @ApiOkResponse({
+    description: 'Session revoked successfully',
+    type: ApiSuccessResponseDto,
   })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
+  @ApiBadRequestResponse({
+    description: 'Validation failed (uuid is expected)',
+  })
+  @ApiNotFoundResponse({
     description: 'Session not found',
-    schema: {
-      example: {
-        status_code: 404,
-        message: 'Session not found',
-        data: { session_id: '...', user_id: '...', revoked: false },
-      },
-    },
   })
-  async revokeSession(
-    @Body() revokeSessionDto: RevokeSessionDto,
-  ): Promise<IBaseResponse<IRevokeSessionData>> {
-    const result = await this.sessionService.revokeSession(
+  async revokeSession(@Body() revokeSessionDto: RevokeSessionDto) {
+    return this.sessionService.revokeSession(
       revokeSessionDto.session_id,
       revokeSessionDto.user_id,
     );
-    if (!result.revoked) {
-      throw new NotFoundException(sysMsg.SESSION_NOT_FOUND);
-    }
-    return {
-      status_code: HttpStatus.OK,
-      message: sysMsg.SESSION_REVOKED,
-      data: result,
-    };
   }
 
   @Post('revoke-all')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Revoke all sessions for a user' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'All sessions successfully revoked',
-    schema: {
-      example: {
-        status_code: 200,
-        message: 'All sessions revoked successfully',
-        data: { user_id: '...', revoked_count: 3 },
-      },
-    },
+  @ApiOkResponse({
+    description: 'All sessions revoked successfully',
+    type: ApiSuccessResponseDto,
   })
-  async revokeAllSessions(
-    @Body() revokeAllSessionsDto: RevokeAllSessionsDto,
-  ): Promise<IBaseResponse<IRevokeAllSessionsData>> {
-    const result = await this.sessionService.revokeAllUserSessions(
+  @ApiBadRequestResponse({
+    description: 'Validation failed (uuid is expected)',
+  })
+  async revokeAllSessions(@Body() revokeAllSessionsDto: RevokeAllSessionsDto) {
+    return this.sessionService.revokeAllUserSessions(
       revokeAllSessionsDto.user_id,
       revokeAllSessionsDto.exclude_current,
     );
-    return {
-      status_code: HttpStatus.OK,
-      message: sysMsg.SESSIONS_REVOKED,
-      data: result,
-    };
   }
 }

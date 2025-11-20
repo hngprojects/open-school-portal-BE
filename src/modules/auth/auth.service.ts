@@ -60,21 +60,30 @@ export class AuthService {
       password: hashedPassword,
     });
 
-    // Generate tokens
+    // Create session in DB first
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const newSession = await this.sessionService.create({
+      user_id: newUser.id,
+      refresh_token: '',
+      expires_at: expiresAt,
+      provider: 'jwt',
+      is_active: true,
+    });
+
+    // Generate tokens with sessionId
     const tokens = await this.generateTokens(
       newUser.id,
       newUser.email,
       newUser.role,
+      newSession.id,
     );
-
-    // Create session in DB
-    let sessionInfo = null;
-    if (this.sessionService && tokens.refresh_token) {
-      sessionInfo = await this.sessionService.createSession(
-        newUser.id,
-        tokens.refresh_token,
-      );
-    }
+    const refreshTokenHash = await this.hashRefreshToken(tokens.refresh_token);
+    // Update session with hashed refresh token
+    await this.sessionService.updateSession(
+      { refresh_token: refreshTokenHash },
+      { id: newSession.id },
+      { useTransaction: false },
+    );
 
     return {
       user: {
@@ -85,8 +94,8 @@ export class AuthService {
         role: newUser.role,
       },
       ...tokens,
-      session_id: sessionInfo?.session_id,
-      session_expires_at: sessionInfo?.expires_at,
+      session_id: newSession.id,
+      session_expires_at: newSession.expires_at,
     };
   }
 
@@ -111,16 +120,30 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Generate tokens
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    // Create session in DB first
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const newSession = await this.sessionService.create({
+      user_id: user.id,
+      refresh_token: '',
+      expires_at: expiresAt,
+      provider: 'jwt',
+      is_active: true,
+    });
 
-    let sessionInfo = null;
-    if (this.sessionService && tokens.refresh_token) {
-      sessionInfo = await this.sessionService.createSession(
-        user.id,
-        tokens.refresh_token,
-      );
-    }
+    // Generate tokens with sessionId
+    const tokens = await this.generateTokens(
+      user.id,
+      user.email,
+      user.role,
+      newSession.id,
+    );
+    const refreshTokenHash = await this.hashRefreshToken(tokens.refresh_token);
+    // Update session with hashed refresh token
+    await this.sessionService.updateSession(
+      { refresh_token: refreshTokenHash },
+      { id: newSession.id },
+      { useTransaction: false },
+    );
 
     return {
       user: {
@@ -131,30 +154,84 @@ export class AuthService {
         role: user.role,
       },
       ...tokens,
-      session_id: sessionInfo?.session_id,
-      session_expires_at: sessionInfo?.expires_at,
+      session_id: newSession.id,
+      session_expires_at: newSession.expires_at,
     };
   }
 
   async refreshToken(refreshToken: string) {
     try {
       const payload = await this.jwtService.verifyAsync(refreshToken, {
-        secret: config().jwt.secret,
+        secret: config().jwt.refreshSecret,
       });
 
+      // Find the session by user and compare refresh token using bcrypt
+      const session = await this.sessionService.findByRefreshToken(
+        payload.sub,
+        refreshToken,
+      );
+
+      // Check if session exists and is valid
+      if (!session) {
+        this.logger.warn('Refresh token session not found');
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
+      // Check if session is active
+      if (!session.is_active) {
+        this.logger.warn('Refresh token session is inactive');
+        throw new UnauthorizedException('Session is no longer active');
+      }
+
+      // Check if session is expired
+      if (new Date() > session.expires_at) {
+        this.logger.warn('Refresh token session has expired');
+
+        await this.sessionService.updateSession(
+          {
+            is_active: false,
+            revoked_at: new Date(),
+          },
+          { id: session.id },
+          { useTransaction: false },
+        );
+
+        throw new UnauthorizedException('Session has expired');
+      }
+
+      // Check if session was revoked
+      if (session.revoked_at) {
+        this.logger.warn('Refresh token session was revoked');
+        throw new UnauthorizedException('Session was revoked');
+      }
+
+      // Generate new tokens
       const tokens = await this.generateTokens(
         payload.sub,
         payload.email,
         payload.role,
       );
 
-      // Create session in DB
+      // Create new session
       let sessionInfo = null;
-      if (this.sessionService && tokens.refresh_token) {
-        sessionInfo = await this.sessionService.createSession(
-          payload.sub,
+      if (tokens.refresh_token) {
+        const newRefreshTokenHash = await this.hashRefreshToken(
           tokens.refresh_token,
         );
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+        const newSession = await this.sessionService.create({
+          user_id: payload.sub,
+          refresh_token: newRefreshTokenHash,
+          expires_at: expiresAt,
+          provider: 'jwt',
+          is_active: true,
+        });
+
+        sessionInfo = {
+          session_id: newSession.id,
+          expires_at: newSession.expires_at,
+        };
       }
 
       return {
@@ -163,6 +240,9 @@ export class AuthService {
         session_expires_at: sessionInfo?.expires_at,
       };
     } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
       this.logger.error('Invalid refresh token: ', error?.message);
       throw new UnauthorizedException('Invalid refresh token');
     }
@@ -205,7 +285,7 @@ export class AuthService {
       { useTransaction: false },
     );
 
-    const emailpayload: EmailPayload = {
+    const emailPayload: EmailPayload = {
       to: [{ name: user.first_name, email: user.email }],
       subject: 'Password Reset Request',
       templateNameID: EmailTemplateID.FORGOT_PASSWORD,
@@ -215,7 +295,7 @@ export class AuthService {
         resetTokenExpiry,
       },
     };
-    this.emailService.sendMail(emailpayload);
+    this.emailService.sendMail(emailPayload);
     this.logger.info(`Password reset token for ${email}: ${resetToken}`);
 
     return {
@@ -273,9 +353,14 @@ export class AuthService {
     return sysMsg.USER_ACTIVATED;
   }
 
-  private async generateTokens(userId: string, email: string, role: string[]) {
+  private async generateTokens(
+    userId: string,
+    email: string,
+    role: string[],
+    sessionId?: string,
+  ) {
     const { jwt } = config();
-    const payload = { sub: userId, email, role };
+    const payload = { sub: userId, email, role, sessionId };
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
@@ -292,5 +377,15 @@ export class AuthService {
       access_token: accessToken,
       refresh_token: refreshToken,
     };
+  }
+
+  async cleanupExpiredSessions(): Promise<{ cleaned_count: number }> {
+    this.logger.warn('Session cleanup not implemented in AuthService');
+    return { cleaned_count: 0 };
+  }
+
+  private async hashRefreshToken(refreshToken: string): Promise<string> {
+    const saltRounds = 10;
+    return bcrypt.hash(refreshToken, saltRounds);
   }
 }

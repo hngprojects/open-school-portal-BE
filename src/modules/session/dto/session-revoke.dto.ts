@@ -6,21 +6,10 @@ export class RevokeSessionDto {
   @IsString()
   @IsNotEmpty()
   session_id!: string;
-
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  user_id!: string;
 }
 
 export class RevokeAllSessionsDto {
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  user_id!: string;
-
   @ApiPropertyOptional()
-  @IsString()
   @IsOptional()
-  exclude_current?: string;
+  exclude_current?: boolean;
 }
