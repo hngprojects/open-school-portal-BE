@@ -228,20 +228,36 @@ export class ChangeUserPasswordDto {
 }
 
 export class ChangeUserPasswordRequestDto {
+  @ApiProperty({
+    example: '1123-fjjg-d88-cjcjjfd-rfhh',
+    description: "User's id ",
+  })
   @IsNotEmpty()
   @IsString()
   user_id: UUID;
 
+  @ApiProperty({
+    example: 'SecuredPassword123!',
+    description: 'current password to be changed ',
+  })
   @IsNotEmpty()
   @IsString()
   current_password: string;
 
+  @ApiProperty({
+    example: 'NewSecuredPassword123!',
+    description: 'New secure password',
+  })
   @IsNotEmpty()
   @IsStrongPassword()
   @IsString()
   @MinLength(8, { message: 'minimum of 8 characters required' })
   new_password: string;
 
+  @ApiProperty({
+    example: 'NewSecuredPassword123!',
+    description: 'Must match new password',
+  })
   @IsNotEmpty()
   @IsStrongPassword()
   @IsString()
