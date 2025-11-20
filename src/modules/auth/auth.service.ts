@@ -279,35 +279,37 @@ export class AuthService {
     // Extract token from "Bearer <token>"
     const token = accessToken.replace('Bearer ', '');
 
-    try {
-      const decryptedToken = await this.jwtService.verifyAsync(token, {
-        secret: process.env.JWT_SECRET,
-      });
+    const decryptedToken = await this.jwtService.verifyAsync(token, {
+      secret: process.env.JWT_SECRET,
+    });
 
-      const user = await this.userService.findByEmail(decryptedToken.email);
-      if (!user) {
-        throw new UnauthorizedException(sysMsg.USER_NOT_FOUND);
-      }
-      return {
-        id: user.id,
-        email: user.email,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        middle_name: user.middle_name,
-        role: user.role,
-        gender: user.gender,
-        dob: user.dob,
-        phone: user.phone,
-        is_active: user.is_active,
-        created_at: user.createdAt,
-        updated_at: user.updatedAt,
-      };
-    } catch (error) {
-      this.logger.error(sysMsg.REQUEST_FAILED, error?.message);
+    if (!decryptedToken.email) {
+      this.logger.error(`${sysMsg.TOKEN_INVALID} or ${sysMsg.TOKEN_EXPIRED}`);
       throw new UnauthorizedException(
         `${sysMsg.TOKEN_INVALID} or ${sysMsg.TOKEN_EXPIRED}`,
       );
     }
+
+    const user = await this.userService.findByEmail(decryptedToken.email);
+    if (!user) {
+      this.logger.error(sysMsg.USER_NOT_FOUND);
+      throw new UnauthorizedException(sysMsg.USER_NOT_FOUND);
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      middle_name: user.middle_name,
+      role: user.role,
+      gender: user.gender,
+      dob: user.dob,
+      phone: user.phone,
+      is_active: user.is_active,
+      created_at: user.createdAt,
+      updated_at: user.updatedAt,
+    };
   }
 
   private async generateTokens(userId: string, email: string, role: string[]) {
