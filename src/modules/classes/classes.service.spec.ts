@@ -21,7 +21,7 @@ const mockClass = {
 const mockTeacherAssignment = {
   id: 10,
   assignment_date: new Date('2023-09-01'),
-  sessionId: MOCK_SESSION_ID,
+  session_id: MOCK_SESSION_ID,
   is_active: true,
   teacher: {
     id: 101,
@@ -84,7 +84,7 @@ describe('ClassesService', () => {
       expect(classTeacherRepository.find).toHaveBeenCalledWith({
         where: {
           class: { id: MOCK_CLASS_ID },
-          sessionId: MOCK_SESSION_ID, // Expecting snake_case
+          session_id: MOCK_SESSION_ID, // Expecting snake_case
           is_active: true,
         },
         relations: ['teacher', 'class'],
