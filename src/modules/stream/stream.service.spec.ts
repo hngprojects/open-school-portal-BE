@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Repository } from 'typeorm';
-import { Logger } from 'winston';
 
 import { Stream } from './entities/stream.entity';
 import { StreamService } from './stream.service';
@@ -46,5 +45,6 @@ describe('StreamService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+    expect(repository).toBeDefined();
   });
 });
