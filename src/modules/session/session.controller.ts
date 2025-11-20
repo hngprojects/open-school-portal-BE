@@ -7,6 +7,8 @@ import {
   HttpStatus,
   Body,
   ParseUUIDPipe,
+  Request,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -14,9 +16,11 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 
 import { ApiSuccessResponseDto } from '../../common/dto/response.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 import {
   RevokeSessionDto,
@@ -24,16 +28,18 @@ import {
 } from './dto/session-revoke.dto';
 import { SessionService } from './session.service';
 
+@ApiBearerAuth('access-token')
 @ApiTags('Authentication')
 @Controller('auth/sessions')
 export class SessionController {
   constructor(private readonly sessionService: SessionService) {}
 
-  @Get('user/:userId')
-  @ApiOperation({ summary: 'Get all active sessions for a user' })
+  @UseGuards(JwtAuthGuard)
+  @Get('user')
+  @ApiOperation({ summary: 'Get all active sessions for the current user' })
   @ApiOkResponse({ description: 'User sessions retrieved successfully' })
-  async findByUserId(@Param('userId', ParseUUIDPipe) userId: string) {
-    return this.sessionService.findByUserId(userId);
+  async findByUserId(@Request() req) {
+    return this.sessionService.findByUserId(req.user.userId);
   }
 
   @Get(':id')
@@ -44,6 +50,7 @@ export class SessionController {
     return this.sessionService.findOne(id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('revoke')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Revoke a specific session' })
@@ -57,13 +64,17 @@ export class SessionController {
   @ApiNotFoundResponse({
     description: 'Session not found',
   })
-  async revokeSession(@Body() revokeSessionDto: RevokeSessionDto) {
+  async revokeSession(
+    @Request() req,
+    @Body() revokeSessionDto: RevokeSessionDto,
+  ) {
     return this.sessionService.revokeSession(
       revokeSessionDto.session_id,
-      revokeSessionDto.user_id,
+      req.user.userId,
     );
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('revoke-all')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Revoke all sessions for a user' })
@@ -74,10 +85,17 @@ export class SessionController {
   @ApiBadRequestResponse({
     description: 'Validation failed (uuid is expected)',
   })
-  async revokeAllSessions(@Body() revokeAllSessionsDto: RevokeAllSessionsDto) {
+  async revokeAllSessions(
+    @Request() req,
+    @Body() revokeAllSessionsDto: RevokeAllSessionsDto,
+  ) {
+    const currentSessionId = req.user.sessionId;
+    const excludeSessionId = revokeAllSessionsDto.exclude_current
+      ? currentSessionId
+      : undefined;
     return this.sessionService.revokeAllUserSessions(
-      revokeAllSessionsDto.user_id,
-      revokeAllSessionsDto.exclude_current,
+      req.user.userId,
+      excludeSessionId,
     );
   }
 }
