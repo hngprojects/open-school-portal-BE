@@ -8,6 +8,7 @@ import {
   HttpStatus,
   Body,
   ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -18,6 +19,10 @@ import {
 } from '@nestjs/swagger';
 
 import { ApiSuccessResponseDto } from '../../common/dto/response.dto';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { UserRole } from '../shared/enums';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UserService } from './user.service';
@@ -47,9 +52,9 @@ export class UserController {
     return this.userService.findOne(id);
   }
 
-  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete a user by admin' })
   @ApiBadRequestResponse({
-    description: 'Validation failed (uuid is expected)',
+    description: 'Validation failed (UUID is expected)',
   })
   @ApiNotFoundResponse({
     description: 'User not found',
@@ -58,6 +63,9 @@ export class UserController {
     description: 'Account deleted successfully',
     type: ApiSuccessResponseDto,
   })
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @HttpCode(HttpStatus.OK)
   @Delete(':id')
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.userService.remove(id);
