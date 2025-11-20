@@ -19,6 +19,7 @@ export class SessionModelAction extends AbstractModelAction<Session> {
       where: {
         user_id: userId,
         is_active: true,
+        revoked_at: null,
       },
     });
   }
