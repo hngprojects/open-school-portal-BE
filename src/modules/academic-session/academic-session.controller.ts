@@ -97,6 +97,28 @@ export class AcademicSessionController {
     });
   }
 
+  @Patch('activate/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Activate an academic session',
+    description:
+      'Deactivates all existing sessions and activates the specified one.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Session activated successfully',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Session not found',
+  })
+  async activateSession(@Param('id') id: string) {
+    return this.academicSessionService.activateSession(id);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.academicSessionService.findOne(+id);

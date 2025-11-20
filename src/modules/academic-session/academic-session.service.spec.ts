@@ -5,6 +5,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common'; // Added HttpStatus
 import { Test, TestingModule } from '@nestjs/testing';
+import { DataSource, EntityManager } from 'typeorm';
 
 import * as sysMsg from '../../constants/system.messages';
 
@@ -337,6 +338,214 @@ describe('AcademicSessionService', () => {
 
       await expect(service.activeSessions()).rejects.toThrow(
         sysMsg.MULTIPLE_ACTIVE_ACADEMIC_SESSION,
+      );
+    });
+  });
+
+  describe('AcademicSessionService - activeSessions', () => {
+    let service: AcademicSessionService;
+    let mockModelAction: jest.Mocked<AcademicSessionModelAction>;
+    let mockDataSource: Partial<DataSource>;
+
+    const makeSession = (
+      overrides: Partial<AcademicSession> = {},
+    ): AcademicSession => ({
+      id: overrides.id ?? '1',
+      name: overrides.name ?? '2024 Session',
+      startDate: overrides.startDate ?? new Date('2024-01-01'),
+      endDate: overrides.endDate ?? new Date('2024-12-31'),
+      status: overrides.status ?? SessionStatus.ACTIVE,
+      createdAt: overrides.createdAt ?? new Date(),
+      updatedAt: overrides.updatedAt ?? new Date(),
+    });
+
+    beforeEach(async () => {
+      const mockModelActionProvider: Partial<AcademicSessionModelAction> = {
+        list: jest.fn(),
+      };
+
+      // Mock DataSource.transaction
+      mockDataSource = {
+        transaction: jest
+          .fn()
+          .mockImplementation(
+            async <T>(
+              callback: (manager: EntityManager) => Promise<T>,
+            ): Promise<T> => {
+              const mockManager = {
+                update: jest.fn(),
+                findOne: jest.fn(),
+              } as unknown as EntityManager;
+              return callback(mockManager);
+            },
+          ),
+      };
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          AcademicSessionService,
+          {
+            provide: AcademicSessionModelAction,
+            useValue: mockModelActionProvider,
+          },
+          { provide: DataSource, useValue: mockDataSource },
+        ],
+      }).compile();
+
+      service = module.get(AcademicSessionService);
+      mockModelAction = module.get(
+        AcademicSessionModelAction,
+      ) as jest.Mocked<AcademicSessionModelAction>;
+    });
+
+    it('returns null when no active sessions exist', async () => {
+      mockModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { total: 0 },
+      });
+      const result = await service.activeSessions();
+      expect(result).toBeNull();
+      expect(mockModelAction.list).toHaveBeenCalledWith({
+        order: { startDate: 'ASC' },
+        paginationPayload: { page: 1, limit: 20 },
+      });
+    });
+
+    it('returns the single active session when exactly one exists', async () => {
+      const session = makeSession({ id: '1' });
+      mockModelAction.list.mockResolvedValue({
+        payload: [session],
+        paginationMeta: { total: 1 },
+      });
+      const result = await service.activeSessions();
+      expect(result).toEqual(session);
+    });
+
+    it('throws InternalServerErrorException when multiple active sessions exist', async () => {
+      const s1 = makeSession({ id: '1' });
+      const s2 = makeSession({ id: '2' });
+      mockModelAction.list.mockResolvedValue({
+        payload: [s1, s2],
+        paginationMeta: { total: 2 },
+      });
+
+      await expect(service.activeSessions()).rejects.toThrow(
+        InternalServerErrorException,
+      );
+      await expect(service.activeSessions()).rejects.toThrow(
+        sysMsg.MULTIPLE_ACTIVE_ACADEMIC_SESSION,
+      );
+    });
+  });
+  describe('AcademicSessionService - activateSession', () => {
+    let service: AcademicSessionService;
+    let mockSessionModelAction: jest.Mocked<AcademicSessionModelAction>;
+    let mockDataSource: Partial<DataSource>;
+
+    const sessionId = '1';
+    const mockSession: AcademicSession = {
+      id: sessionId,
+      name: '2024/2025',
+      startDate: new Date(),
+      endDate: new Date(),
+      status: SessionStatus.INACTIVE,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    beforeEach(async () => {
+      mockSessionModelAction = {
+        get: jest.fn(),
+      } as unknown as jest.Mocked<AcademicSessionModelAction>;
+
+      mockDataSource = {
+        transaction: jest
+          .fn()
+          .mockImplementation(
+            async (callback: (manager: EntityManager) => unknown) => {
+              const mockManager: Partial<EntityManager> = {
+                update: jest.fn(),
+                findOne: jest.fn().mockResolvedValue({
+                  ...mockSession,
+                  status: SessionStatus.ACTIVE,
+                }),
+              };
+              return callback(mockManager as EntityManager);
+            },
+          ),
+      };
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          AcademicSessionService,
+          {
+            provide: AcademicSessionModelAction,
+            useValue: mockSessionModelAction,
+          },
+          { provide: DataSource, useValue: mockDataSource },
+        ],
+      }).compile();
+
+      service = module.get<AcademicSessionService>(AcademicSessionService);
+    });
+
+    it('should activate a session successfully', async () => {
+      mockSessionModelAction.get.mockResolvedValue(mockSession);
+
+      const result = await service.activateSession(sessionId);
+
+      expect(result).toEqual({
+        status_code: HttpStatus.OK,
+        message: 'Session activated successfully',
+        data: { ...mockSession, status: SessionStatus.ACTIVE },
+      });
+
+      // Extract transaction callback
+      const transactionFn = (mockDataSource.transaction as jest.Mock).mock
+        .calls[0][0];
+
+      // Run transaction manually to inspect calls
+      const mockManager: Partial<EntityManager> = {
+        update: jest.fn(),
+        findOne: jest
+          .fn()
+          .mockResolvedValue({ ...mockSession, status: SessionStatus.ACTIVE }),
+      };
+      await transactionFn(mockManager as EntityManager);
+
+      expect(mockManager.update).toHaveBeenCalledWith(
+        AcademicSession,
+        {},
+        { status: SessionStatus.INACTIVE },
+      );
+
+      expect(mockManager.update).toHaveBeenCalledWith(
+        AcademicSession,
+        { id: sessionId },
+        { status: SessionStatus.ACTIVE },
+      );
+
+      expect(mockManager.findOne).toHaveBeenCalledWith(AcademicSession, {
+        where: { id: sessionId },
+      });
+    });
+
+    it('should throw BadRequestException if session not found', async () => {
+      mockSessionModelAction.get.mockResolvedValue(null);
+
+      await expect(service.activateSession(sessionId)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should throw InternalServerErrorException if transaction fails', async () => {
+      mockSessionModelAction.get.mockResolvedValue(mockSession);
+      (mockDataSource.transaction as jest.Mock).mockImplementationOnce(() => {
+        throw new Error('DB error');
+      });
+
+      await expect(service.activateSession(sessionId)).rejects.toThrow(
+        InternalServerErrorException,
       );
     });
   });

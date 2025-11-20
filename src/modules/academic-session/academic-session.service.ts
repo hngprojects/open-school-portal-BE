@@ -4,8 +4,9 @@ import {
   HttpStatus,
   Injectable,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
-import { FindOptionsOrder } from 'typeorm';
+import { DataSource, FindOptionsOrder } from 'typeorm';
 
 import * as sysMsg from '../../constants/system.messages';
 
@@ -29,8 +30,10 @@ export interface ICreateSessionResponse {
 }
 @Injectable()
 export class AcademicSessionService {
+  private readonly logger: Logger;
   constructor(
     private readonly sessionModelAction: AcademicSessionModelAction,
+    private readonly dataSource: DataSource,
   ) {}
   async create(
     createSessionDto: CreateAcademicSessionDto,
@@ -106,6 +109,48 @@ export class AcademicSessionService {
       data: payload,
       meta: paginationMeta,
     };
+  }
+
+  async activateSession(sessionId: string) {
+    const session = await this.sessionModelAction.get({
+      identifierOptions: { id: sessionId },
+    });
+
+    if (!session) {
+      throw new BadRequestException('Session not found');
+    }
+
+    try {
+      return await this.dataSource.transaction(async (manager) => {
+        // 1. Deactivate all sessions
+        await manager.update(
+          AcademicSession,
+          {},
+          { status: SessionStatus.INACTIVE },
+        );
+
+        // 2. Activate selected session
+        await manager.update(
+          AcademicSession,
+          { id: sessionId },
+          { status: SessionStatus.ACTIVE },
+        );
+
+        // 3. Fetch updated session
+        const updated = await manager.findOne(AcademicSession, {
+          where: { id: sessionId },
+        });
+
+        return {
+          status_code: HttpStatus.OK,
+          message: 'Session activated successfully',
+          data: updated,
+        };
+      });
+    } catch (error) {
+      this.logger.error(`Failed to activate session ${sessionId}`, error);
+      throw new InternalServerErrorException('Activation failed');
+    }
   }
 
   findOne(id: number) {
