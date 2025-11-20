@@ -1,11 +1,4 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  OneToOne,
-  JoinColumn,
-  OneToMany,
-} from 'typeorm';
+import { Entity, Column, OneToOne, JoinColumn, OneToMany } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
 import { ClassTeacher } from '../../classes/entities/class-teacher.entity';
@@ -14,10 +7,6 @@ import { TeacherTitle } from '../enums/teacher.enum';
 
 @Entity('teachers')
 export class Teacher extends BaseEntity {
-  @PrimaryGeneratedColumn()
-  // @ts-expect-error - Teacher uses numeric ID instead of UUID from BaseEntity
-  declare id: number;
-
   @Column({ type: 'uuid', unique: true, name: 'user_id' })
   userId: string; // Foreign key to User entity
 

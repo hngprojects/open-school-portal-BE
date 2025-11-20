@@ -24,7 +24,7 @@ const mockTeacherAssignment = {
   session_id: MOCK_SESSION_ID,
   is_active: true,
   teacher: {
-    id: 101,
+    id: 'teacher-uuid-101',
     employmentId: 'EMP-2025-001',
     user: {
       first_name: 'John',
@@ -107,7 +107,7 @@ describe('ClassesService', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({
-        teacher_id: 101,
+        teacher_id: 'teacher-uuid-101',
         name: 'John Doe',
         assignment_date: mockTeacherAssignment.assignment_date,
         stream: 'Science',

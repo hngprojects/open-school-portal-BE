@@ -48,8 +48,9 @@ describe('TeacherService', () => {
     updatedAt: new Date(),
   };
 
+  const mockTeacherId = 'teacher-uuid-123';
   const mockTeacher: Partial<Teacher> = {
-    id: 1,
+    id: mockTeacherId,
     userId: 'user-uuid-123',
     employmentId: 'EMP-2025-014',
     title: TeacherTitle.MISS,
@@ -363,13 +364,13 @@ describe('TeacherService', () => {
     it('should return a teacher by ID', async () => {
       teacherModelAction.get.mockResolvedValue(mockTeacher as Teacher);
 
-      const result = await service.findOne(1);
+      const result = await service.findOne(mockTeacherId);
 
       expect(result).toBeDefined();
-      expect(result.id).toBe(1);
+      expect(result.id).toBe(mockTeacherId);
       expect(result.employment_id).toBe('EMP-2025-014');
       expect(teacherModelAction.get).toHaveBeenCalledWith({
-        identifierOptions: { id: 1 },
+        identifierOptions: { id: mockTeacherId },
         relations: { user: true },
       });
     });
@@ -377,7 +378,9 @@ describe('TeacherService', () => {
     it('should throw NotFoundException if teacher not found', async () => {
       teacherModelAction.get.mockResolvedValue(null);
 
-      await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
+      await expect(service.findOne('non-existent-uuid')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -397,7 +400,7 @@ describe('TeacherService', () => {
     });
 
     it('should update teacher successfully', async () => {
-      const result = await service.update(1, updateDto);
+      const result = await service.update(mockTeacherId, updateDto);
 
       expect(result).toBeDefined();
       expect(dataSource.transaction).toHaveBeenCalled();
@@ -406,15 +409,15 @@ describe('TeacherService', () => {
     it('should throw NotFoundException if teacher not found', async () => {
       teacherModelAction.get.mockResolvedValue(null);
 
-      await expect(service.update(999, updateDto)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.update('non-existent-uuid', updateDto),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ConflictException if trying to update employment ID', async () => {
       const updateWithId = { ...updateDto, employment_id: 'EMP-2025-999' };
 
-      await expect(service.update(1, updateWithId)).rejects.toThrow(
+      await expect(service.update(mockTeacherId, updateWithId)).rejects.toThrow(
         ConflictException,
       );
     });
@@ -425,7 +428,7 @@ describe('TeacherService', () => {
         photo_url: 'https://example.com/photos/new-teacher123.jpg',
       };
 
-      await service.update(1, updateWithPhoto);
+      await service.update(mockTeacherId, updateWithPhoto);
 
       expect(fileService.validatePhotoUrl).toHaveBeenCalledWith(
         'https://example.com/photos/new-teacher123.jpg',
@@ -438,7 +441,7 @@ describe('TeacherService', () => {
         photo_url: null,
       };
 
-      await service.update(1, updateWithNullPhoto);
+      await service.update(mockTeacherId, updateWithNullPhoto);
 
       // Should not throw and should complete successfully
       expect(dataSource.transaction).toHaveBeenCalled();
@@ -449,7 +452,7 @@ describe('TeacherService', () => {
       userModelAction.update.mockReset();
       userModelAction.update.mockRejectedValueOnce(new Error('Update failed'));
 
-      await expect(service.update(1, updateDto)).rejects.toThrow();
+      await expect(service.update(mockTeacherId, updateDto)).rejects.toThrow();
       // Transaction will automatically rollback on error
       expect(dataSource.transaction).toHaveBeenCalled();
     });
@@ -463,11 +466,11 @@ describe('TeacherService', () => {
     });
 
     it('should deactivate teacher and user', async () => {
-      await service.remove(1);
+      await service.remove(mockTeacherId);
 
       expect(dataSource.transaction).toHaveBeenCalled();
       expect(teacherModelAction.update).toHaveBeenCalledWith({
-        identifierOptions: { id: 1 },
+        identifierOptions: { id: mockTeacherId },
         updatePayload: { isActive: false },
         transactionOptions: {
           useTransaction: true,
@@ -487,7 +490,9 @@ describe('TeacherService', () => {
     it('should throw NotFoundException if teacher not found', async () => {
       teacherModelAction.get.mockResolvedValue(null);
 
-      await expect(service.remove(999)).rejects.toThrow(NotFoundException);
+      await expect(service.remove('non-existent-uuid')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

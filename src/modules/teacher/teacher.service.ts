@@ -237,7 +237,7 @@ export class TeacherService {
   }
 
   // --- READ (ONE) ---
-  async findOne(id: number): Promise<TeacherResponseDto> {
+  async findOne(id: string): Promise<TeacherResponseDto> {
     const teacher = await this.teacherModelAction.get({
       identifierOptions: { id },
       relations: { user: true },
@@ -271,7 +271,7 @@ export class TeacherService {
 
   // --- UPDATE ---
   async update(
-    id: number,
+    id: string,
     updateDto: UpdateTeacherDto,
   ): Promise<TeacherResponseDto> {
     const teacher = await this.teacherModelAction.get({
@@ -371,7 +371,7 @@ export class TeacherService {
   }
 
   // --- DELETE (Soft Delete / Deactivate) ---
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     const teacher = await this.teacherModelAction.get({
       identifierOptions: { id },
       relations: { user: true },
