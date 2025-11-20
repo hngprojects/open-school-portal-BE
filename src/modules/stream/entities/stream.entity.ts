@@ -1,7 +1,7 @@
-import { Column, Entity, Index, Unique } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, Unique } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
-// import { Class } from '../class.entity';
+import { Class } from '../../classes/entities/classes.entity';
 
 @Entity('stream')
 @Index(['class_id'])
@@ -13,10 +13,9 @@ export class Stream extends BaseEntity {
   @Column({ name: 'class_id', type: 'uuid' })
   class_id: string;
 
-  //   TODO: Add this when the class module is implemented
-  //   @ManyToOne(() => Class, (classEntity) => classEntity.streams, {
-  //     onDelete: 'CASCADE', // If the class is deleted, all related streams will be deleted
-  //   })
-  //   @JoinColumn({ name: 'class_id' })
-  //   class: Class;
+  @ManyToOne(() => Class, (classEntity) => classEntity.stream, {
+    onDelete: 'CASCADE', // If the class is deleted, all related streams will be deleted
+  })
+  @JoinColumn({ name: 'class_id' })
+  class: Class;
 }
