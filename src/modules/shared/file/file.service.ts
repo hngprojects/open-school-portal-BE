@@ -1,91 +1,53 @@
-import * as fs from 'fs/promises';
-import * as path from 'path';
-
 import { Injectable, BadRequestException } from '@nestjs/common';
-import * as sharp from 'sharp';
-
-import { IMulterFile } from '../../../common/types/multer.types';
 
 @Injectable()
 export class FileService {
-  private readonly uploadsDir = path.join(process.cwd(), 'uploads');
-
   /**
-   * Upload and resize a photo
-   * @param file The uploaded file
-   * @param folder The folder to save the file (e.g., 'teachers')
-   * @param filename The base filename (without extension)
-   * @param options Resize options
-   * @returns The relative path to the saved file
+   * Validate a photo URL
+   * @param photoUrl The URL to the photo
+   * @returns The validated URL
+   * @throws BadRequestException if URL is invalid
    */
-  async uploadPhoto(
-    file: IMulterFile,
-    folder: string,
-    filename: string,
-    options?: { width?: number; height?: number },
-  ): Promise<string> {
-    if (!file) {
-      throw new BadRequestException('No file provided');
-    }
-
-    // Validate file type
-    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
-    if (!allowedMimes.includes(file.mimetype)) {
+  validatePhotoUrl(photoUrl: string): string {
+    if (!photoUrl || typeof photoUrl !== 'string') {
       throw new BadRequestException(
-        'Invalid file type. Only JPEG, PNG, and WebP are allowed.',
+        'Photo URL is required and must be a string',
       );
     }
 
-    // Validate file size (2MB max)
-    const maxSize = 2 * 1024 * 1024; // 2MB
-    if (file.size > maxSize) {
-      throw new BadRequestException('File size exceeds 2MB limit.');
-    }
-
+    // Validate URL format
     try {
-      // Create directory if it doesn't exist
-      const folderPath = path.join(this.uploadsDir, folder);
-      await fs.mkdir(folderPath, { recursive: true });
+      const url = new URL(photoUrl);
 
-      // Get file extension
-      const ext = path.extname(file.originalname).toLowerCase();
-      const finalFilename = `${filename}${ext}`;
-      const filePath = path.join(folderPath, finalFilename);
+      // Ensure it's HTTP or HTTPS
+      if (!['http:', 'https:'].includes(url.protocol)) {
+        throw new BadRequestException(
+          'Photo URL must use HTTP or HTTPS protocol',
+        );
+      }
 
-      // Resize and save image
-      const width = options?.width || 150;
-      const height = options?.height || 150;
+      // Validate that it's an image URL (check common image extensions)
+      const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+      const pathname = url.pathname.toLowerCase();
+      const hasImageExtension = imageExtensions.some((ext) =>
+        pathname.endsWith(ext),
+      );
 
-      await sharp(file.buffer)
-        .resize(width, height, {
-          fit: 'cover',
-          position: 'center',
-        })
-        .toFile(filePath);
+      // Allow URLs without extension (e.g., CDN URLs with query params)
+      // But if there's an extension, it should be a valid image type
+      if (pathname.includes('.') && !hasImageExtension) {
+        throw new BadRequestException(
+          'Photo URL must point to a valid image file (JPEG, PNG, WebP, or GIF)',
+        );
+      }
 
-      // Return relative path
-      return `uploads/${folder}/${finalFilename}`;
+      return photoUrl;
     } catch (error) {
-      throw new BadRequestException(`Failed to upload photo: ${error.message}`);
-    }
-  }
-
-  /**
-   * Delete a file
-   * @param filePath The relative or absolute path to the file
-   */
-  async deleteFile(filePath: string): Promise<void> {
-    try {
-      const fullPath = filePath.startsWith(this.uploadsDir)
-        ? filePath
-        : path.join(process.cwd(), filePath);
-
-      await fs.unlink(fullPath);
-    } catch (error) {
-      // Ignore errors if file doesn't exist
-      if (error.code !== 'ENOENT') {
+      if (error instanceof BadRequestException) {
         throw error;
       }
+      // If URL constructor throws, it's an invalid URL
+      throw new BadRequestException('Invalid photo URL format');
     }
   }
 }

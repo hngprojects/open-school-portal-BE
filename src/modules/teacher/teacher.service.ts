@@ -8,7 +8,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
 import { Repository, DataSource } from 'typeorm';
 
-import { IMulterFile } from '../../common/types/multer.types';
 import { UserRole } from '../shared/enums';
 import { FileService } from '../shared/file/file.service';
 import {
@@ -61,10 +60,7 @@ export class TeacherService {
   }
 
   // --- CREATE ---
-  async create(
-    createDto: CreateTeacherDto,
-    photo?: IMulterFile,
-  ): Promise<TeacherResponseDto> {
+  async create(createDto: CreateTeacherDto): Promise<TeacherResponseDto> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -113,15 +109,10 @@ export class TeacherService {
 
       const savedUser = await queryRunner.manager.save(User, newUser);
 
-      // 4. Handle Photo Upload
+      // 4. Validate Photo URL if provided
       let photoUrl: string | undefined = undefined;
-      if (photo) {
-        photoUrl = await this.fileService.uploadPhoto(
-          photo,
-          'teachers',
-          employmentId,
-          { width: 150, height: 150 },
-        );
+      if (createDto.photo_url) {
+        photoUrl = this.fileService.validatePhotoUrl(createDto.photo_url);
       }
 
       // 5. Prepare Teacher data
@@ -285,7 +276,6 @@ export class TeacherService {
   async update(
     id: number,
     updateDto: UpdateTeacherDto,
-    photo?: IMulterFile,
   ): Promise<TeacherResponseDto> {
     const teacher = await this.teacherRepository.findOne({
       where: { id },
@@ -335,22 +325,12 @@ export class TeacherService {
       if (updateDto.is_active !== undefined)
         teacher.isActive = updateDto.is_active;
 
-      let photoUrl = teacher.photoUrl;
-
-      // 3. Handle Photo Upload/Update
-      if (photo) {
-        // Delete old photo if it exists
-        if (teacher.photoUrl) {
-          await this.fileService.deleteFile(teacher.photoUrl);
-        }
-        // Upload new photo
-        photoUrl = await this.fileService.uploadPhoto(
-          photo,
-          'teachers',
-          teacher.employmentId,
-          { width: 150, height: 150 },
-        );
-        teacher.photoUrl = photoUrl;
+      // 3. Handle Photo URL Update
+      if (updateDto.photo_url !== undefined) {
+        // Validate the new photo URL
+        teacher.photoUrl = updateDto.photo_url
+          ? this.fileService.validatePhotoUrl(updateDto.photo_url)
+          : null;
       }
 
       const updatedTeacher = await queryRunner.manager.save(Teacher, teacher);

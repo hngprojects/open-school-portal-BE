@@ -129,13 +129,13 @@ export class CreateTeacherDto {
   home_address?: string;
 
   @ApiProperty({
-    description: 'Photo file (150x150 image, max 2MB)',
-    type: 'string',
-    format: 'binary',
+    description: 'Photo URL (must be a valid HTTP/HTTPS URL to an image)',
+    example: 'https://example.com/photos/teacher123.jpg',
     required: false,
   })
   @IsOptional()
-  photo?: string; // For file upload in multipart/form-data (handled by FileInterceptor)
+  @IsString()
+  photo_url?: string;
 
   @ApiProperty({
     description: 'Active status',

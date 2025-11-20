@@ -3,7 +3,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource, Repository, QueryRunner } from 'typeorm';
 
-import { IMulterFile } from '../../common/types/multer.types';
 import { UserRole } from '../shared/enums';
 import { FileService } from '../shared/file/file.service';
 import * as passwordUtil from '../shared/utils/password.util';
@@ -93,10 +92,7 @@ describe('TeacherService', () => {
 
     // Mock FileService
     fileService = {
-      uploadPhoto: jest
-        .fn()
-        .mockResolvedValue('uploads/teachers/EMP-2025-014.jpg'),
-      deleteFile: jest.fn().mockResolvedValue(undefined),
+      validatePhotoUrl: jest.fn().mockImplementation((url: string) => url),
     } as unknown as jest.Mocked<FileService>;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -220,23 +216,16 @@ describe('TeacherService', () => {
       expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
     });
 
-    it('should handle photo upload if provided', async () => {
-      const mockPhoto: IMulterFile = {
-        fieldname: 'photo',
-        originalname: 'teacher.jpg',
-        encoding: '7bit',
-        mimetype: 'image/jpeg',
-        size: 1024,
-        buffer: Buffer.from('fake-image-data'),
+    it('should validate photo URL if provided', async () => {
+      const dtoWithPhoto = {
+        ...createDto,
+        photo_url: 'https://example.com/photos/teacher123.jpg',
       };
 
-      await service.create(createDto, mockPhoto);
+      await service.create(dtoWithPhoto);
 
-      expect(fileService.uploadPhoto).toHaveBeenCalledWith(
-        mockPhoto,
-        'teachers',
-        'EMP-2025-014',
-        { width: 150, height: 150 },
+      expect(fileService.validatePhotoUrl).toHaveBeenCalledWith(
+        'https://example.com/photos/teacher123.jpg',
       );
     });
 
@@ -414,20 +403,29 @@ describe('TeacherService', () => {
       );
     });
 
-    it('should handle photo update', async () => {
-      const mockPhoto: IMulterFile = {
-        fieldname: 'photo',
-        originalname: 'new-photo.jpg',
-        encoding: '7bit',
-        mimetype: 'image/jpeg',
-        size: 1024,
-        buffer: Buffer.from('fake-image-data'),
+    it('should validate photo URL when updating', async () => {
+      const updateWithPhoto = {
+        ...updateDto,
+        photo_url: 'https://example.com/photos/new-teacher123.jpg',
       };
 
-      await service.update(1, updateDto, mockPhoto);
+      await service.update(1, updateWithPhoto);
 
-      expect(fileService.deleteFile).toHaveBeenCalledWith(mockTeacher.photoUrl);
-      expect(fileService.uploadPhoto).toHaveBeenCalled();
+      expect(fileService.validatePhotoUrl).toHaveBeenCalledWith(
+        'https://example.com/photos/new-teacher123.jpg',
+      );
+    });
+
+    it('should allow setting photo_url to null when updating', async () => {
+      const updateWithNullPhoto = {
+        ...updateDto,
+        photo_url: null,
+      };
+
+      await service.update(1, updateWithNullPhoto);
+
+      // Should not throw and should complete successfully
+      expect(queryRunner.commitTransaction).toHaveBeenCalled();
     });
 
     it('should rollback transaction on error', async () => {

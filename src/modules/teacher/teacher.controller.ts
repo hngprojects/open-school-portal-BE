@@ -8,18 +8,14 @@ import {
   Param,
   Query,
   UseGuards,
-  UseInterceptors,
-  UploadedFile,
   ParseIntPipe,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiBearerAuth,
   ApiOperation,
-  ApiConsumes,
   ApiBody,
   ApiResponse,
 } from '@nestjs/swagger';
@@ -27,8 +23,6 @@ import {
 import { Public } from '../../common/decorators/public.decorator';
 import { RateLimit } from '../../common/decorators/rate-limit.decorator';
 import { RateLimitGuard } from '../../common/guards/rate-limit.guard';
-import { IMulterFile } from '../../common/types/multer.types';
-import { teacherPhotoConfig } from '../../config/multer.config';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -79,38 +73,8 @@ export class TeacherController {
   @Post()
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
-  @UseInterceptors(FileInterceptor('photo', teacherPhotoConfig))
   @ApiOperation({ summary: 'Create a new teacher (ADMIN only)' })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        title: { type: 'string', enum: ['Mr', 'Mrs', 'Miss', 'Dr', 'Prof'] },
-        first_name: { type: 'string', example: 'Favour' },
-        last_name: { type: 'string', example: 'Chinaza' },
-        middle_name: { type: 'string', example: 'Chinaza' },
-        employment_id: {
-          type: 'string',
-          example: 'EMP-2025-014',
-        },
-        email: { type: 'string', example: 'favourchinaza110@gmail.com' },
-        password: { type: 'string', example: 'emp1234' },
-        gender: { type: 'string', example: 'Female' },
-        date_of_birth: { type: 'string', example: '1990-11-23' },
-        phone: { type: 'string', example: '+234 810 942 3124' },
-        home_address: {
-          type: 'string',
-          example: '123 Main Street',
-        },
-        photo: {
-          type: 'string',
-          format: 'binary',
-        },
-        is_active: { type: 'boolean', example: true },
-      },
-    },
-  })
+  @ApiBody({ type: CreateTeacherDto })
   @ApiResponse({
     status: 201,
     description: 'Teacher created successfully',
@@ -122,9 +86,8 @@ export class TeacherController {
   })
   async create(
     @Body() createDto: CreateTeacherDto,
-    @UploadedFile() photo?: IMulterFile,
   ): Promise<TeacherResponseDto> {
-    return this.teacherService.create(createDto, photo);
+    return this.teacherService.create(createDto);
   }
 
   // --- GET: LIST ALL TEACHERS (ADMIN/TEACHER READ) ---
@@ -177,34 +140,8 @@ export class TeacherController {
   @Patch(':id')
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(FileInterceptor('photo', teacherPhotoConfig))
   @ApiOperation({ summary: 'Update teacher (partial, ADMIN only)' })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        title: {
-          type: 'string',
-          enum: ['Mr', 'Mrs', 'Miss', 'Dr', 'Prof'],
-        },
-        first_name: { type: 'string' },
-        last_name: { type: 'string' },
-        middle_name: { type: 'string' },
-        email: { type: 'string' },
-        password: { type: 'string' },
-        gender: { type: 'string' },
-        date_of_birth: { type: 'string' },
-        phone: { type: 'string' },
-        home_address: { type: 'string' },
-        photo: {
-          type: 'string',
-          format: 'binary',
-        },
-        is_active: { type: 'boolean' },
-      },
-    },
-  })
+  @ApiBody({ type: UpdateTeacherDto })
   @ApiResponse({
     status: 200,
     description: 'Teacher updated successfully',
@@ -215,9 +152,8 @@ export class TeacherController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDto: UpdateTeacherDto,
-    @UploadedFile() photo?: IMulterFile,
   ): Promise<TeacherResponseDto> {
-    return this.teacherService.update(id, updateDto, photo);
+    return this.teacherService.update(id, updateDto);
   }
 
   // --- DELETE: DEACTIVATE TEACHER (ADMIN ONLY) ---
