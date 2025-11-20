@@ -2,6 +2,7 @@ import { Entity, Column, Unique, OneToMany } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
 import { Session } from '../../sessions/entities/session.entity';
+//import { TeacherProfile } from '../teacher/entities/teacher-profile.entity';
 
 export enum UserRole {
   ADMIN = 'ADMIN',
