@@ -195,18 +195,24 @@ export class TeacherService {
       );
     }
 
-    // Total count for pagination metadata
-    const total = await queryBuilder.getCount();
-
-    // Sorting
+    // Sorting - must be done before getCount() to avoid metadata issues
     let orderByField = 'teacher.created_at';
     if (sort_by === 'employment_id') orderByField = 'teacher.employment_id';
-    if (sort_by === 'name') orderByField = 'user.last_name'; // Sort by last name
+    if (sort_by === 'name') {
+      // For name sorting, use the joined user entity
+      queryBuilder.addOrderBy(
+        'user.last_name',
+        order.toUpperCase() as 'ASC' | 'DESC',
+      );
+    } else {
+      queryBuilder.orderBy(orderByField, order.toUpperCase() as 'ASC' | 'DESC');
+    }
 
-    queryBuilder
-      .orderBy(orderByField, order.toUpperCase() as 'ASC' | 'DESC')
-      .skip(skip)
-      .take(limit);
+    // Total count for pagination metadata (after ordering is set)
+    const total = await queryBuilder.getCount();
+
+    // Apply pagination
+    queryBuilder.skip(skip).take(limit);
 
     const teachers = await queryBuilder.getMany();
 
