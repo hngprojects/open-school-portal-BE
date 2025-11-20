@@ -1,9 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsUUID, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class RevokeSessionDto {
   @ApiProperty()
-  @IsString()
+  @IsUUID()
   @IsNotEmpty()
   session_id!: string;
 }
