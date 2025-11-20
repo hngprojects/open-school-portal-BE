@@ -12,6 +12,8 @@ import {
 import { Test, TestingModule } from '@nestjs/testing';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
+import config from 'src/config/config';
+
 import { BaseException } from '../base-exception';
 import { UserNotFoundException } from '../domain.exceptions';
 
@@ -79,15 +81,15 @@ describe('GlobalExceptionFilter', () => {
     } as unknown as ArgumentsHost;
 
     // Store original NODE_ENV
-    originalEnv = process.env.NODE_ENV;
+    originalEnv = config().env;
   });
 
   afterEach(() => {
     // Restore original NODE_ENV
     if (originalEnv) {
-      process.env.NODE_ENV = originalEnv;
+      config().env = originalEnv;
     } else {
-      delete process.env.NODE_ENV;
+      delete config().env;
     }
   });
 
@@ -341,7 +343,7 @@ describe('GlobalExceptionFilter', () => {
 
   describe('Environment-specific behavior', () => {
     it('should include stack trace in development mode', () => {
-      process.env.NODE_ENV = 'development';
+      config().env = 'development';
 
       const error = new Error('Test error');
       error.stack = 'Error: Test error\n    at test.js:1:1';
@@ -356,7 +358,7 @@ describe('GlobalExceptionFilter', () => {
     });
 
     it('should not include stack trace in production mode', () => {
-      process.env.NODE_ENV = 'production';
+      config().env = 'production';
 
       const error = new Error('Test error');
       error.stack = 'Error: Test error\n    at test.js:1:1';
@@ -371,7 +373,7 @@ describe('GlobalExceptionFilter', () => {
     });
 
     it('should sanitize error messages in production for 500 errors', () => {
-      process.env.NODE_ENV = 'production';
+      config().env = 'production';
 
       const error = new Error('Sensitive internal error details');
 
@@ -388,7 +390,7 @@ describe('GlobalExceptionFilter', () => {
     });
 
     it('should not sanitize 4xx errors in production', () => {
-      process.env.NODE_ENV = 'production';
+      config().env = 'production';
 
       const exception = new BadRequestException('Client error message');
 

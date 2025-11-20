@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax */
 export default () => ({
   env: process.env.NODE_ENV,
   port: parseInt(process.env.PORT, 10) || 3008,
@@ -31,6 +32,16 @@ export default () => ({
 
   jwt: {
     secret: process.env.JWT_SECRET,
+    refreshSecret: process.env.JWT_REFRESH_SECRET,
+  },
+
+  logger: {
+    legLevel: process.env.LOG_LEVEL || 'info',
+  },
+
+  paystack: {
+    url: process.env.PAYSTACK_URL,
+    key: process.env.PAYSTACK_KEY,
   },
 
   isTest(): boolean {
