@@ -135,6 +135,7 @@ export class AuthController {
       message,
     };
   }
+
   @Get('me')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()

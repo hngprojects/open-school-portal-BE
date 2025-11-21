@@ -190,7 +190,7 @@ export class AuthMeResponseDto {
 
 export class LogoutDto {
   @ApiProperty({
-    example: '123',
+    example: 'session-id-123',
     description: 'session id',
   })
   @IsUUID()
@@ -198,7 +198,7 @@ export class LogoutDto {
   session_id: string;
 
   @ApiProperty({
-    example: '123',
+    example: 'user-id-123',
     description: 'User id',
   })
   @IsUUID()
