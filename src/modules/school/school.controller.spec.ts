@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { SchoolModelAction } from './model-actions/school-actions';
 import { SchoolController } from './school.controller';
 import { SchoolService } from './school.service';
 
@@ -9,7 +10,16 @@ describe('SchoolController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SchoolController],
-      providers: [SchoolService],
+      providers: [
+        SchoolService,
+        {
+          provide: SchoolModelAction,
+          useValue: {
+            get: jest.fn(),
+            create: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     controller = module.get<SchoolController>(SchoolController);
