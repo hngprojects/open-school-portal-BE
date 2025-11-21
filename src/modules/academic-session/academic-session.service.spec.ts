@@ -530,13 +530,15 @@ describe('AcademicSessionService', () => {
       };
       await transactionFn(mockManager as EntityManager);
 
-      expect(mockManager.update).toHaveBeenCalledWith(
+      expect(mockManager.update).toHaveBeenNthCalledWith(
+        1,
         AcademicSession,
-        { id: sessionId },
+        {},
         { status: SessionStatus.INACTIVE },
       );
 
-      expect(mockManager.update).toHaveBeenCalledWith(
+      expect(mockManager.update).toHaveBeenNthCalledWith(
+        2,
         AcademicSession,
         { id: sessionId },
         { status: SessionStatus.ACTIVE },
