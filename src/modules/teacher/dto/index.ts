@@ -4,3 +4,4 @@ export * from './teacher-response.dto';
 export * from './get-teachers-query.dto';
 export * from './get-teachers-with-pagination-query.dto';
 export * from './generate-password-response.dto';
+export * from './toggle-teacher-status.dto';

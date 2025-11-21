@@ -18,6 +18,7 @@ import {
   ApiOperation,
   ApiBody,
   ApiResponse,
+  ApiParam,
 } from '@nestjs/swagger';
 
 import { Public } from '../../common/decorators/public.decorator';
@@ -34,6 +35,7 @@ import {
   TeacherResponseDto,
   GetTeachersQueryDto,
   GetTeachersWithPaginationQueryDto,
+  ToggleTeacherStatusDto,
 } from './dto';
 import { GeneratePasswordResponseDto } from './dto/generate-password-response.dto';
 import { TeacherService } from './teacher.service';
@@ -172,6 +174,13 @@ export class TeacherController {
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update teacher (partial, ADMIN only)' })
+  @ApiParam({
+    name: 'id',
+    type: 'string',
+    format: 'uuid',
+    description: 'Teacher UUID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
   @ApiBody({ type: UpdateTeacherDto })
   @ApiResponse({
     status: 200,
@@ -187,12 +196,49 @@ export class TeacherController {
     return this.teacherService.update(id, updateDto);
   }
 
+  // --- PATCH: TOGGLE TEACHER STATUS (ADMIN ONLY) ---
+  @Patch(':id/status')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Toggle teacher active/inactive status (ADMIN only)',
+    description:
+      'Activate or deactivate a teacher. This will also update the associated user account status.',
+  })
+  @ApiParam({
+    name: 'id',
+    type: 'string',
+    format: 'uuid',
+    description: 'Teacher UUID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiBody({ type: ToggleTeacherStatusDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Teacher status updated successfully',
+    type: TeacherResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Teacher not found' })
+  async toggleStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() statusDto: ToggleTeacherStatusDto,
+  ): Promise<TeacherResponseDto> {
+    return this.teacherService.toggleStatus(id, statusDto.is_active);
+  }
+
   // --- DELETE: DEACTIVATE TEACHER (ADMIN ONLY) ---
   @Delete(':id')
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Deactivate teacher (Soft Delete/Set Inactive, ADMIN only)',
+  })
+  @ApiParam({
+    name: 'id',
+    type: 'string',
+    format: 'uuid',
+    description: 'Teacher UUID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @ApiResponse({
     status: 204,

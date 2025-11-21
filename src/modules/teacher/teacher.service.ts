@@ -484,6 +484,73 @@ export class TeacherService {
     });
   }
 
+  // --- TOGGLE STATUS (Activate/Deactivate) ---
+  async toggleStatus(
+    id: string,
+    isActive: boolean,
+  ): Promise<TeacherResponseDto> {
+    const teacher = await this.teacherModelAction.get({
+      identifierOptions: { id },
+      relations: { user: true },
+    });
+
+    if (!teacher) {
+      this.logger.warn(sysMsg.RESOURCE_NOT_FOUND, { teacherId: id });
+      throw new NotFoundException(`Teacher with ID ${id} not found`);
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      // Update teacher status within transaction
+      const updatedTeacher = await this.teacherModelAction.update({
+        identifierOptions: { id },
+        updatePayload: { is_active: isActive },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      // Also update the associated user account status within transaction
+      const updatedUser = await this.userModelAction.update({
+        identifierOptions: { id: teacher.user_id },
+        updatePayload: { is_active: isActive },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      // Return response
+      const response = {
+        ...updatedTeacher,
+        first_name: updatedUser.first_name,
+        last_name: updatedUser.last_name,
+        middle_name: updatedUser.middle_name,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        gender: updatedUser.gender,
+        date_of_birth: updatedUser.dob,
+        home_address: updatedUser.homeAddress,
+        is_active: updatedTeacher.is_active,
+        employment_id: updatedTeacher.employment_id,
+        photo_url: updatedTeacher.photo_url,
+        created_at: updatedTeacher.createdAt,
+        updated_at: updatedTeacher.updatedAt,
+      };
+
+      this.logger.info(`Teacher ${isActive ? 'activated' : 'deactivated'}`, {
+        teacherId: id,
+        employmentId: updatedTeacher.employment_id,
+        userId: teacher.user_id,
+        isActive,
+      });
+
+      return plainToInstance(TeacherResponseDto, response, {
+        excludeExtraneousValues: true,
+      });
+    });
+  }
+
   // --- DELETE (Soft Delete / Deactivate) ---
   async remove(id: string): Promise<void> {
     const teacher = await this.teacherModelAction.get({
