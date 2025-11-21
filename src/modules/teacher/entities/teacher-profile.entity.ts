@@ -2,7 +2,7 @@ import { Entity, Column } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
 
-@Entity('teachers')
+@Entity('teacher_profiles')
 export class TeacherProfile extends BaseEntity {
   @Column({ unique: true })
   teacher_uid: string;
