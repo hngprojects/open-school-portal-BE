@@ -4,6 +4,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { ClassLevel } from '../shared/enums';
+import { UserRole } from '../user/entities/user.entity';
 
 import { ClassesService } from './class.service';
 import { ClassTeacher } from './entities/class-teacher.entity';
@@ -217,9 +218,41 @@ describe('ClassesService', () => {
     it('should return a list of mapped teachers for a specific session', async () => {
       // Arrange
       classesModelAction.get.mockResolvedValue(mockClass);
+      const fixedMockTeacherAssignment = {
+        ...mockTeacherAssignment,
+        teacher: {
+          ...mockTeacherAssignment.teacher,
+          id: '1', // Use a string for teacher_id to match entity and service logic
+          employment_id: 'EMP-2025-001',
+          user: {
+            id: 'mock-user-uuid',
+            first_name: 'John',
+            last_name: 'Doe',
+            middle_name: '',
+            gender: 'male',
+            dob: new Date('1990-01-01'),
+            email: 'john.doe@example.com',
+            phone: '1234567890',
+            homeAddress: '',
+            role: [UserRole.TEACHER],
+            password: 'hashedpassword',
+            is_active: true,
+            is_verified: true,
+            sessions: [],
+            teacher: undefined,
+            last_login_at: null,
+            reset_token: undefined,
+            reset_token_expiry: undefined,
+            deleted_at: null,
+            stream: undefined,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        },
+      };
       jest
         .spyOn(classTeacherRepository, 'find')
-        .mockResolvedValue([mockTeacherAssignment]);
+        .mockResolvedValue([fixedMockTeacherAssignment]);
 
       // Act
       const result = await service.getTeachersByClass(
@@ -239,7 +272,7 @@ describe('ClassesService', () => {
           id: true,
           teacher: {
             id: true,
-            employmentId: true,
+            employment_id: true,
           },
           class: {
             id: true,
@@ -249,7 +282,7 @@ describe('ClassesService', () => {
       });
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({
-        teacher_id: 'mock-teacher-uuid',
+        teacher_id: 1,
         name: 'John Doe',
         assignment_date: undefined,
         streams: [],

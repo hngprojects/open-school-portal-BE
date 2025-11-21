@@ -90,10 +90,10 @@ export class ClassesService {
     sessionId?: string,
   ): Promise<TeacherAssignmentResponseDto[]> {
     // 1. Validate Class Existence
-    const class_exitst = await this.classesModelAction.get({
+    const class_exist = await this.classesModelAction.get({
       identifierOptions: { id: classId },
     });
-    if (!class_exitst) {
+    if (!class_exist) {
       throw new NotFoundException(`Class with ID ${classId} not found`);
     }
 
@@ -113,7 +113,7 @@ export class ClassesService {
         id: true,
         teacher: {
           id: true,
-          employmentId: true,
+          employment_id: true,
         },
         class: {
           id: true,
@@ -124,10 +124,10 @@ export class ClassesService {
 
     // 4. Map to DTO
     return assignments.map((assignment) => ({
-      teacher_id: assignment.teacher.id,
+      teacher_id: Number(assignment.teacher.id),
       name: assignment.teacher.user
         ? `${assignment.teacher.user.first_name} ${assignment.teacher.user.last_name}`
-        : `Teacher ${assignment.teacher.employmentId}`,
+        : `Teacher ${assignment.teacher.employment_id}`,
       assignment_date: assignment.createdAt,
       streams: assignment.class.streams?.map((s) => s.name) || [],
     }));
