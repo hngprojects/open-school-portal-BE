@@ -1,3 +1,15 @@
+// Mock external modules that have native dependencies BEFORE any imports
+/* eslint-disable @typescript-eslint/naming-convention */
+jest.mock('sharp', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+/* eslint-enable @typescript-eslint/naming-convention */
+jest.mock('fs/promises', () => ({
+  mkdir: jest.fn(),
+  unlink: jest.fn(),
+}));
+
 import { ConflictException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -5,10 +17,6 @@ import { CreateInstallationDto } from './dto/create-installation.dto';
 import { School } from './entities/school.entity';
 import { SchoolModelAction } from './model-actions/school-actions';
 import { SchoolService } from './school.service';
-
-// Mock external modules that have native dependencies
-jest.mock('sharp');
-jest.mock('fs/promises');
 
 describe('SchoolService', () => {
   let service: SchoolService;

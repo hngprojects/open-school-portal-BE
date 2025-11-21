@@ -1,12 +1,20 @@
+// Mock external modules that have native dependencies BEFORE any imports
+/* eslint-disable @typescript-eslint/naming-convention */
+jest.mock('sharp', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+/* eslint-enable @typescript-eslint/naming-convention */
+jest.mock('fs/promises', () => ({
+  mkdir: jest.fn(),
+  unlink: jest.fn(),
+}));
+
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { SchoolModelAction } from './model-actions/school-actions';
 import { SchoolController } from './school.controller';
 import { SchoolService } from './school.service';
-
-// Mock external modules that have native dependencies
-jest.mock('sharp');
-jest.mock('fs/promises');
 
 describe('SchoolController', () => {
   let controller: SchoolController;
