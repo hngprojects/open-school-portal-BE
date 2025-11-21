@@ -6,6 +6,10 @@ import { School } from './entities/school.entity';
 import { SchoolModelAction } from './model-actions/school-actions';
 import { SchoolService } from './school.service';
 
+// Mock external modules that have native dependencies
+jest.mock('sharp');
+jest.mock('fs/promises');
+
 describe('SchoolService', () => {
   let service: SchoolService;
   let schoolModelAction: jest.Mocked<SchoolModelAction>;

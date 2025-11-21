@@ -4,6 +4,10 @@ import { SchoolModelAction } from './model-actions/school-actions';
 import { SchoolController } from './school.controller';
 import { SchoolService } from './school.service';
 
+// Mock external modules that have native dependencies
+jest.mock('sharp');
+jest.mock('fs/promises');
+
 describe('SchoolController', () => {
   let controller: SchoolController;
 
