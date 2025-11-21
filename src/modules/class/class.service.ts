@@ -10,6 +10,7 @@ import * as sysMsg from '../../constants/system.messages';
 import { ClassLevel } from '../shared/enums';
 
 import { CreateClassDto } from './dto/create-class.dto';
+import { GroupedClassesDto, GetClassDto } from './dto/get-class.dto';
 import { TeacherAssignmentResponseDto } from './dto/teacher-response.dto';
 import { ClassTeacher } from './entities/class-teacher.entity';
 import { Class } from './entities/class.entity';
@@ -18,8 +19,6 @@ import { ClassesModelAction } from './model-actions/class-action';
 @Injectable()
 export class ClassesService {
   constructor(
-    @InjectRepository(Class)
-    private classRepository: Repository<Class>,
     @InjectRepository(ClassTeacher)
     private classTeacherRepository: Repository<ClassTeacher>,
     private readonly classesModelAction: ClassesModelAction,
@@ -38,7 +37,9 @@ export class ClassesService {
       throw new BadRequestException(sysMsg.INVALID_CLASS_PARAMETER);
     }
     // 3. Check for duplicate class name
-    const existing = await this.classRepository.findOne({ where: { name } });
+    const existing = await this.classesModelAction.get({
+      identifierOptions: { name },
+    });
     if (existing) {
       throw new BadRequestException(sysMsg.CLASS_ALREADY_EXISTS);
     }
@@ -54,6 +55,34 @@ export class ClassesService {
   }
 
   /**
+   * Fetches all classes grouped by level, with stream count.
+   */
+  async getAllClassesGroupedByLevel(): Promise<GroupedClassesDto[]> {
+    const { payload: classes } = await this.classesModelAction.list({
+      filterRecordOptions: {},
+      relations: { streams: true },
+    });
+    // Group by level
+    const grouped: Record<string, GetClassDto[]> = {};
+    for (const cls of classes) {
+      const dto: GetClassDto = {
+        id: cls.id,
+        name: cls.name,
+        level: cls.level,
+        stream_count: cls.streams ? cls.streams.length : 0,
+        streams: cls.streams ? cls.streams.map((s) => s.name) : [],
+      };
+      if (!grouped[cls.level]) grouped[cls.level] = [];
+      grouped[cls.level].push(dto);
+    }
+    // Map to GroupedClassesDto[]
+    return Object.entries(grouped).map(([level, classes]) => ({
+      level: level as ClassLevel,
+      classes,
+    }));
+  }
+
+  /**
    * Fetches teachers for a specific class and session.
    */
   async getTeachersByClass(
@@ -61,8 +90,8 @@ export class ClassesService {
     sessionId?: string,
   ): Promise<TeacherAssignmentResponseDto[]> {
     // 1. Validate Class Existence
-    const class_exitst = await this.classRepository.findOne({
-      where: { id: classId },
+    const class_exitst = await this.classesModelAction.get({
+      identifierOptions: { id: classId },
     });
     if (!class_exitst) {
       throw new NotFoundException(`Class with ID ${classId} not found`);

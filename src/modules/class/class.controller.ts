@@ -26,6 +26,7 @@ import { UserRole } from '../shared/enums';
 
 import { ClassesService } from './class.service';
 import { CreateClassDto, ClassResponseDto } from './dto/create-class.dto';
+import { GroupedClassesDto } from './dto/get-class.dto';
 import { GetTeachersQueryDto } from './dto/get-teachers-query.dto';
 import { TeacherAssignmentResponseDto } from './dto/teacher-response.dto';
 
@@ -82,6 +83,32 @@ export class ClassesController {
       status_code: HttpStatus.CREATED,
       message: sysMsg.CLASS_CREATED,
       data: response,
+    };
+  }
+
+  @Get()
+  @ApiOperation({
+    summary: 'Get all classes grouped by level',
+    description:
+      'Returns all classes grouped by their level, with stream count.',
+  })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiResponse({
+    status: 200,
+    description: 'Grouped classes by level.',
+    type: [GroupedClassesDto],
+  })
+  async getAllClasses(): Promise<{
+    status_code: number;
+    message: string;
+    data: GroupedClassesDto[];
+  }> {
+    const grouped = await this.classesService.getAllClassesGroupedByLevel();
+    return {
+      status_code: HttpStatus.OK,
+      message: 'Classes fetched successfully',
+      data: grouped,
     };
   }
 
