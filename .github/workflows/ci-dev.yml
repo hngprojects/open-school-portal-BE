@@ -28,7 +28,10 @@ jobs:
           sudo apt-get install -y libvips-dev
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Rebuild Sharp for current platform
+        run: npm rebuild sharp
 
       - name: Run ESLint
         run: npm run lint --if-present
