@@ -9,7 +9,7 @@ import {
 } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
-import { Class } from '../../classes/entities/classes.entity';
+import { Class } from '../../class/entities/class.entity';
 import { User } from '../../user/entities/user.entity';
 
 @Entity('stream')
