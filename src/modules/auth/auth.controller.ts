@@ -1,6 +1,8 @@
 import {
   Body,
   Controller,
+  Get,
+  Headers,
   HttpCode,
   HttpStatus,
   Param,
@@ -9,10 +11,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
-  ApiBearerAuth,
   ApiOperation,
   ApiResponse,
   ApiTags,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 
 import * as sysMsg from '../../constants/system.messages';
@@ -27,6 +29,7 @@ import {
 } from './dto/auth-response.dto';
 import {
   AuthDto,
+  AuthMeResponseDto,
   ForgotPasswordDto,
   RefreshTokenDto,
   ResetPasswordDto,
@@ -135,7 +138,6 @@ export class AuthController {
       message,
     };
   }
-
   @Patch('users/:user_id/deactivate')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -160,5 +162,22 @@ export class AuthController {
   })
   async deactivateAccount(@Param('user_id') userId: string) {
     return this.authService.deactivateUserAccount(userId);
+  }
+
+  @Get('me')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Fetches authenticated user profile' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: sysMsg.PROFILE_RETRIEVED,
+    type: AuthMeResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: sysMsg.UNAUTHORIZED,
+  })
+  async getProfile(@Headers('authorization') authorization: string) {
+    return this.authService.getProfile(authorization);
   }
 }
