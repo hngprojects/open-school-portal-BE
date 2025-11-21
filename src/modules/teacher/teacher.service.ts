@@ -204,7 +204,7 @@ export class TeacherService {
     }
 
     // Sorting - must be done before getCount() to avoid metadata issues
-    let orderByField = 'teacher.created_at';
+    let orderByField = 'teacher.createdAt';
     if (sort_by === 'employment_id') orderByField = 'teacher.employment_id';
     if (sort_by === 'name') {
       // For name sorting, use the joined user entity
