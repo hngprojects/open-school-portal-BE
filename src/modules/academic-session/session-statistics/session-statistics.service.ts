@@ -86,36 +86,36 @@ export class SessionsStatisticsService {
     };
   }
 
-  private async getCountFromTable(
-    tableName: string,
-    columnName: string,
-    sessionId: string,
-  ): Promise<number> {
-    const result = await this.dataSource.query(
-      `SELECT COUNT(DISTINCT ${columnName}) as count FROM ${tableName} WHERE session_id = $1`,
-      [sessionId],
-    );
-    return parseInt(result[0]?.count) || 0;
-  }
+  // private async getCountFromTable(
+  //   tableName: string,
+  //   columnName: string,
+  //   sessionId: string,
+  // ): Promise<number> {
+  //   const result = await this.dataSource.query(
+  //     `SELECT COUNT(DISTINCT ${columnName}) as count FROM ${tableName} WHERE session_id = $1`,
+  //     [sessionId],
+  //   );
+  //   return parseInt(result[0]?.count) || 0;
+  // }
 
-  private async getStreamCount(sessionId: string): Promise<number> {
-    const possibleTables = ['session_streams', 'streams', 'class_streams'];
+  // private async getStreamCount(sessionId: string): Promise<number> {
+  //   const possibleTables = ['session_streams', 'streams', 'class_streams'];
 
-    for (const tableName of possibleTables) {
-      try {
-        const result = await this.dataSource.query(
-          `SELECT COUNT(*) as count FROM ${tableName} WHERE session_id = $1`,
-          [sessionId],
-        );
-        const count = parseInt(result[0]?.count) || 0;
-        return count;
-      } catch {
-        continue;
-      }
-    }
+  //   for (const tableName of possibleTables) {
+  //     try {
+  //       const result = await this.dataSource.query(
+  //         `SELECT COUNT(*) as count FROM ${tableName} WHERE session_id = $1`,
+  //         [sessionId],
+  //       );
+  //       const count = parseInt(result[0]?.count) || 0;
+  //       return count;
+  //     } catch {
+  //       continue;
+  //     }
+  //   }
 
-    return 0;
-  }
+  //   return 0;
+  // }
 
   private getZeroStatistics(): {
     classCount: number;

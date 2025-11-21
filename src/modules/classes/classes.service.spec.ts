@@ -1,14 +1,15 @@
+import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { NotFoundException } from '@nestjs/common';
+
 import { ClassesService } from './classes.service';
-import { Class } from './entities/classes.entity';
 import { ClassTeacher } from './entities/class-teacher.entity';
+import { Class } from './entities/classes.entity';
 
 // Mock Data Constants
 const MOCK_CLASS_ID = 1;
-const MOCK_sessionId = '2023-2024';
+const MOCK_SESSION_ID = '2023-2024';
 const MOCK_ACTIVE_SESSION = '2024-2025';
 
 const mockClass = {
@@ -20,12 +21,15 @@ const mockClass = {
 const mockTeacherAssignment = {
   id: 10,
   assignment_date: new Date('2023-09-01'),
-  sessionId: MOCK_sessionId,
+  session_id: MOCK_SESSION_ID,
   is_active: true,
   teacher: {
     id: 101,
-    name: 'John Doe',
-    email: 'john@school.com',
+    employmentId: 'EMP-2025-001',
+    user: {
+      first_name: 'John',
+      last_name: 'Doe',
+    },
   },
   class: mockClass,
 } as unknown as ClassTeacher;
@@ -76,24 +80,23 @@ describe('ClassesService', () => {
       // Act
       const result = await service.getTeachersByClass(
         MOCK_CLASS_ID,
-        MOCK_sessionId,
+        MOCK_SESSION_ID,
       );
 
       // Assert
       expect(classTeacherRepository.find).toHaveBeenCalledWith({
         where: {
           class: { id: MOCK_CLASS_ID },
-          sessionId: MOCK_sessionId, // Expecting snake_case
+          session_id: MOCK_SESSION_ID,
           is_active: true,
         },
-        relations: ['teacher', 'class'],
-        // Updated to match the specific structure from your error log
+        relations: ['teacher', 'teacher.user', 'class'],
         select: {
           id: true,
           assignment_date: true,
           teacher: {
             id: true,
-            name: true,
+            employmentId: true,
           },
           class: {
             id: true,
@@ -125,7 +128,7 @@ describe('ClassesService', () => {
       expect(classTeacherRepository.find).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            sessionId: MOCK_ACTIVE_SESSION, // Expecting snake_case
+            session_id: MOCK_ACTIVE_SESSION,
           }),
         }),
       );
@@ -135,7 +138,7 @@ describe('ClassesService', () => {
       jest.spyOn(classRepository, 'findOne').mockResolvedValue(null);
 
       await expect(
-        service.getTeachersByClass(999, MOCK_sessionId),
+        service.getTeachersByClass(999, MOCK_SESSION_ID),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -145,7 +148,7 @@ describe('ClassesService', () => {
 
       const result = await service.getTeachersByClass(
         MOCK_CLASS_ID,
-        MOCK_sessionId,
+        MOCK_SESSION_ID,
       );
 
       expect(result).toEqual([]);

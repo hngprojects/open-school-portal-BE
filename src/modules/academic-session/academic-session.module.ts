@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { AuthModule } from '../auth/auth.module';
+
 import { AcademicSessionController } from './academic-session.controller';
 import { AcademicSessionService } from './academic-session.service';
 import { AcademicSession } from './entities/academic-session.entity';
@@ -10,6 +12,7 @@ import { SessionsStatisticsModule } from './session-statistics/session-statistic
 @Module({
   imports: [
     TypeOrmModule.forFeature([AcademicSession]),
+    AuthModule,
     SessionsStatisticsModule,
   ],
   controllers: [AcademicSessionController],
