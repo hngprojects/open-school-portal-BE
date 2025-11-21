@@ -8,6 +8,7 @@ import {
   IsEnum,
   MinLength,
   Matches,
+  IsJWT,
 } from 'class-validator';
 
 export enum UserRole {
@@ -143,7 +144,7 @@ export class RefreshTokenDto {
     example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
     description: 'JWT refresh token with 7 days expiration',
   })
-  @IsString()
+  @IsJWT()
   @IsNotEmpty()
   refresh_token: string;
 }
