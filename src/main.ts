@@ -10,8 +10,28 @@ import { LoggingInterceptor } from './middleware/logging.interceptor';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
+  const isDev = configService.get<boolean>('isDev');
+  const allowedOrigins =
+    configService.get<string>('CORS_ORIGINS')?.split(',') || [];
 
-  app.enableCors();
+  app.enableCors({
+    // In dev: allow all origins. In prod: use specific origins or allow all if none specified
+    origin: isDev || allowedOrigins.length === 0 ? true : allowedOrigins,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'X-Requested-With',
+      'Origin',
+      'Access-Control-Request-Method',
+      'Access-Control-Request-Headers',
+    ],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+  });
 
   const apiPrefix = configService.get<string>('API_PREFIX', 'api');
   const apiVersion = configService.get<string>('API_VERSION', 'v1');
@@ -61,7 +81,6 @@ async function bootstrap() {
   const loggingInterceptor = app.get(LoggingInterceptor);
   app.useGlobalInterceptors(loggingInterceptor);
 
-  const isDev = configService.get<boolean>('isDev');
   const port = configService.get<string>('port');
   const env = configService.get<string>('env');
   const appName = configService.get<string>('app.name');
