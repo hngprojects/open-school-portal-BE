@@ -8,6 +8,7 @@ import {
   IsEnum,
   MinLength,
   Matches,
+  IsJWT,
 } from 'class-validator';
 
 export enum UserRole {
@@ -137,4 +138,23 @@ export class ResetPasswordDto {
       'Password must contain at least one uppercase letter, one lowercase letter, and one number',
   })
   newPassword: string;
+}
+export class RefreshTokenDto {
+  @ApiProperty({
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    description: 'JWT refresh token with 7 days expiration',
+  })
+  @IsJWT()
+  @IsNotEmpty()
+  refresh_token: string;
+}
+
+export class AuthMeResponseDto {
+  @ApiProperty({
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    description: 'JWT refresh token with 7 days expiration',
+  })
+  @IsJWT()
+  @IsNotEmpty()
+  refresh_token: string;
 }
