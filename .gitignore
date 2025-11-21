@@ -39,3 +39,4 @@ lerna-debug.log*
 logs/
 # package-lock.json
 package-lock.json
+package.json

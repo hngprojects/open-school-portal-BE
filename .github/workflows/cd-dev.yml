@@ -2,7 +2,7 @@ name: Dev Deployment
 
 on:
   workflow_run:
-    workflows: ['CI Pipeline (Dev)']
+    workflows: ['CI Pipeline']
     types:
       - completed
     branches:

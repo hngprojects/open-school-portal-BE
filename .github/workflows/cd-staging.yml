@@ -2,7 +2,7 @@ name: Staging Deployment
 
 on:
   workflow_run:
-    workflows: ['CI Pipeline (Staging)']
+    workflows: ['CI Pipeline']
     types:
       - completed
     branches:
