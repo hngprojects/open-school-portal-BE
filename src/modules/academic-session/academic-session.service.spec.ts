@@ -35,12 +35,21 @@ describe('AcademicSessionService', () => {
     mockSessionModelAction =
       mockModelActionProvider as unknown as jest.Mocked<AcademicSessionModelAction>;
 
+    // Mock DataSource - required by AcademicSessionService constructor
+    const mockDataSource: Partial<DataSource> = {
+      transaction: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AcademicSessionService,
         {
           provide: AcademicSessionModelAction,
           useValue: mockSessionModelAction,
+        },
+        {
+          provide: DataSource,
+          useValue: mockDataSource,
         },
       ],
     }).compile();
@@ -283,6 +292,11 @@ describe('AcademicSessionService', () => {
     };
 
     beforeEach(async () => {
+      // Mock DataSource - required by AcademicSessionService constructor
+      const mockDataSource: Partial<DataSource> = {
+        transaction: jest.fn(),
+      };
+
       const module: TestingModule = await Test.createTestingModule({
         providers: [
           AcademicSessionService,
@@ -291,6 +305,10 @@ describe('AcademicSessionService', () => {
             useValue: {
               list: jest.fn(),
             },
+          },
+          {
+            provide: DataSource,
+            useValue: mockDataSource,
           },
         ],
       }).compile();
@@ -406,8 +424,7 @@ describe('AcademicSessionService', () => {
       const result = await service.activeSessions();
       expect(result).toBeNull();
       expect(mockModelAction.list).toHaveBeenCalledWith({
-        order: { startDate: 'ASC' },
-        paginationPayload: { page: 1, limit: 20 },
+        filterRecordOptions: { status: SessionStatus.ACTIVE },
       });
     });
 
@@ -515,7 +532,7 @@ describe('AcademicSessionService', () => {
 
       expect(mockManager.update).toHaveBeenCalledWith(
         AcademicSession,
-        {},
+        { id: sessionId },
         { status: SessionStatus.INACTIVE },
       );
 

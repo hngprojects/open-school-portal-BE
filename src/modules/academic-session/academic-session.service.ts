@@ -30,7 +30,7 @@ export interface ICreateSessionResponse {
 }
 @Injectable()
 export class AcademicSessionService {
-  private readonly logger: Logger;
+  private readonly logger = new Logger(AcademicSessionService.name);
   constructor(
     private readonly sessionModelAction: AcademicSessionModelAction,
     private readonly dataSource: DataSource,
