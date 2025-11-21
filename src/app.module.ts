@@ -14,7 +14,7 @@ import { DEFAULT_LIMIT } from './config/throttle.config';
 import { LoggingInterceptor } from './middleware/logging.interceptor';
 import { AcademicSessionModule } from './modules/academic-session/academic-session.module';
 import { AuthModule } from './modules/auth/auth.module';
-import { ClassesModule } from './modules/classes/classes.module';
+import { ClassModule } from './modules/class/class.module';
 import { EmailModule } from './modules/email/email.module';
 import { InviteModule } from './modules/invites/invites.module';
 import { SchoolModule } from './modules/school/school.module';
@@ -55,7 +55,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     SessionModule,
     AuthModule,
     TeachersModule,
-    ClassesModule,
+    ClassModule,
     InviteModule,
     AcademicSessionModule,
     SubjectModule,
