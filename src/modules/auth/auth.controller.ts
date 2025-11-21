@@ -6,8 +6,15 @@ import {
   Param,
   Patch,
   Post,
+  Get,
+  Headers,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 
 import * as sysMsg from '../../constants/system.messages';
 
@@ -19,6 +26,7 @@ import {
 } from './dto/auth-response.dto';
 import {
   AuthDto,
+  AuthMeResponseDto,
   ForgotPasswordDto,
   RefreshTokenDto,
   ResetPasswordDto,
@@ -124,5 +132,21 @@ export class AuthController {
       status: HttpStatus.OK,
       message,
     };
+  }
+  @Get('me')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Fetches authenticated user profile' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: sysMsg.PROFILE_RETRIEVED,
+    type: AuthMeResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: sysMsg.UNAUTHORIZED,
+  })
+  async getProfile(@Headers('authorization') authorization: string) {
+    return this.authService.getProfile(authorization);
   }
 }

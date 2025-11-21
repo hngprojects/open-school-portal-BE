@@ -1,7 +1,7 @@
 import { Entity, Column, OneToOne, JoinColumn, OneToMany } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
-import { ClassTeacher } from '../../classes/entities/class-teacher.entity';
+import { ClassTeacher } from '../../class/entities/class-teacher.entity';
 import { User } from '../../user/entities/user.entity';
 import { TeacherTitle } from '../enums/teacher.enum';
 
