@@ -305,11 +305,6 @@ export class AuthService {
       { useTransaction: false },
     );
 
-    this.logger.info(`User account deactivated successfully`, {
-      userId: id,
-      email: user.email,
-    });
-
     return {
       message: sysMsg.USER_DEACTIVATED,
     };

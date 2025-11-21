@@ -22,6 +22,7 @@ import { UserRole } from '../shared/enums';
 
 import { AuthService } from './auth.service';
 import { Roles } from './decorators/roles.decorator';
+import { AuthSwagger } from './docs/auth.swagger';
 import {
   LoginResponseDto,
   RefreshTokenResponseDto,
@@ -142,24 +143,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Deactivate user account' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: sysMsg.USER_DEACTIVATED,
-  })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
-    description: sysMsg.USER_NOT_FOUND,
-  })
-  @ApiResponse({
-    status: HttpStatus.UNAUTHORIZED,
-    description: sysMsg.TOKEN_INVALID,
-  })
-  @ApiResponse({
-    status: HttpStatus.FORBIDDEN,
-    description: sysMsg.PERMISSION_DENIED,
-  })
+  @AuthSwagger.deactivateUser()
   async deactivateAccount(@Param('user_id') userId: string) {
     return this.authService.deactivateUserAccount(userId);
   }
