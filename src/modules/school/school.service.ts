@@ -1,12 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
-import {
-  Injectable,
-  ConflictException,
-  BadRequestException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Injectable, ConflictException } from '@nestjs/common';
 import * as sharp from 'sharp';
 
 import { IMulterFile } from '../../common/types/multer.types';
@@ -46,46 +41,32 @@ export class SchoolService {
 
     // Process logo file if provided
     if (logoFile) {
-      try {
-        logoUrl = await this.uploadLogo(logoFile);
-      } catch {
-        throw new BadRequestException(sysMsg.LOGO_UPLOAD_FAILED);
-      }
+      logoUrl = await this.uploadLogo(logoFile);
     }
 
     // Create school record
-    try {
-      const school = await this.schoolModelAction.create({
-        createPayload: {
-          school_name: createInstallationDto.school_name,
-          logo_url: logoUrl,
-          primary_color: createInstallationDto.primary_color,
-          secondary_color: createInstallationDto.secondary_color,
-          accent_color: createInstallationDto.accent_color,
-          installation_completed: true,
-        },
-        transactionOptions: { useTransaction: false },
-      });
+    const school = await this.schoolModelAction.create({
+      createPayload: {
+        school_name: createInstallationDto.school_name,
+        logo_url: logoUrl,
+        primary_color: createInstallationDto.primary_color,
+        secondary_color: createInstallationDto.secondary_color,
+        accent_color: createInstallationDto.accent_color,
+        installation_completed: true,
+      },
+      transactionOptions: { useTransaction: false },
+    });
 
-      return {
-        id: school.id,
-        school_name: school.school_name,
-        logo_url: school.logo_url,
-        primary_color: school.primary_color,
-        secondary_color: school.secondary_color,
-        accent_color: school.accent_color,
-        installation_completed: school.installation_completed,
-        message: sysMsg.INSTALLATION_COMPLETED,
-      };
-    } catch {
-      // Clean up uploaded logo if school creation fails
-      if (logoUrl) {
-        await this.deleteLogoFile(logoUrl).catch(() => {
-          // Ignore cleanup errors
-        });
-      }
-      throw new InternalServerErrorException(sysMsg.INSTALLATION_FAILED);
-    }
+    return {
+      id: school.id,
+      school_name: school.school_name,
+      logo_url: school.logo_url,
+      primary_color: school.primary_color,
+      secondary_color: school.secondary_color,
+      accent_color: school.accent_color,
+      installation_completed: school.installation_completed,
+      message: sysMsg.INSTALLATION_COMPLETED,
+    };
   }
 
   private async uploadLogo(logoFile: IMulterFile): Promise<string> {

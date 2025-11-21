@@ -158,7 +158,3 @@ export const INSTALLATION_COMPLETED =
   'school installation completed successfully';
 export const INSTALLATION_ALREADY_COMPLETED =
   'school installation already completed';
-export const SCHOOL_NAME_REQUIRED = 'school name is required';
-export const INVALID_LOGO_FILE = 'invalid logo file format';
-export const LOGO_UPLOAD_FAILED = 'logo upload failed';
-export const INSTALLATION_FAILED = 'installation failed';
