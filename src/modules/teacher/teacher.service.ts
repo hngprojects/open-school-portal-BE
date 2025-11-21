@@ -2,11 +2,15 @@ import {
   Injectable,
   ConflictException,
   NotFoundException,
+  Inject,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource, Repository } from 'typeorm';
+import { Logger } from 'winston';
 
+import * as sysMsg from '../../constants/system.messages';
 import { UserRole } from '../shared/enums';
 import { FileService } from '../shared/file/file.service';
 import {
@@ -29,6 +33,7 @@ import { generateEmploymentId } from './utils/employment-id.util';
 
 @Injectable()
 export class TeacherService {
+  private readonly logger: Logger;
   constructor(
     private readonly teacherModelAction: TeacherModelAction,
     private readonly userModelAction: UserModelAction,
@@ -37,7 +42,10 @@ export class TeacherService {
     // Keep repository for complex queries and employment ID generation
     @InjectRepository(Teacher)
     private readonly teacherRepository: Repository<Teacher>,
-  ) {}
+    @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
+  ) {
+    this.logger = baseLogger.child({ context: TeacherService.name });
+  }
 
   // --- PASSWORD GENERATION ---
   generatePassword(): GeneratePasswordResponseDto {
@@ -68,6 +76,9 @@ export class TeacherService {
       identifierOptions: { email: createDto.email },
     });
     if (existingUser) {
+      this.logger.warn(
+        `Attempt to create teacher with existing email: ${createDto.email}`,
+      );
       throw new ConflictException(
         `User with email ${createDto.email} already exists.`,
       );
@@ -81,6 +92,9 @@ export class TeacherService {
       identifierOptions: { employment_id },
     });
     if (existingTeacher) {
+      this.logger.warn(
+        `Attempt to create teacher with existing employment ID: ${employment_id}`,
+      );
       throw new ConflictException(
         `Employment ID ${employment_id} already exists.`,
       );
@@ -150,6 +164,12 @@ export class TeacherService {
         created_at: savedTeacher.createdAt,
         updated_at: savedTeacher.updatedAt,
       };
+
+      this.logger.info(sysMsg.RESOURCE_CREATED, {
+        teacherId: savedTeacher.id,
+        employmentId: savedTeacher.employment_id,
+        email: savedUser.email,
+      });
 
       return plainToInstance(TeacherResponseDto, response, {
         excludeExtraneousValues: true,
@@ -226,6 +246,14 @@ export class TeacherService {
       { excludeExtraneousValues: true },
     );
 
+    this.logger.info('Teachers list retrieved', {
+      total,
+      page,
+      limit,
+      search: search || null,
+      isActive: is_active,
+    });
+
     // Return Paginated Response Structure
     return {
       data,
@@ -244,6 +272,7 @@ export class TeacherService {
     });
 
     if (!teacher) {
+      this.logger.warn(sysMsg.RESOURCE_NOT_FOUND, { teacherId: id });
       throw new NotFoundException(`Teacher with ID ${id} not found`);
     }
 
@@ -288,6 +317,11 @@ export class TeacherService {
       updateDto.employment_id &&
       updateDto.employment_id !== teacher.employment_id
     ) {
+      this.logger.warn('Attempt to update employment ID', {
+        teacherId: id,
+        currentEmploymentId: teacher.employment_id,
+        attemptedEmploymentId: updateDto.employment_id,
+      });
       throw new ConflictException(
         'Employment ID cannot be updated after creation.',
       );
@@ -364,6 +398,11 @@ export class TeacherService {
         updated_at: updatedTeacher.updatedAt,
       };
 
+      this.logger.info(sysMsg.RESOURCE_UPDATED, {
+        teacherId: id,
+        employmentId: updatedTeacher.employment_id,
+      });
+
       return plainToInstance(TeacherResponseDto, response, {
         excludeExtraneousValues: true,
       });
@@ -378,6 +417,7 @@ export class TeacherService {
     });
 
     if (!teacher) {
+      this.logger.warn(sysMsg.RESOURCE_NOT_FOUND, { teacherId: id });
       throw new NotFoundException(`Teacher with ID ${id} not found`);
     }
 
@@ -400,6 +440,12 @@ export class TeacherService {
           useTransaction: true,
           transaction: manager,
         },
+      });
+
+      this.logger.info(sysMsg.RESOURCE_DELETED, {
+        teacherId: id,
+        employmentId: teacher.employment_id,
+        userId: teacher.user_id,
       });
     });
   }

@@ -1,7 +1,9 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource, Repository, QueryRunner } from 'typeorm';
+import { Logger } from 'winston';
 
 import { UserRole } from '../shared/enums';
 import { FileService } from '../shared/file/file.service';
@@ -31,6 +33,7 @@ describe('TeacherService', () => {
   let teacherModelAction: jest.Mocked<TeacherModelAction>;
   let userModelAction: jest.Mocked<UserModelAction>;
   let queryRunner: jest.Mocked<QueryRunner>;
+  let mockLogger: jest.Mocked<Logger>;
 
   const mockUser: Partial<User> = {
     id: 'user-uuid-123',
@@ -111,6 +114,16 @@ describe('TeacherService', () => {
       update: jest.fn(),
     } as unknown as jest.Mocked<UserModelAction>;
 
+    // Mock Logger
+    mockLogger = {
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      debug: jest.fn(),
+      log: jest.fn(),
+      child: jest.fn().mockReturnThis(),
+    } as unknown as jest.Mocked<Logger>;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TeacherService,
@@ -133,6 +146,10 @@ describe('TeacherService', () => {
         {
           provide: FileService,
           useValue: fileService,
+        },
+        {
+          provide: WINSTON_MODULE_PROVIDER,
+          useValue: mockLogger,
         },
       ],
     }).compile();
