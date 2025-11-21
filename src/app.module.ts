@@ -12,13 +12,14 @@ import configuration from './config/config';
 import { LoggingInterceptor } from './middleware/logging.interceptor';
 import { AcademicSessionModule } from './modules/academic-session/academic-session.module';
 import { AuthModule } from './modules/auth/auth.module';
-import { ClassesModule } from './modules/classes/classes.module';
+import { ClassModule } from './modules/class/class.module';
 import { EmailModule } from './modules/email/email.module';
 import { InviteModule } from './modules/invites/invites.module';
 import { SchoolModule } from './modules/school/school.module';
 import { SessionModule } from './modules/session/session.module';
 import { SubjectModule } from './modules/subject/subject.module';
 import { TeachersModule } from './modules/teacher/teacher.module';
+import { TermModule } from './modules/term/term.module';
 import { UserModule } from './modules/user/user.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
 
@@ -53,10 +54,11 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     SessionModule,
     AuthModule,
     TeachersModule,
-    ClassesModule,
+    ClassModule,
     InviteModule,
     AcademicSessionModule,
     SubjectModule,
+    TermModule,
   ],
   controllers: [AppController],
   providers: [

@@ -59,7 +59,7 @@ describe('SchoolService', () => {
     };
 
     it('should successfully create school installation', async () => {
-      const mockSchool: School = {
+      const mockSchool: Partial<School> = {
         id: 'uuid-123',
         school_name: 'Test School',
         logo_url: null,
@@ -72,7 +72,7 @@ describe('SchoolService', () => {
       };
 
       schoolModelAction.get.mockResolvedValue(null);
-      schoolModelAction.create.mockResolvedValue(mockSchool);
+      schoolModelAction.create.mockResolvedValue(mockSchool as School);
 
       const result = await service.processInstallation(validDto);
 
@@ -129,7 +129,7 @@ describe('SchoolService', () => {
         school_name: 'Minimal School',
       };
 
-      const mockSchool: School = {
+      const mockSchool: Partial<School> = {
         id: 'uuid-456',
         school_name: 'Minimal School',
         logo_url: null,
@@ -142,7 +142,7 @@ describe('SchoolService', () => {
       };
 
       schoolModelAction.get.mockResolvedValue(null);
-      schoolModelAction.create.mockResolvedValue(mockSchool);
+      schoolModelAction.create.mockResolvedValue(mockSchool as School);
 
       const result = await service.processInstallation(minimalDto);
 
