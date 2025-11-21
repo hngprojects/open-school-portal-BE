@@ -33,6 +33,7 @@ import {
   UpdateTeacherDto,
   TeacherResponseDto,
   GetTeachersQueryDto,
+  GetTeachersWithPaginationQueryDto,
 } from './dto';
 import { GeneratePasswordResponseDto } from './dto/generate-password-response.dto';
 import { TeacherService } from './teacher.service';
@@ -90,17 +91,45 @@ export class TeacherController {
     return this.teacherService.create(createDto);
   }
 
-  // --- GET: LIST ALL TEACHERS (ADMIN/TEACHER READ) ---
+  // --- GET: LIST ALL TEACHERS (ADMIN/TEACHER READ) - Without Pagination ---
   @Get()
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get all teachers with search and active status filter',
+    description:
+      'Retrieves all teachers matching the filters. No pagination applied.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of teachers retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/TeacherResponseDto' },
+        },
+      },
+    },
+  })
+  async findAll(@Query() query: GetTeachersQueryDto) {
+    return this.teacherService.findAll(query);
+  }
+
+  // --- GET: LIST ALL TEACHERS WITH PAGINATION (ADMIN/TEACHER READ) ---
+  @Get('paginated')
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary:
       'Get all teachers with pagination, search, and active status filter',
+    description:
+      'Retrieves paginated list of teachers with search and filter capabilities.',
   })
   @ApiResponse({
     status: 200,
-    description: 'List of teachers retrieved successfully',
+    description: 'Paginated list of teachers retrieved successfully',
     schema: {
       type: 'object',
       properties: {
@@ -115,8 +144,10 @@ export class TeacherController {
       },
     },
   })
-  async findAll(@Query() query: GetTeachersQueryDto) {
-    return this.teacherService.findAll(query);
+  async findAllWithPagination(
+    @Query() query: GetTeachersWithPaginationQueryDto,
+  ) {
+    return this.teacherService.findAllWithPagination(query);
   }
 
   // --- GET: GET TEACHER BY ID (ADMIN/TEACHER READ) ---

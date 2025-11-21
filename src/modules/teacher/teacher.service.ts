@@ -24,6 +24,7 @@ import {
   CreateTeacherDto,
   UpdateTeacherDto,
   GetTeachersQueryDto,
+  GetTeachersWithPaginationQueryDto,
   TeacherResponseDto,
 } from './dto';
 import { GeneratePasswordResponseDto } from './dto/generate-password-response.dto';
@@ -177,8 +178,82 @@ export class TeacherService {
     });
   }
 
-  // --- READ (LIST) ---
+  // --- READ (LIST) - Without Pagination ---
   async findAll(query: GetTeachersQueryDto) {
+    const { search, is_active, sort_by, order } = query;
+
+    const queryBuilder = this.teacherRepository.createQueryBuilder('teacher');
+
+    // Join with User entity to search on user fields
+    queryBuilder.leftJoinAndSelect('teacher.user', 'user');
+
+    // Active/Inactive Filter
+    if (is_active !== undefined) {
+      queryBuilder.andWhere('teacher.is_active = :isActive', {
+        isActive: is_active,
+      });
+    }
+
+    // Search Logic (Case-insensitive across multiple fields)
+    if (search) {
+      const searchTerm = `%${search.toLowerCase()}%`;
+      queryBuilder.andWhere(
+        '(LOWER(user.first_name) LIKE :searchTerm OR LOWER(user.last_name) LIKE :searchTerm OR LOWER(user.email) LIKE :searchTerm OR LOWER(teacher.employment_id) LIKE :searchTerm)',
+        { searchTerm },
+      );
+    }
+
+    // Sorting
+    let orderByField = 'teacher.created_at';
+    if (sort_by === 'employment_id') orderByField = 'teacher.employment_id';
+    if (sort_by === 'name') {
+      // For name sorting, use the joined user entity
+      queryBuilder.addOrderBy(
+        'user.last_name',
+        order.toUpperCase() as 'ASC' | 'DESC',
+      );
+    } else {
+      queryBuilder.orderBy(orderByField, order.toUpperCase() as 'ASC' | 'DESC');
+    }
+
+    const teachers = await queryBuilder.getMany();
+
+    // Transform to DTO
+    const data = plainToInstance(
+      TeacherResponseDto,
+      teachers.map((t) => ({
+        ...t,
+        first_name: t.user.first_name,
+        last_name: t.user.last_name,
+        middle_name: t.user.middle_name,
+        email: t.user.email,
+        phone: t.user.phone,
+        gender: t.user.gender,
+        date_of_birth: t.user.dob,
+        home_address: t.user.homeAddress,
+        is_active: t.is_active,
+        employment_id: t.employment_id,
+        photo_url: t.photo_url,
+        created_at: t.createdAt,
+        updated_at: t.updatedAt,
+      })),
+      { excludeExtraneousValues: true },
+    );
+
+    this.logger.info('Teachers list retrieved', {
+      total: data.length,
+      search: search || null,
+      isActive: is_active,
+    });
+
+    // Return simple array response
+    return {
+      data,
+    };
+  }
+
+  // --- READ (LIST) - With Pagination ---
+  async findAllWithPagination(query: GetTeachersWithPaginationQueryDto) {
     const { page, limit, search, is_active, sort_by, order } = query;
     const skip = (page - 1) * limit;
 
@@ -246,7 +321,7 @@ export class TeacherService {
       { excludeExtraneousValues: true },
     );
 
-    this.logger.info('Teachers list retrieved', {
+    this.logger.info('Teachers list retrieved with pagination', {
       total,
       page,
       limit,

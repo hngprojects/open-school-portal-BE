@@ -11,7 +11,12 @@ import * as passwordUtil from '../shared/utils/password.util';
 import { User } from '../user/entities/user.entity';
 import { UserModelAction } from '../user/model-actions/user-actions';
 
-import { CreateTeacherDto, UpdateTeacherDto, GetTeachersQueryDto } from './dto';
+import {
+  CreateTeacherDto,
+  UpdateTeacherDto,
+  GetTeachersQueryDto,
+  GetTeachersWithPaginationQueryDto,
+} from './dto';
 import { Teacher } from './entities/teacher.entity';
 import { TeacherTitle } from './enums/teacher.enum';
 import { TeacherModelAction } from './model-actions/teacher-actions';
@@ -282,10 +287,8 @@ describe('TeacherService', () => {
   });
 
   describe('findAll', () => {
-    it('should return paginated list of teachers', async () => {
+    it('should return list of teachers without pagination', async () => {
       const query: GetTeachersQueryDto = {
-        page: 1,
-        limit: 20,
         sort_by: 'created_at',
         order: 'desc',
       };
@@ -294,9 +297,7 @@ describe('TeacherService', () => {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
-        skip: jest.fn().mockReturnThis(),
-        take: jest.fn().mockReturnThis(),
-        getCount: jest.fn().mockResolvedValue(1),
+        addOrderBy: jest.fn().mockReturnThis(),
         getMany: jest.fn().mockResolvedValue([mockTeacher as Teacher]),
       };
 
@@ -307,17 +308,15 @@ describe('TeacherService', () => {
       const result = await service.findAll(query);
 
       expect(result).toHaveProperty('data');
-      expect(result).toHaveProperty('total');
-      expect(result).toHaveProperty('page');
-      expect(result).toHaveProperty('limit');
-      expect(result).toHaveProperty('total_pages');
       expect(result.data).toBeInstanceOf(Array);
+      expect(result).not.toHaveProperty('total');
+      expect(result).not.toHaveProperty('page');
+      expect(result).not.toHaveProperty('limit');
+      expect(result).not.toHaveProperty('total_pages');
     });
 
     it('should filter by active status', async () => {
       const query: GetTeachersQueryDto = {
-        page: 1,
-        limit: 20,
         is_active: true,
         sort_by: 'created_at',
         order: 'desc',
@@ -327,9 +326,7 @@ describe('TeacherService', () => {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
-        skip: jest.fn().mockReturnThis(),
-        take: jest.fn().mockReturnThis(),
-        getCount: jest.fn().mockResolvedValue(1),
+        addOrderBy: jest.fn().mockReturnThis(),
         getMany: jest.fn().mockResolvedValue([mockTeacher as Teacher]),
       };
 
@@ -347,6 +344,102 @@ describe('TeacherService', () => {
 
     it('should search by name, email, or employment ID', async () => {
       const query: GetTeachersQueryDto = {
+        search: 'Favour',
+        sort_by: 'created_at',
+        order: 'desc',
+      };
+
+      const mockQueryBuilder = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        addOrderBy: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([mockTeacher as Teacher]),
+      };
+
+      teacherRepository.createQueryBuilder = jest
+        .fn()
+        .mockReturnValue(mockQueryBuilder);
+
+      await service.findAll(query);
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        expect.stringContaining('LOWER'),
+        expect.objectContaining({ searchTerm: expect.any(String) }),
+      );
+    });
+  });
+
+  describe('findAllWithPagination', () => {
+    it('should return paginated list of teachers', async () => {
+      const query: GetTeachersWithPaginationQueryDto = {
+        page: 1,
+        limit: 20,
+        sort_by: 'created_at',
+        order: 'desc',
+      };
+
+      const mockQueryBuilder = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        addOrderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getCount: jest.fn().mockResolvedValue(1),
+        getMany: jest.fn().mockResolvedValue([mockTeacher as Teacher]),
+      };
+
+      teacherRepository.createQueryBuilder = jest
+        .fn()
+        .mockReturnValue(mockQueryBuilder);
+
+      const result = await service.findAllWithPagination(query);
+
+      expect(result).toHaveProperty('data');
+      expect(result).toHaveProperty('total');
+      expect(result).toHaveProperty('page');
+      expect(result).toHaveProperty('limit');
+      expect(result).toHaveProperty('total_pages');
+      expect(result.data).toBeInstanceOf(Array);
+      expect(mockQueryBuilder.skip).toHaveBeenCalled();
+      expect(mockQueryBuilder.take).toHaveBeenCalled();
+    });
+
+    it('should filter by active status', async () => {
+      const query: GetTeachersWithPaginationQueryDto = {
+        page: 1,
+        limit: 20,
+        is_active: true,
+        sort_by: 'created_at',
+        order: 'desc',
+      };
+
+      const mockQueryBuilder = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        addOrderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getCount: jest.fn().mockResolvedValue(1),
+        getMany: jest.fn().mockResolvedValue([mockTeacher as Teacher]),
+      };
+
+      teacherRepository.createQueryBuilder = jest
+        .fn()
+        .mockReturnValue(mockQueryBuilder);
+
+      await service.findAllWithPagination(query);
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'teacher.is_active = :isActive',
+        { isActive: true },
+      );
+    });
+
+    it('should search by name, email, or employment ID', async () => {
+      const query: GetTeachersWithPaginationQueryDto = {
         page: 1,
         limit: 20,
         search: 'Favour',
@@ -358,6 +451,7 @@ describe('TeacherService', () => {
         leftJoinAndSelect: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
+        addOrderBy: jest.fn().mockReturnThis(),
         skip: jest.fn().mockReturnThis(),
         take: jest.fn().mockReturnThis(),
         getCount: jest.fn().mockResolvedValue(1),
@@ -368,7 +462,7 @@ describe('TeacherService', () => {
         .fn()
         .mockReturnValue(mockQueryBuilder);
 
-      await service.findAll(query);
+      await service.findAllWithPagination(query);
 
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
         expect.stringContaining('LOWER'),
