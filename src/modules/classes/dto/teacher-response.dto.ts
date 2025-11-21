@@ -21,9 +21,10 @@ export class TeacherAssignmentResponseDto {
   assignment_date: Date;
 
   @ApiPropertyOptional({
-    example: 'Science',
-    description: 'The academic stream of the class (e.g. Science, Arts)',
+    example: ['Science', 'Arts'],
+    description: 'The academic streams of the class (e.g. Science, Arts)',
+    type: [String],
   })
   @Expose()
-  stream?: string;
+  streams?: string[];
 }
