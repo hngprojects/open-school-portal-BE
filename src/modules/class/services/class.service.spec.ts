@@ -55,7 +55,7 @@ const mockUser = {
 const mockTeacherAssignment = {
   id: '10',
   createdAt: new Date('2023-09-01'),
-  updatedAt: new Date('2023-09-01'), // <-- Add missing updatedAt property
+  updatedAt: new Date('2023-09-01'),
   session_id: MOCK_SESSION_ID,
   is_active: true,
   teacher: {
@@ -76,7 +76,6 @@ const mockTeacherAssignment = {
 describe('ClassService', () => {
   let service: ClassService;
   let classModelAction: jest.Mocked<ClassModelAction>;
-  let classTeacherModelAction: jest.Mocked<ClassTeacherModelAction>;
   let mockLogger: jest.Mocked<Logger>;
 
   const mockClassModelAction = {
@@ -127,7 +126,6 @@ describe('ClassService', () => {
 
     service = module.get<ClassService>(ClassService);
     classModelAction = module.get(ClassModelAction);
-    classTeacherModelAction = module.get(ClassTeacherModelAction);
   });
 
   afterEach(() => {
@@ -173,15 +171,23 @@ describe('ClassService', () => {
 
       await service.getTeachersByClass(MOCK_CLASS_ID);
 
-      expect(classTeacherModelAction.list).toHaveBeenCalledWith({
-        filterRecordOptions: {
+      expect(mockClassTeacherRepository.find).toHaveBeenCalledWith({
+        where: {
           class: { id: MOCK_CLASS_ID },
           session_id: MOCK_ACTIVE_SESSION,
           is_active: true,
         },
-        relations: {
-          teacher: { user: true },
-          class: true,
+        relations: ['teacher', 'teacher.user', 'class'],
+        select: {
+          id: true,
+          teacher: {
+            id: true,
+            employment_id: true,
+          },
+          class: {
+            id: true,
+            streams: true,
+          },
         },
       });
     });
@@ -244,7 +250,7 @@ describe('ClassService', () => {
         .spyOn(service['classesModelAction'], 'create')
         .mockResolvedValue(undefined);
       await expect(service.createClass(createClassDto)).rejects.toThrow(
-        'Invalid class parameter',
+        'invalid class parameter',
       );
     });
 
@@ -258,7 +264,7 @@ describe('ClassService', () => {
         .spyOn(service['classesModelAction'], 'create')
         .mockResolvedValue(undefined);
       await expect(service.createClass(createClassDto)).rejects.toThrow(
-        'Invalid class parameter',
+        'invalid class parameter',
       );
     });
 
@@ -274,7 +280,7 @@ describe('ClassService', () => {
         .spyOn(service['classesModelAction'], 'create')
         .mockResolvedValue(undefined);
       await expect(service.createClass(createClassDto)).rejects.toThrow(
-        'Class already exists',
+        'class already exists',
       );
     });
   });
