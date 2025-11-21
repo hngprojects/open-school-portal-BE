@@ -9,7 +9,7 @@ import {
 
 import { Teacher } from '../../teacher/entities/teacher.entity';
 
-import { Class } from './classes.entity';
+import { Class } from './class.entity';
 
 @Entity('class_teachers')
 export class ClassTeacher {

@@ -1,10 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, Column } from 'typeorm';
+
+import { BaseEntity } from '../../../entities/base-entity';
 
 @Entity('teachers')
-export class TeacherProfile {
-  @PrimaryGeneratedColumn()
-  id: number;
-
+export class TeacherProfile extends BaseEntity {
   @Column({ unique: true })
   teacher_uid: string;
 

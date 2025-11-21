@@ -3,12 +3,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { ClassesService } from './classes.service';
-import { ClassTeacher } from './entities/class-teacher.entity';
-import { Class } from './entities/classes.entity';
+import { ClassTeacher } from '../entities/class-teacher.entity';
+import { Class } from '../entities/class.entity';
+
+import { ClassService } from './class.service';
 
 // Mock Data Constants
-const MOCK_CLASS_ID = 1;
+const MOCK_CLASS_ID = '1';
 const MOCK_SESSION_ID = '2023-2024';
 const MOCK_ACTIVE_SESSION = '2024-2025';
 
@@ -34,15 +35,15 @@ const mockTeacherAssignment = {
   class: mockClass,
 } as unknown as ClassTeacher;
 
-describe('ClassesService', () => {
-  let service: ClassesService;
+describe('ClassService', () => {
+  let service: ClassService;
   let classRepository: Repository<Class>;
   let classTeacherRepository: Repository<ClassTeacher>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        ClassesService,
+        ClassService,
         {
           provide: getRepositoryToken(Class),
           useValue: {
@@ -58,7 +59,7 @@ describe('ClassesService', () => {
       ],
     }).compile();
 
-    service = module.get<ClassesService>(ClassesService);
+    service = module.get<ClassService>(ClassService);
     classRepository = module.get<Repository<Class>>(getRepositoryToken(Class));
     classTeacherRepository = module.get<Repository<ClassTeacher>>(
       getRepositoryToken(ClassTeacher),
@@ -138,7 +139,7 @@ describe('ClassesService', () => {
       jest.spyOn(classRepository, 'findOne').mockResolvedValue(null);
 
       await expect(
-        service.getTeachersByClass(999, MOCK_SESSION_ID),
+        service.getTeachersByClass('wrong-uuid', MOCK_SESSION_ID),
       ).rejects.toThrow(NotFoundException);
     });
 

@@ -2,12 +2,12 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { TeacherAssignmentResponseDto } from './dto/teacher-response.dto';
-import { ClassTeacher } from './entities/class-teacher.entity';
-import { Class } from './entities/classes.entity';
+import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
+import { ClassTeacher } from '../entities/class-teacher.entity';
+import { Class } from '../entities/class.entity';
 
 @Injectable()
-export class ClassesService {
+export class ClassService {
   constructor(
     @InjectRepository(Class)
     private classRepository: Repository<Class>,
@@ -19,14 +19,14 @@ export class ClassesService {
    * Fetches teachers for a specific class and session.
    */
   async getTeachersByClass(
-    classId: number,
+    classId: string,
     sessionId?: string,
   ): Promise<TeacherAssignmentResponseDto[]> {
     // 1. Validate Class Existence
-    const class_exitst = await this.classRepository.findOne({
+    const class_exist = await this.classRepository.findOne({
       where: { id: classId },
     });
-    if (!class_exitst) {
+    if (!class_exist) {
       throw new NotFoundException(`Class with ID ${classId} not found`);
     }
 
