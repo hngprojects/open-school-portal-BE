@@ -33,6 +33,16 @@ async function bootstrap() {
     .setTitle('Open School Portal API')
     .setDescription('API documentation for Open School Portal')
     .setVersion('1.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'Authorization',
+        in: 'header',
+      },
+      'access-token',
+    )
     .addTag('Waitlist')
     .build();
 
