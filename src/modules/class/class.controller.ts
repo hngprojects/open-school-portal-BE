@@ -6,7 +6,6 @@ import {
   Param,
   Query,
   ParseUUIDPipe,
-  HttpStatus,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -18,6 +17,7 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 
+import { ApiSuccessResponseDto } from '../../common/dto/response.dto';
 import * as sysMsg from '../../constants/system.messages';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -30,7 +30,7 @@ import { GroupedClassesDto } from './dto/get-class.dto';
 import { GetTeachersQueryDto } from './dto/get-teachers-query.dto';
 import { TeacherAssignmentResponseDto } from './dto/teacher-response.dto';
 
-@ApiBearerAuth('access-token')
+@ApiBearerAuth()
 @ApiTags('Classes')
 @Controller('class')
 export class ClassesController {
@@ -71,19 +71,14 @@ export class ClassesController {
   @ApiResponse({ status: 400, description: 'Validation error.' })
   async createClass(
     @Body() createClassDto: CreateClassDto,
-  ): Promise<{ status_code: number; message: string; data: ClassResponseDto }> {
+  ): Promise<ApiSuccessResponseDto<ClassResponseDto>> {
     const created = await this.classesService.createClass(createClassDto);
-    // Map entity to response DTO
     const response: ClassResponseDto = {
       id: created.id,
       name: created.name,
       level: created.level,
     };
-    return {
-      status_code: HttpStatus.CREATED,
-      message: sysMsg.CLASS_CREATED,
-      data: response,
-    };
+    return new ApiSuccessResponseDto(sysMsg.CLASS_CREATED, response);
   }
 
   @Get()
@@ -99,17 +94,9 @@ export class ClassesController {
     description: 'Grouped classes by level.',
     type: [GroupedClassesDto],
   })
-  async getAllClasses(): Promise<{
-    status_code: number;
-    message: string;
-    data: GroupedClassesDto[];
-  }> {
+  async getAllClasses(): Promise<ApiSuccessResponseDto<GroupedClassesDto[]>> {
     const grouped = await this.classesService.getAllClassesGroupedByLevel();
-    return {
-      status_code: HttpStatus.OK,
-      message: 'Classes fetched successfully',
-      data: grouped,
-    };
+    return new ApiSuccessResponseDto(sysMsg.OPERATION_SUCCESSFUL, grouped);
   }
 
   @Get(':id/teachers')
