@@ -12,7 +12,7 @@ import configuration from './config/config';
 import { LoggingInterceptor } from './middleware/logging.interceptor';
 import { AcademicSessionModule } from './modules/academic-session/academic-session.module';
 import { AuthModule } from './modules/auth/auth.module';
-import { ClassesModule } from './modules/classes/classes.module';
+import { ClassesModule } from './modules/class/class.module';
 import { EmailModule } from './modules/email/email.module';
 import { InviteModule } from './modules/invites/invites.module';
 import { SchoolModule } from './modules/school/school.module';
