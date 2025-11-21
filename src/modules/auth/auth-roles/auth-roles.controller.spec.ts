@@ -1,15 +1,11 @@
 import { HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
-import {
-  ROLE_UPDATED,
-  ROLE_ASSIGNED_SUCCESSFULLY,
-} from '../../../constants/system.messages';
+import { USER_ROLE_UPDATED } from '../../../constants/system.messages';
 
 import { AuthRolesController } from './auth-roles.controller';
 import { AuthRolesService } from './auth-roles.service';
-import { AssignRoleDto } from './dto/assign-role.dto';
-import { UpdateRoleDto } from './dto/update-role.dto';
+import { UpdateUserRoleDto } from './dto/update-role.dto';
 import { Role } from './entities/role.entity';
 import { User } from './entities/user.entity';
 
@@ -20,9 +16,9 @@ describe('AuthRolesController', () => {
   // Mock data
   const mockRole: Role = {
     id: '123e4567-e89b-12d3-a456-426614174000',
-    name: 'custom_role',
-    description: 'Test role description',
-    permissions: ['read', 'write'],
+    name: 'admin',
+    description: 'Admin role description',
+    permissions: ['read', 'write', 'manage_users'],
     tenant_id: 'tenant-123',
     is_system_role: false,
     createdAt: new Date('2024-01-01'),
@@ -44,22 +40,15 @@ describe('AuthRolesController', () => {
     is_active: true,
   };
 
-  // Mock service responses with the new format
-  const mockUpdateRoleResponse = {
+  // Mock service response with the new format
+  const mockUpdateUserRoleResponse = {
     status_code: HttpStatus.OK,
-    message: ROLE_UPDATED,
-    data: mockRole,
-  };
-
-  const mockAssignRoleResponse = {
-    status_code: HttpStatus.OK,
-    message: ROLE_ASSIGNED_SUCCESSFULLY,
+    message: USER_ROLE_UPDATED,
     data: mockUser,
   };
 
   const mockAuthRolesService = {
-    updateRole: jest.fn(),
-    assignRoleToUser: jest.fn(),
+    updateUserRole: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -81,291 +70,192 @@ describe('AuthRolesController', () => {
     jest.clearAllMocks();
   });
 
-  describe('updateRole', () => {
-    const roleId = '123e4567-e89b-12d3-a456-426614174000';
-    const updateRoleDto: UpdateRoleDto = {
-      name: 'updated_role',
-      description: 'Updated description',
-      permissions: ['read', 'write', 'delete'],
-    };
-
-    it('should successfully update a role and return 200 status', async () => {
-      // Arrange
-      const updatedRole = { ...mockRole, ...updateRoleDto };
-      const mockResponse = {
-        ...mockUpdateRoleResponse,
-        data: updatedRole,
-      };
-      mockAuthRolesService.updateRole.mockResolvedValue(mockResponse);
-
-      // Act
-      const result = await controller.updateRole(roleId, updateRoleDto);
-
-      // Assert
-      expect(authRolesService.updateRole).toHaveBeenCalledWith(
-        roleId,
-        updateRoleDto,
-      );
-      expect(result).toEqual(mockResponse);
-      expect(result.data.name).toBe('updated_role');
-      expect(result.data.description).toBe('Updated description');
-      expect(result.status_code).toBe(HttpStatus.OK);
-      expect(result.message).toBe(ROLE_UPDATED);
-    });
-
-    it('should call service with correct parameters', async () => {
-      // Arrange
-      mockAuthRolesService.updateRole.mockResolvedValue(mockUpdateRoleResponse);
-
-      // Act
-      await controller.updateRole(roleId, updateRoleDto);
-
-      // Assert
-      expect(authRolesService.updateRole).toHaveBeenCalledWith(
-        roleId,
-        updateRoleDto,
-      );
-    });
-
-    it('should handle partial updates', async () => {
-      // Arrange
-      const partialUpdateDto: UpdateRoleDto = {
-        description: 'Only updating description',
-      };
-      const partiallyUpdatedRole = { ...mockRole, ...partialUpdateDto };
-      const mockResponse = {
-        ...mockUpdateRoleResponse,
-        data: partiallyUpdatedRole,
-      };
-      mockAuthRolesService.updateRole.mockResolvedValue(mockResponse);
-
-      // Act
-      const result = await controller.updateRole(roleId, partialUpdateDto);
-
-      // Assert
-      expect(authRolesService.updateRole).toHaveBeenCalledWith(
-        roleId,
-        partialUpdateDto,
-      );
-      expect(result.data.description).toBe('Only updating description');
-      expect(result.data.name).toBe(mockRole.name); // Unchanged
-    });
-
-    it('should propagate NotFoundException from service', async () => {
-      // Arrange
-      mockAuthRolesService.updateRole.mockRejectedValue(
-        new Error('Role not found'),
-      );
-
-      // Act & Assert
-      await expect(
-        controller.updateRole(roleId, updateRoleDto),
-      ).rejects.toThrow('Role not found');
-    });
-
-    it('should propagate ConflictException from service', async () => {
-      // Arrange
-      mockAuthRolesService.updateRole.mockRejectedValue(
-        new Error('Role name already exists'),
-      );
-
-      // Act & Assert
-      await expect(
-        controller.updateRole(roleId, updateRoleDto),
-      ).rejects.toThrow('Role name already exists');
-    });
-
-    it('should propagate BadRequestException from service', async () => {
-      // Arrange
-      mockAuthRolesService.updateRole.mockRejectedValue(
-        new Error('Cannot modify system roles'),
-      );
-
-      // Act & Assert
-      await expect(
-        controller.updateRole(roleId, updateRoleDto),
-      ).rejects.toThrow('Cannot modify system roles');
-    });
-
-    it('should validate UUID parameter format', async () => {
-      // This test is handled by NestJS ParseUUIDPipe automatically
-      // The controller will reject invalid UUIDs before reaching service
-      mockAuthRolesService.updateRole.mockResolvedValue(mockUpdateRoleResponse);
-
-      // Act
-      const result = await controller.updateRole(roleId, updateRoleDto);
-
-      // Assert - if we reach here, UUID is valid
-      expect(result).toBeDefined();
-    });
-  });
-
-  describe('assignRole', () => {
+  describe('updateUserRole', () => {
     const userId = '123e4567-e89b-12d3-a456-426614174001';
-    const assignRoleDto: AssignRoleDto = {
+    const updateUserRoleDto: UpdateUserRoleDto = {
       role_id: '123e4567-e89b-12d3-a456-426614174000',
     };
 
-    it('should successfully assign role to user and return 200 status', async () => {
+    it('should successfully update user role and return 200 status', async () => {
       // Arrange
-      const userWithNewRole = { ...mockUser, role_id: assignRoleDto.role_id };
+      const userWithNewRole = {
+        ...mockUser,
+        role_id: updateUserRoleDto.role_id,
+        role: { ...mockRole, id: updateUserRoleDto.role_id },
+      };
       const mockResponse = {
-        ...mockAssignRoleResponse,
+        ...mockUpdateUserRoleResponse,
         data: userWithNewRole,
       };
-      mockAuthRolesService.assignRoleToUser.mockResolvedValue(mockResponse);
+      mockAuthRolesService.updateUserRole.mockResolvedValue(mockResponse);
 
       // Act
-      const result = await controller.assignRole(userId, assignRoleDto);
+      const result = await controller.updateUserRole(userId, updateUserRoleDto);
 
       // Assert
-      expect(authRolesService.assignRoleToUser).toHaveBeenCalledWith(
+      expect(authRolesService.updateUserRole).toHaveBeenCalledWith(
         userId,
-        assignRoleDto,
+        updateUserRoleDto,
       );
       expect(result).toEqual(mockResponse);
-      expect(result.data.role_id).toBe(assignRoleDto.role_id);
+      expect(result.data.role_id).toBe(updateUserRoleDto.role_id);
       expect(result.status_code).toBe(HttpStatus.OK);
-      expect(result.message).toBe(ROLE_ASSIGNED_SUCCESSFULLY);
+      expect(result.message).toBe(USER_ROLE_UPDATED);
     });
 
     it('should call service with correct parameters', async () => {
       // Arrange
-      mockAuthRolesService.assignRoleToUser.mockResolvedValue(
-        mockAssignRoleResponse,
+      mockAuthRolesService.updateUserRole.mockResolvedValue(
+        mockUpdateUserRoleResponse,
       );
 
       // Act
-      await controller.assignRole(userId, assignRoleDto);
+      await controller.updateUserRole(userId, updateUserRoleDto);
 
       // Assert
-      expect(authRolesService.assignRoleToUser).toHaveBeenCalledWith(
+      expect(authRolesService.updateUserRole).toHaveBeenCalledWith(
         userId,
-        assignRoleDto,
+        updateUserRoleDto,
       );
     });
 
     it('should propagate NotFoundException from service for user not found', async () => {
       // Arrange
-      mockAuthRolesService.assignRoleToUser.mockRejectedValue(
+      mockAuthRolesService.updateUserRole.mockRejectedValue(
         new Error('User not found'),
       );
 
       // Act & Assert
       await expect(
-        controller.assignRole(userId, assignRoleDto),
+        controller.updateUserRole(userId, updateUserRoleDto),
       ).rejects.toThrow('User not found');
     });
 
     it('should propagate NotFoundException from service for role not found', async () => {
       // Arrange
-      mockAuthRolesService.assignRoleToUser.mockRejectedValue(
+      mockAuthRolesService.updateUserRole.mockRejectedValue(
         new Error('Role not found'),
       );
 
       // Act & Assert
       await expect(
-        controller.assignRole(userId, assignRoleDto),
+        controller.updateUserRole(userId, updateUserRoleDto),
       ).rejects.toThrow('Role not found');
     });
 
     it('should propagate ConflictException from service', async () => {
       // Arrange
-      mockAuthRolesService.assignRoleToUser.mockRejectedValue(
+      mockAuthRolesService.updateUserRole.mockRejectedValue(
         new Error('User already has this role'),
       );
 
       // Act & Assert
       await expect(
-        controller.assignRole(userId, assignRoleDto),
+        controller.updateUserRole(userId, updateUserRoleDto),
       ).rejects.toThrow('User already has this role');
     });
 
-    it('should validate both UUID parameters format', async () => {
+    it('should validate UUID parameters format', async () => {
       // Arrange
-      mockAuthRolesService.assignRoleToUser.mockResolvedValue(
-        mockAssignRoleResponse,
+      mockAuthRolesService.updateUserRole.mockResolvedValue(
+        mockUpdateUserRoleResponse,
       );
 
       // Act
-      const result = await controller.assignRole(userId, assignRoleDto);
+      const result = await controller.updateUserRole(userId, updateUserRoleDto);
 
       // Assert - if we reach here, UUIDs are valid
       expect(result).toBeDefined();
     });
 
-    it('should return 200 OK for POST request (using @HttpCode)', async () => {
+    it('should return 200 OK for PATCH request (using @HttpCode)', async () => {
       // Arrange
-      mockAuthRolesService.assignRoleToUser.mockResolvedValue(
-        mockAssignRoleResponse,
+      mockAuthRolesService.updateUserRole.mockResolvedValue(
+        mockUpdateUserRoleResponse,
       );
 
       // Act
-      const result = await controller.assignRole(userId, assignRoleDto);
+      const result = await controller.updateUserRole(userId, updateUserRoleDto);
 
-      expect(result).toBeDefined();
+      // Assert
+      expect(result.status_code).toBe(HttpStatus.OK);
+    });
+
+    it('should handle role change from teacher to admin', async () => {
+      // Arrange
+      const adminRole = { ...mockRole, id: 'admin-role-id', name: 'admin' };
+
+      const userWithAdminRole = {
+        ...mockUser,
+        role_id: adminRole.id,
+        role: adminRole,
+      };
+
+      const updateToAdminDto: UpdateUserRoleDto = { role_id: adminRole.id };
+
+      const mockResponse = {
+        status_code: HttpStatus.OK,
+        message: USER_ROLE_UPDATED,
+        data: userWithAdminRole,
+      };
+
+      mockAuthRolesService.updateUserRole.mockResolvedValue(mockResponse);
+
+      // Act
+      const result = await controller.updateUserRole(userId, updateToAdminDto);
+
+      // Assert
+      expect(result.data.role_id).toBe(adminRole.id);
+      expect(result.data.role.name).toBe('admin');
+      expect(result.message).toBe(USER_ROLE_UPDATED);
     });
   });
 
   // Edge Cases and Integration Tests
   describe('Edge Cases', () => {
-    const roleId = '123e4567-e89b-12d3-a456-426614174000';
-
-    it('should handle empty update body', async () => {
-      // Arrange
-      const emptyUpdateDto: UpdateRoleDto = {};
-      mockAuthRolesService.updateRole.mockResolvedValue(mockUpdateRoleResponse);
-
-      // Act
-      const result = await controller.updateRole(roleId, emptyUpdateDto);
-
-      // Assert
-      expect(authRolesService.updateRole).toHaveBeenCalledWith(
-        roleId,
-        emptyUpdateDto,
-      );
-      expect(result).toEqual(mockUpdateRoleResponse);
-    });
+    const userId = '123e4567-e89b-12d3-a456-426614174001';
 
     it('should handle service returning null', async () => {
       // Arrange
-      mockAuthRolesService.updateRole.mockResolvedValue(null);
+      mockAuthRolesService.updateUserRole.mockResolvedValue(null);
 
       // Act
-      const result = await controller.updateRole(roleId, {});
+      const result = await controller.updateUserRole(userId, {
+        role_id: 'some-role-id',
+      });
 
       // Assert
       expect(result).toBeNull();
     });
 
-    it('should handle concurrent requests', async () => {
+    it('should handle concurrent role update requests', async () => {
       // Arrange
-      const updateRoleDto1: UpdateRoleDto = { name: 'role1' };
-      const updateRoleDto2: UpdateRoleDto = { name: 'role2' };
+      const updateRoleDto1: UpdateUserRoleDto = { role_id: 'role1-id' };
+      const updateRoleDto2: UpdateUserRoleDto = { role_id: 'role2-id' };
 
       const mockResponse1 = {
-        ...mockUpdateRoleResponse,
-        data: { ...mockRole, name: 'role1' },
+        ...mockUpdateUserRoleResponse,
+        data: { ...mockUser, role_id: 'role1-id' },
       };
       const mockResponse2 = {
-        ...mockUpdateRoleResponse,
-        data: { ...mockRole, name: 'role2' },
+        ...mockUpdateUserRoleResponse,
+        data: { ...mockUser, role_id: 'role2-id' },
       };
 
-      mockAuthRolesService.updateRole
+      mockAuthRolesService.updateUserRole
         .mockResolvedValueOnce(mockResponse1)
         .mockResolvedValueOnce(mockResponse2);
 
       // Act - simulate concurrent calls
       const [result1, result2] = await Promise.all([
-        controller.updateRole(roleId, updateRoleDto1),
-        controller.updateRole(roleId, updateRoleDto2),
+        controller.updateUserRole(userId, updateRoleDto1),
+        controller.updateUserRole(userId, updateRoleDto2),
       ]);
 
       // Assert
-      expect(result1.data.name).toBe('role1');
-      expect(result2.data.name).toBe('role2');
-      expect(authRolesService.updateRole).toHaveBeenCalledTimes(2);
+      expect(result1.data.role_id).toBe('role1-id');
+      expect(result2.data.role_id).toBe('role2-id');
+      expect(authRolesService.updateUserRole).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -377,21 +267,76 @@ describe('AuthRolesController', () => {
         'swagger/apiUseTags',
         AuthRolesController,
       );
-      expect(apiTags).toEqual(['Auth - Role ']);
+      expect(apiTags).toEqual(['Authentication']);
     });
 
-    it('should have correct operation summaries', () => {
-      const updateRoleSummary = Reflect.getMetadata(
+    it('should have correct operation summary', () => {
+      const updateUserRoleSummary = Reflect.getMetadata(
         'swagger/apiOperation',
-        AuthRolesController.prototype.updateRole,
-      );
-      const assignRoleSummary = Reflect.getMetadata(
-        'swagger/apiOperation',
-        AuthRolesController.prototype.assignRole,
+        AuthRolesController.prototype.updateUserRole,
       );
 
-      expect(updateRoleSummary).toEqual({ summary: 'Update a role' });
-      expect(assignRoleSummary).toEqual({ summary: 'Assign role to user' });
+      expect(updateUserRoleSummary).toEqual({ summary: 'Update user role' });
+    });
+
+    it('should have correct HTTP method and path', () => {
+      // Verify that it's a PATCH endpoint
+      const patchMetadata = Reflect.getMetadata(
+        'path',
+        AuthRolesController.prototype.updateUserRole,
+      );
+      expect(patchMetadata).toBe('users/:user_id/role');
+    });
+
+    it('should have correct API responses documented', () => {
+      const apiResponses = Reflect.getMetadata(
+        'swagger/apiResponse',
+        AuthRolesController.prototype.updateUserRole,
+      );
+
+      // The apiResponses is an object with status codes as keys
+      expect(apiResponses).toEqual({
+        [HttpStatus.OK]: expect.objectContaining({
+          description: 'User role updated successfully',
+        }),
+        [HttpStatus.NOT_FOUND]: expect.objectContaining({
+          description: 'User or role not found',
+        }),
+        [HttpStatus.CONFLICT]: expect.objectContaining({
+          description: 'User already has this role',
+        }),
+        [HttpStatus.FORBIDDEN]: expect.objectContaining({
+          description: 'Insufficient permissions',
+        }),
+      });
+    });
+
+    // Alternative way to test API responses if you want to check individual properties
+    it('should have all expected API response status codes', () => {
+      const apiResponses = Reflect.getMetadata(
+        'swagger/apiResponse',
+        AuthRolesController.prototype.updateUserRole,
+      );
+
+      expect(apiResponses[HttpStatus.OK]).toBeDefined();
+      expect(apiResponses[HttpStatus.OK].description).toBe(
+        'User role updated successfully',
+      );
+
+      expect(apiResponses[HttpStatus.NOT_FOUND]).toBeDefined();
+      expect(apiResponses[HttpStatus.NOT_FOUND].description).toBe(
+        'User or role not found',
+      );
+
+      expect(apiResponses[HttpStatus.CONFLICT]).toBeDefined();
+      expect(apiResponses[HttpStatus.CONFLICT].description).toBe(
+        'User already has this role',
+      );
+
+      expect(apiResponses[HttpStatus.FORBIDDEN]).toBeDefined();
+      expect(apiResponses[HttpStatus.FORBIDDEN].description).toBe(
+        'Insufficient permissions',
+      );
     });
   });
 });

@@ -3,62 +3,31 @@ import {
   Controller,
   Param,
   Patch,
-  Post,
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 
-import { AuthRolesService } from './auth-roles.service';
-import { AssignRoleDto } from './dto/assign-role.dto';
-import { UpdateRoleDto } from './dto/update-role.dto';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
-@ApiTags('Auth - Role ')
+import { AuthRolesService } from './auth-roles.service';
+import { UpdateUserRoleDto } from './dto/update-role.dto';
+
+@ApiTags('Authentication')
 @Controller('auth')
 export class AuthRolesController {
   constructor(private authRolesService: AuthRolesService) {}
 
-  @Patch('roles/:role_id')
+  @Patch('users/:user_id/role')
   @HttpCode(HttpStatus.OK)
-  // @UseGuards(AuthGuard, PermissionsGuard)
-  // @Permissions('manage_roles')
-  @ApiOperation({ summary: 'Update a role' })
-  @ApiParam({ name: 'role_id', type: String })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Role updated successfully',
-  })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
-    description: 'Role not found',
-  })
-  @ApiResponse({
-    status: HttpStatus.CONFLICT,
-    description: 'Role name already exists',
-  })
-  @ApiResponse({
-    status: HttpStatus.BAD_REQUEST,
-    description: 'Invalid permissions format or cannot modify system roles',
-  })
-  @ApiResponse({
-    status: HttpStatus.FORBIDDEN,
-    description: 'Insufficient permissions',
-  })
-  async updateRole(
-    @Param('role_id', ParseUUIDPipe) roleId: string,
-    @Body() dto: UpdateRoleDto,
-  ) {
-    return this.authRolesService.updateRole(roleId, dto);
-  }
-
-  @Post('users/:user_id/assign-role')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Assign role to user' })
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Update user role' })
   @ApiParam({ name: 'user_id', type: String })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: 'Role assigned successfully',
+    description: 'User role updated successfully',
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
@@ -68,10 +37,14 @@ export class AuthRolesController {
     status: HttpStatus.CONFLICT,
     description: 'User already has this role',
   })
-  async assignRole(
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'Insufficient permissions',
+  })
+  async updateUserRole(
     @Param('user_id', ParseUUIDPipe) userId: string,
-    @Body() dto: AssignRoleDto,
+    @Body() dto: UpdateUserRoleDto,
   ) {
-    return this.authRolesService.assignRoleToUser(userId, dto);
+    return this.authRolesService.updateUserRole(userId, dto);
   }
 }

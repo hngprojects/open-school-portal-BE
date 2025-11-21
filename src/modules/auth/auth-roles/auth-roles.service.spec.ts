@@ -1,15 +1,15 @@
 import {
-  BadRequestException,
   ConflictException,
+  NotFoundException,
   HttpStatus,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
-import { ROLE_UPDATED } from '../../../constants/system.messages';
+import { USER_ROLE_UPDATED } from '../../../constants/system.messages';
 
 import { AuthRolesService } from './auth-roles.service';
-import { UpdateRoleDto } from './dto/update-role.dto';
+import { UpdateUserRoleDto } from './dto/update-role.dto';
 import { Role } from './entities/role.entity';
 import { User } from './entities/user.entity';
 
@@ -18,7 +18,6 @@ describe('AuthRolesService', () => {
 
   const mockRoleRepository = {
     findOne: jest.fn(),
-    save: jest.fn(),
   };
 
   const mockUserRepository = {
@@ -48,84 +47,151 @@ describe('AuthRolesService', () => {
     jest.clearAllMocks();
   });
 
-  describe('updateRole', () => {
-    it('should throw ConflictException when role name already exists', async () => {
+  describe('updateUserRole', () => {
+    const userId = 'user-123';
+    const roleId = 'role-456';
+    const updateData: UpdateUserRoleDto = { role_id: roleId };
+
+    it('should throw NotFoundException when user does not exist', async () => {
+      mockUserRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.updateUserRole(userId, updateData)).rejects.toThrow(
+        NotFoundException,
+      );
+
+      expect(mockUserRepository.findOne).toHaveBeenCalledWith({
+        where: { id: userId },
+      });
+      expect(mockRoleRepository.findOne).not.toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException when role does not exist', async () => {
+      const mockUser = {
+        id: userId,
+        role_id: 'old-role-id',
+        role: null,
+      };
+
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      mockRoleRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.updateUserRole(userId, updateData)).rejects.toThrow(
+        NotFoundException,
+      );
+
+      expect(mockUserRepository.findOne).toHaveBeenCalledWith({
+        where: { id: userId },
+      });
+      expect(mockRoleRepository.findOne).toHaveBeenCalledWith({
+        where: { id: roleId },
+      });
+    });
+
+    it('should throw ConflictException when user already has the role', async () => {
+      const mockUser = {
+        id: userId,
+        role_id: roleId,
+        role: null,
+      };
+
       const mockRole = {
-        id: 'role-123',
-        name: 'test_role',
-        is_system_role: false,
-        permissions: ['read'],
+        id: roleId,
+        name: 'admin',
       };
 
-      const existingRole = {
-        id: 'role-456',
-        name: 'existing_role_name',
-        is_system_role: false,
-        permissions: ['write'],
-      };
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      mockRoleRepository.findOne.mockResolvedValue(mockRole);
 
-      mockRoleRepository.findOne
-        .mockResolvedValueOnce(mockRole)
-        .mockResolvedValueOnce(existingRole);
-
-      const updateData: UpdateRoleDto = { name: 'existing_role_name' };
-
-      await expect(service.updateRole('role-123', updateData)).rejects.toThrow(
+      await expect(service.updateUserRole(userId, updateData)).rejects.toThrow(
         ConflictException,
       );
 
-      expect(mockRoleRepository.findOne).toHaveBeenCalledTimes(2);
+      expect(mockUserRepository.findOne).toHaveBeenCalledWith({
+        where: { id: userId },
+      });
+      expect(mockRoleRepository.findOne).toHaveBeenCalledWith({
+        where: { id: roleId },
+      });
+      expect(mockUserRepository.save).not.toHaveBeenCalled();
     });
 
-    it('should throw BadRequestException when trying to modify system role', async () => {
-      const systemRole = {
-        id: 'admin-role',
-        name: 'admin',
-        is_system_role: true,
-        permissions: ['all'],
+    it('should update user role successfully when valid data is provided', async () => {
+      const oldRoleId = 'old-role-789';
+      const mockUser = {
+        id: userId,
+        role_id: oldRoleId,
+        role: null,
       };
 
-      mockRoleRepository.findOne.mockResolvedValue(systemRole);
-
-      const updateData: UpdateRoleDto = { name: 'new_admin_name' };
-
-      await expect(
-        service.updateRole('admin-role', updateData),
-      ).rejects.toThrow(BadRequestException);
-
-      expect(mockRoleRepository.findOne).toHaveBeenCalledTimes(1);
-    });
-
-    it('should update role successfully when name is unique', async () => {
       const mockRole = {
-        id: 'role-123',
-        name: 'old_name',
-        is_system_role: false,
-        permissions: ['read'],
+        id: roleId,
+        name: 'admin',
       };
 
-      const updatedRole = {
-        ...mockRole,
-        name: 'new_unique_name',
+      const updatedUser = {
+        ...mockUser,
+        role_id: roleId,
+        role: mockRole,
       };
 
       const expectedResponse = {
         status_code: HttpStatus.OK,
-        message: ROLE_UPDATED,
-        data: updatedRole,
+        message: USER_ROLE_UPDATED,
+        data: updatedUser,
       };
 
-      mockRoleRepository.findOne
-        .mockResolvedValueOnce(mockRole)
-        .mockResolvedValueOnce(null);
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      mockRoleRepository.findOne.mockResolvedValue(mockRole);
+      mockUserRepository.save.mockResolvedValue(updatedUser);
 
-      mockRoleRepository.save.mockResolvedValue(updatedRole);
-
-      const updateData: UpdateRoleDto = { name: 'new_unique_name' };
-      const result = await service.updateRole('role-123', updateData);
+      const result = await service.updateUserRole(userId, updateData);
 
       expect(result).toEqual(expectedResponse);
-      expect(mockRoleRepository.save).toHaveBeenCalledWith(updatedRole);
+      expect(mockUserRepository.findOne).toHaveBeenCalledWith({
+        where: { id: userId },
+      });
+      expect(mockRoleRepository.findOne).toHaveBeenCalledWith({
+        where: { id: roleId },
+      });
+      expect(mockUserRepository.save).toHaveBeenCalledWith({
+        ...mockUser,
+        role_id: roleId,
+        role: mockRole,
+      });
+    });
+
+    it('should update user role and return correct response structure', async () => {
+      const mockUser = {
+        id: userId,
+        role_id: 'old-role-id',
+        role: null,
+        name: 'John Doe',
+        email: 'john@example.com',
+      };
+
+      const mockRole = {
+        id: roleId,
+        name: 'teacher',
+        permissions: ['read', 'write'],
+      };
+
+      const updatedUser = {
+        ...mockUser,
+        role_id: roleId,
+        role: mockRole,
+      };
+
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      mockRoleRepository.findOne.mockResolvedValue(mockRole);
+      mockUserRepository.save.mockResolvedValue(updatedUser);
+
+      const result = await service.updateUserRole(userId, updateData);
+
+      expect(result.status_code).toBe(HttpStatus.OK);
+      expect(result.message).toBe(USER_ROLE_UPDATED);
+      expect(result.data).toEqual(updatedUser);
+      expect(result.data.role_id).toBe(roleId);
+      expect(result.data.role).toEqual(mockRole);
     });
   });
 });

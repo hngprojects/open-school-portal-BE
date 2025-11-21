@@ -135,7 +135,7 @@ export const CANNOT_MODIFY_SYSTEM_ROLES =
 export const PERMISSIONS_MUST_BE_ARRAY = 'permissions must be an array';
 
 // User Role Assignment
-export const ROLE_ASSIGNED_SUCCESSFULLY = 'role assigned successfully';
+export const USER_ROLE_UPDATED = 'User role updated successfully';
 export const USER_ALREADY_HAS_ROLE = 'user already has this role';
 // Invites
 export const INVITE_SENT = 'INVITE_SENT';
