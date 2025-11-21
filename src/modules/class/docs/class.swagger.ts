@@ -1,3 +1,5 @@
+import { ClassResponseDto } from '../dto/create-class.dto';
+import { GroupedClassesDto } from '../dto/get-class.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
 
 /**
@@ -7,11 +9,63 @@ import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
  */
 
 export const ClassSwagger = {
-  tags: ['Class'],
+  tags: ['Classes'],
   summary: 'Class Management',
   description:
-    'Endpoints for creating, retrieving, updating, and deleting academic sessions.',
+    'Endpoints for managing classes and retrieving class information.',
   endpoints: {
+    createClass: {
+      operation: {
+        summary: 'Create a new class (ADMIN)',
+        description: 'Admin creates a new class with name and level/category.',
+      },
+      body: {
+        description: 'Class creation payload',
+        type: 'CreateClassDto',
+        examples: {
+          valid: {
+            summary: 'Valid payload',
+            value: {
+              class_name: 'JSS2',
+              level: 'Junior Secondary',
+            },
+          },
+          invalid: {
+            summary: 'Invalid payload (empty name)',
+            value: {
+              class_name: '',
+              level: 'Primary',
+            },
+          },
+        },
+      },
+      responses: {
+        created: {
+          status: 201,
+          description: 'Class created successfully.',
+          type: ClassResponseDto,
+        },
+        badRequest: {
+          status: 400,
+          description: 'Validation error.',
+        },
+      },
+    },
+    getAllClasses: {
+      operation: {
+        summary: 'Get all classes grouped by level',
+        description:
+          'Returns all classes grouped by their level, with stream count.',
+      },
+      responses: {
+        ok: {
+          status: 200,
+          description: 'Grouped classes by level.',
+          type: GroupedClassesDto,
+          isArray: true,
+        },
+      },
+    },
     getTeachers: {
       operation: {
         summary: 'Get teachers assigned to a class',
@@ -22,6 +76,7 @@ export const ClassSwagger = {
         id: {
           name: 'id',
           description: 'The Class ID',
+          type: String,
         },
       },
       responses: {
@@ -32,6 +87,9 @@ export const ClassSwagger = {
         },
         notFound: {
           description: 'Class not found',
+        },
+        internalServerError: {
+          description: 'Database connection failure.',
         },
       },
     },

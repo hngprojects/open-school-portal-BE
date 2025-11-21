@@ -1,20 +1,92 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { Logger } from 'winston';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
+import * as sysMsg from '../../../constants/system.messages';
+import { ClassLevel } from '../../shared/enums';
+import { CreateClassDto } from '../dto/create-class.dto';
+import { GroupedClassesDto, GetClassDto } from '../dto/get-class.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
+import { ClassTeacher } from '../entities/class-teacher.entity';
+import { Class } from '../entities/class.entity';
 import { ClassTeacherModelAction } from '../model-actions/class-teacher.action';
 import { ClassModelAction } from '../model-actions/class.actions';
 
 @Injectable()
 export class ClassService {
-  private readonly logger: Logger;
   constructor(
-    private readonly classModelAction: ClassModelAction,
+    @InjectRepository(ClassTeacher)
+    private classTeacherRepository: Repository<ClassTeacher>,
+    private readonly classesModelAction: ClassModelAction,
     private readonly classTeacherModelAction: ClassTeacherModelAction,
-    @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
-  ) {
-    this.logger = baseLogger.child({ context: ClassService.name });
+  ) {}
+
+  /**
+   * Creates a new class with validation and uniqueness check.
+   */
+  async createClass(createClassDto: CreateClassDto): Promise<Class> {
+    // 1. Validate class name
+    const name = createClassDto.class_name.trim();
+    if (!name) {
+      throw new BadRequestException(sysMsg.INVALID_CLASS_PARAMETER);
+    }
+
+    // 2. Validate level
+    if (!Object.values(ClassLevel).includes(createClassDto.level)) {
+      throw new BadRequestException(sysMsg.INVALID_CLASS_PARAMETER);
+    }
+
+    // 3. Check for duplicate class name
+    const existing = await this.classesModelAction.get({
+      identifierOptions: { name },
+    });
+    if (existing) {
+      throw new BadRequestException(sysMsg.CLASS_ALREADY_EXISTS);
+    }
+
+    // 4. Create class using Model Action
+    const newClass = await this.classesModelAction.create({
+      createPayload: {
+        name,
+        level: createClassDto.level,
+      },
+      transactionOptions: { useTransaction: false },
+    });
+    return newClass;
+  }
+
+  /**
+   * Fetches all classes grouped by level, with stream count.
+   */
+  async getAllClassesGroupedByLevel(): Promise<GroupedClassesDto[]> {
+    const { payload: classes } = await this.classesModelAction.list({
+      filterRecordOptions: {},
+      relations: { streams: true },
+    });
+
+    // Group by level
+    const grouped: Record<string, GetClassDto[]> = {};
+    for (const cls of classes) {
+      const dto: GetClassDto = {
+        id: cls.id,
+        name: cls.name,
+        level: cls.level,
+        stream_count: cls.streams ? cls.streams.length : 0,
+        streams: cls.streams ? cls.streams.map((s) => s.name) : [],
+      };
+      if (!grouped[cls.level]) grouped[cls.level] = [];
+      grouped[cls.level].push(dto);
+    }
+
+    // Map to GroupedClassesDto[]
+    return Object.entries(grouped).map(([level, classes]) => ({
+      level: level as ClassLevel,
+      classes,
+    }));
   }
 
   /**
@@ -24,11 +96,11 @@ export class ClassService {
     classId: string,
     sessionId?: string,
   ): Promise<TeacherAssignmentResponseDto[]> {
-    const classExist = await this.classModelAction.get({
+    // 1. Validate Class Existence
+    const class_exist = await this.classesModelAction.get({
       identifierOptions: { id: classId },
     });
-
-    if (!classExist) {
+    if (!class_exist) {
       throw new NotFoundException(`Class with ID ${classId} not found`);
     }
 
@@ -37,31 +109,43 @@ export class ClassService {
 
     // 3. Fetch Assignments with Relations
     // We join 'class' here to access the 'stream' property
-    const assignments = await this.classTeacherModelAction.list({
-      filterRecordOptions: {
+    const assignments = await this.classTeacherRepository.find({
+      where: {
         class: { id: classId },
         session_id: target_session,
         is_active: true,
       },
-      relations: {
-        teacher: { user: true },
-        class: true,
+      relations: ['teacher', 'teacher.user', 'class'],
+      select: {
+        id: true,
+        teacher: {
+          id: true,
+          employment_id: true,
+        },
+        class: {
+          id: true,
+          streams: true,
+        },
       },
     });
 
     // 4. Map to DTO
-    return assignments.payload.map((assignment) => ({
-      teacher_id: assignment.teacher.id,
+    return assignments.map((assignment) => ({
+      teacher_id: Number(assignment.teacher.id),
       name: assignment.teacher.user
         ? `${assignment.teacher.user.first_name} ${assignment.teacher.user.last_name}`
         : `Teacher ${assignment.teacher.employment_id}`,
-      assignment_date: assignment.assignment_date,
-      stream: assignment.class.stream,
+      assignment_date: assignment.createdAt,
+      streams: assignment.class.streams?.map((s) => s.name) || [],
     }));
   }
 
-  // Mock helper for active session
+  /**
+   * Mock helper for active session - in a real application,
+   * this would fetch from a sessions service
+   */
   private async getActiveSession(): Promise<string> {
+    // TODO: Replace with actual session service call
     return '2024-2025';
   }
 }

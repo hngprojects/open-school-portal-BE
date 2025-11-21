@@ -1,15 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { ApiSuccessResponseDto } from '../../common/dto/response.dto';
-import * as sysMsg from '../../constants/system.messages';
-import { ClassLevel } from '../shared/enums';
+import { ApiSuccessResponseDto } from '../../../common/dto/response.dto';
+import * as sysMsg from '../../../constants/system.messages';
+import { ClassLevel } from '../../shared/enums';
+import { ClassService } from '../services/class.service';
 
-import { ClassesController } from './class.controller';
-import { ClassesService } from './class.service';
+import { ClassController } from './class.controller';
 
 describe('ClassesController', () => {
-  let controller: ClassesController;
-  let service: ClassesService;
+  let controller: ClassController;
+  let service: ClassService;
 
   interface IServiceMock {
     createClass: jest.Mock;
@@ -24,12 +24,12 @@ describe('ClassesController', () => {
       getTeachersByClass: jest.fn(),
     };
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [ClassesController],
-      providers: [{ provide: ClassesService, useValue: serviceMock }],
+      controllers: [ClassController],
+      providers: [{ provide: ClassService, useValue: serviceMock }],
     }).compile();
 
-    controller = module.get<ClassesController>(ClassesController);
-    service = module.get<ClassesService>(ClassesService);
+    controller = module.get<ClassController>(ClassController);
+    service = module.get<ClassService>(ClassService);
   });
 
   describe('createClass', () => {
