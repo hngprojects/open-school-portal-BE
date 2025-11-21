@@ -7,6 +7,7 @@ import { Class } from './class.entity';
 
 @Entity('class_teachers')
 export class ClassTeacher extends BaseEntity {
+  // FIX: explicitly map to 'session_id' and fix property casing
   @Column({ name: 'session_id' })
   session_id: string;
 
