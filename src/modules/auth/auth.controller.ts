@@ -14,7 +14,6 @@ import {
   ApiResponse,
   ApiTags,
   ApiBearerAuth,
-  ApiHeader,
 } from '@nestjs/swagger';
 
 import * as sysMsg from '../../constants/system.messages';
@@ -24,10 +23,10 @@ import {
   LoginResponseDto,
   RefreshTokenResponseDto,
   SignupResponseDto,
-  UserDto,
 } from './dto/auth-response.dto';
 import {
   AuthDto,
+  AuthMeResponseDto,
   ForgotPasswordDto,
   RefreshTokenDto,
   ResetPasswordDto,
@@ -137,20 +136,15 @@ export class AuthController {
   @Get('me')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get user profile' })
-  @ApiHeader({
-    name: 'authorization',
-    description: 'Bearer token',
-    required: true,
-  })
+  @ApiOperation({ summary: 'Fetches authenticated user profile' })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: 'User profile retrieved successfully',
-    type: UserDto,
+    description: sysMsg.PROFILE_RETRIEVED,
+    type: AuthMeResponseDto,
   })
   @ApiResponse({
     status: HttpStatus.UNAUTHORIZED,
-    description: 'Unauthorized',
+    description: sysMsg.UNAUTHORIZED,
   })
   async getProfile(@Headers('authorization') authorization: string) {
     return this.authService.getProfile(authorization);

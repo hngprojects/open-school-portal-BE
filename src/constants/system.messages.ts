@@ -22,6 +22,7 @@ export const USER_IS_ACTIVATED = 'user already activated';
 export const USER_ACTIVATED = 'user activated';
 export const USER_INACTIVE = 'user account inactive';
 export const USER_ACTIVE = 'user account active';
+export const PROFILE_RETRIEVED = 'user profile retrieved successfully';
 
 // User / Account
 export const ACCOUNT_CREATED = 'account created';
