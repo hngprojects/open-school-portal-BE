@@ -19,7 +19,9 @@ export const TOKEN_REFRESH_SUCCESS = 'Tokens refresh successful';
 
 export const ACTIVATE_ACCOUNT = 'Activate a user account';
 export const USER_IS_ACTIVATED = 'user already activated';
+export const USER_IS_DEACTIVATED = 'user already deactivated';
 export const USER_ACTIVATED = 'user activated';
+export const USER_DEACTIVATED = 'user deactivated';
 export const USER_INACTIVE = 'user account inactive';
 export const USER_ACTIVE = 'user account active';
 

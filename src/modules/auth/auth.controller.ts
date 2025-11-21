@@ -6,12 +6,20 @@ import {
   Param,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import * as sysMsg from '../../constants/system.messages';
+import { UserRole } from '../shared/enums';
 
 import { AuthService } from './auth.service';
+import { Roles } from './decorators/roles.decorator';
 import {
   LoginResponseDto,
   RefreshTokenResponseDto,
@@ -24,6 +32,8 @@ import {
   ResetPasswordDto,
 } from './dto/auth.dto';
 import { LoginDto } from './dto/login.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -124,5 +134,31 @@ export class AuthController {
       status: HttpStatus.OK,
       message,
     };
+  }
+
+  @Patch('users/:user_id/deactivate')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Deactivate user account' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: sysMsg.USER_DEACTIVATED,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: sysMsg.USER_NOT_FOUND,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: sysMsg.TOKEN_INVALID,
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: sysMsg.PERMISSION_DENIED,
+  })
+  async deactivateAccount(@Param('user_id') userId: string) {
+    return this.authService.deactivateUserAccount(userId);
   }
 }
