@@ -1,28 +1,28 @@
 import {
-  Controller,
-  Post,
-  Get,
-  Patch,
-  Delete,
   Body,
-  Param,
-  Query,
-  UseGuards,
-  ParseUUIDPipe,
+  Controller,
+  Delete,
+  Get,
   HttpCode,
   HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
-  ApiTags,
   ApiBearerAuth,
-  ApiOperation,
   ApiBody,
+  ApiOperation,
   ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 
 import { Public } from '../../common/decorators/public.decorator';
-import { RateLimit } from '../../common/decorators/rate-limit.decorator';
-import { RateLimitGuard } from '../../common/guards/rate-limit.guard';
+import { AUTH_LIMIT } from '../../config/throttle.config';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -30,9 +30,9 @@ import { UserRole } from '../shared/enums';
 
 import {
   CreateTeacherDto,
-  UpdateTeacherDto,
-  TeacherResponseDto,
   GetTeachersQueryDto,
+  TeacherResponseDto,
+  UpdateTeacherDto,
 } from './dto';
 import { GeneratePasswordResponseDto } from './dto/generate-password-response.dto';
 import { TeacherService } from './teacher.service';
@@ -44,11 +44,9 @@ import { TeacherService } from './teacher.service';
 export class TeacherController {
   constructor(private readonly teacherService: TeacherService) {}
 
-  // --- GET: GENERATE PASSWORD (PUBLIC ENDPOINT WITH RATE LIMITING) ---
-  @Get('generate-password')
+  @Throttle({ default: AUTH_LIMIT })
   @Public() // Mark as public endpoint (bypasses JWT auth)
-  @UseGuards(RateLimitGuard) // Apply rate limiting
-  @RateLimit({ maxRequests: 10, windowMs: 60000 }) // 10 requests per minute
+  @Get('generate-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary:
