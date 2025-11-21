@@ -51,11 +51,11 @@ describe('TeacherService', () => {
   const mockTeacherId = 'teacher-uuid-123';
   const mockTeacher: Partial<Teacher> = {
     id: mockTeacherId,
-    userId: 'user-uuid-123',
-    employmentId: 'EMP-2025-014',
+    user_id: 'user-uuid-123',
+    employment_id: 'EMP-2025-014',
     title: TeacherTitle.MISS,
-    photoUrl: 'uploads/teachers/EMP-2025-014.jpg',
-    isActive: true,
+    photo_url: 'uploads/teachers/EMP-2025-014.jpg',
+    is_active: true,
     createdAt: new Date(),
     updatedAt: new Date(),
     user: mockUser as User,
@@ -471,7 +471,7 @@ describe('TeacherService', () => {
       expect(dataSource.transaction).toHaveBeenCalled();
       expect(teacherModelAction.update).toHaveBeenCalledWith({
         identifierOptions: { id: mockTeacherId },
-        updatePayload: { isActive: false },
+        updatePayload: { is_active: false },
         transactionOptions: {
           useTransaction: true,
           transaction: queryRunner.manager,

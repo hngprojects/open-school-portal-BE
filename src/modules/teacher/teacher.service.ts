@@ -74,15 +74,15 @@ export class TeacherService {
     }
 
     // 2. Generate Employment ID
-    const employmentId =
+    const employment_id =
       createDto.employment_id ||
       (await generateEmploymentId(this.teacherRepository));
     const existingTeacher = await this.teacherModelAction.get({
-      identifierOptions: { employmentId },
+      identifierOptions: { employment_id },
     });
     if (existingTeacher) {
       throw new ConflictException(
-        `Employment ID ${employmentId} already exists.`,
+        `Employment ID ${employment_id} already exists.`,
       );
     }
 
@@ -91,9 +91,9 @@ export class TeacherService {
     const hashedPassword = await hashPassword(rawPassword);
 
     // 4. Validate Photo URL if provided
-    let photoUrl: string | undefined = undefined;
+    let photo_url: string | undefined = undefined;
     if (createDto.photo_url) {
-      photoUrl = this.fileService.validatePhotoUrl(createDto.photo_url);
+      photo_url = this.fileService.validatePhotoUrl(createDto.photo_url);
     }
 
     return this.dataSource.transaction(async (manager) => {
@@ -121,11 +121,11 @@ export class TeacherService {
       // 6. Create Teacher using model action within transaction
       const savedTeacher = await this.teacherModelAction.create({
         createPayload: {
-          userId: savedUser.id,
-          employmentId: employmentId,
+          user_id: savedUser.id,
+          employment_id: employment_id,
           title: createDto.title,
-          photoUrl: photoUrl,
-          isActive: createDto.is_active ?? true,
+          photo_url: photo_url,
+          is_active: createDto.is_active ?? true,
         },
         transactionOptions: {
           useTransaction: true,
@@ -144,9 +144,9 @@ export class TeacherService {
         gender: savedUser.gender,
         date_of_birth: savedUser.dob,
         home_address: savedUser.homeAddress,
-        is_active: savedTeacher.isActive,
-        employment_id: savedTeacher.employmentId,
-        photo_url: savedTeacher.photoUrl,
+        is_active: savedTeacher.is_active,
+        employment_id: savedTeacher.employment_id,
+        photo_url: savedTeacher.photo_url,
         created_at: savedTeacher.createdAt,
         updated_at: savedTeacher.updatedAt,
       };
@@ -217,9 +217,9 @@ export class TeacherService {
         gender: t.user.gender,
         date_of_birth: t.user.dob,
         home_address: t.user.homeAddress,
-        is_active: t.isActive,
-        employment_id: t.employmentId,
-        photo_url: t.photoUrl,
+        is_active: t.is_active,
+        employment_id: t.employment_id,
+        photo_url: t.photo_url,
         created_at: t.createdAt,
         updated_at: t.updatedAt,
       })),
@@ -257,9 +257,9 @@ export class TeacherService {
       gender: teacher.user.gender,
       date_of_birth: teacher.user.dob,
       home_address: teacher.user.homeAddress,
-      is_active: teacher.isActive,
-      employment_id: teacher.employmentId,
-      photo_url: teacher.photoUrl,
+      is_active: teacher.is_active,
+      employment_id: teacher.employment_id,
+      photo_url: teacher.photo_url,
       created_at: teacher.createdAt,
       updated_at: teacher.updatedAt,
     };
@@ -286,7 +286,7 @@ export class TeacherService {
     // IMMUTABILITY CHECK: Employment ID cannot be updated
     if (
       updateDto.employment_id &&
-      updateDto.employment_id !== teacher.employmentId
+      updateDto.employment_id !== teacher.employment_id
     ) {
       throw new ConflictException(
         'Employment ID cannot be updated after creation.',
@@ -316,11 +316,11 @@ export class TeacherService {
     if (updateDto.title !== undefined)
       teacherUpdatePayload.title = updateDto.title;
     if (updateDto.is_active !== undefined)
-      teacherUpdatePayload.isActive = updateDto.is_active;
+      teacherUpdatePayload.is_active = updateDto.is_active;
 
     // Handle Photo URL Update
     if (updateDto.photo_url !== undefined) {
-      teacherUpdatePayload.photoUrl = updateDto.photo_url
+      teacherUpdatePayload.photo_url = updateDto.photo_url
         ? this.fileService.validatePhotoUrl(updateDto.photo_url)
         : null;
     }
@@ -328,7 +328,7 @@ export class TeacherService {
     return this.dataSource.transaction(async (manager) => {
       // Update User Data using model action within transaction
       const updatedUser = await this.userModelAction.update({
-        identifierOptions: { id: teacher.userId },
+        identifierOptions: { id: teacher.user_id },
         updatePayload: userUpdatePayload,
         transactionOptions: {
           useTransaction: true,
@@ -357,9 +357,9 @@ export class TeacherService {
         gender: updatedUser.gender,
         date_of_birth: updatedUser.dob,
         home_address: updatedUser.homeAddress,
-        is_active: updatedTeacher.isActive,
-        employment_id: updatedTeacher.employmentId,
-        photo_url: updatedTeacher.photoUrl,
+        is_active: updatedTeacher.is_active,
+        employment_id: updatedTeacher.employment_id,
+        photo_url: updatedTeacher.photo_url,
         created_at: updatedTeacher.createdAt,
         updated_at: updatedTeacher.updatedAt,
       };
@@ -382,10 +382,10 @@ export class TeacherService {
     }
 
     return this.dataSource.transaction(async (manager) => {
-      // Set isActive to false (Deactivate) within transaction
+      // Set is_active to false (Deactivate) within transaction
       await this.teacherModelAction.update({
         identifierOptions: { id },
-        updatePayload: { isActive: false },
+        updatePayload: { is_active: false },
         transactionOptions: {
           useTransaction: true,
           transaction: manager,
@@ -394,7 +394,7 @@ export class TeacherService {
 
       // Also deactivate the associated user account within transaction
       await this.userModelAction.update({
-        identifierOptions: { id: teacher.userId },
+        identifierOptions: { id: teacher.user_id },
         updatePayload: { is_active: false },
         transactionOptions: {
           useTransaction: true,
