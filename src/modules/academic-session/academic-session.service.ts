@@ -117,7 +117,7 @@ export class AcademicSessionService {
     });
 
     if (!session) {
-      throw new BadRequestException('Session not found');
+      throw new BadRequestException(sysMsg.SESSION_NOT_FOUND);
     }
 
     const updatedAcademicSession = await this.dataSource.transaction(
