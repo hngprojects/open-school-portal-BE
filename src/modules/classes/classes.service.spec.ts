@@ -8,7 +8,7 @@ import { ClassTeacher } from './entities/class-teacher.entity';
 import { Class } from './entities/classes.entity';
 
 // Mock Data Constants
-const MOCK_CLASS_ID = 1;
+const MOCK_CLASS_ID = 'mock-class-uuid';
 const MOCK_SESSION_ID = '2023-2024';
 const MOCK_ACTIVE_SESSION = '2024-2025';
 
@@ -19,12 +19,11 @@ const mockClass = {
 } as unknown as Class;
 
 const mockTeacherAssignment = {
-  id: 10,
-  assignment_date: new Date('2023-09-01'),
+  id: 'mock-assignment-uuid',
   session_id: MOCK_SESSION_ID,
   is_active: true,
   teacher: {
-    id: 101,
+    id: 'mock-teacher-uuid',
     employmentId: 'EMP-2025-001',
     user: {
       first_name: 'John',
@@ -93,7 +92,6 @@ describe('ClassesService', () => {
         relations: ['teacher', 'teacher.user', 'class'],
         select: {
           id: true,
-          assignment_date: true,
           teacher: {
             id: true,
             employmentId: true,
@@ -107,9 +105,8 @@ describe('ClassesService', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({
-        teacher_id: 101,
+        teacher_id: 'mock-teacher-uuid',
         name: 'John Doe',
-        assignment_date: mockTeacherAssignment.assignment_date,
         stream: 'Science',
       });
     });
@@ -138,7 +135,7 @@ describe('ClassesService', () => {
       jest.spyOn(classRepository, 'findOne').mockResolvedValue(null);
 
       await expect(
-        service.getTeachersByClass(999, MOCK_SESSION_ID),
+        service.getTeachersByClass('non-existent-class-uuid', MOCK_SESSION_ID),
       ).rejects.toThrow(NotFoundException);
     });
 
