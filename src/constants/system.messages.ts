@@ -147,3 +147,14 @@ export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
 export const SESSION_NOT_FOUND = 'session not found';
 export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
+
+// Class management messages
+export const CLASS_CREATED = 'class created successfully';
+export const CLASS_ALREADY_EXISTS = 'class already exists';
+export const INVALID_CLASS_PARAMETER = 'invalid class parameter';
+export const CLASS_NAME_REQUIRED = 'class name is required';
+export const CLASS_NAME_INVALID =
+  'class name can only contain letters, numbers, and spaces';
+export const CLASS_NAME_TOO_LONG = 'class name must not exceed 100 characters';
+export const CLASS_LEVEL_REQUIRED = 'level/category is required';
+export const CLASS_LEVEL_INVALID = 'invalid level/category value';
