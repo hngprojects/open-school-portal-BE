@@ -9,6 +9,7 @@ import {
   MinLength,
   Matches,
   IsJWT,
+  IsUUID,
 } from 'class-validator';
 
 export enum UserRole {
@@ -147,4 +148,22 @@ export class RefreshTokenDto {
   @IsJWT()
   @IsNotEmpty()
   refresh_token: string;
+}
+
+export class LogoutDto {
+  @ApiProperty({
+    example: '123',
+    description: 'session id',
+  })
+  @IsUUID()
+  @IsNotEmpty()
+  session_id: string;
+
+  @ApiProperty({
+    example: '123',
+    description: 'User id',
+  })
+  @IsUUID()
+  @IsNotEmpty()
+  user_id: string;
 }
