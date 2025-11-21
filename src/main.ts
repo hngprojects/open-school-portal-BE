@@ -11,26 +11,13 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
   const isDev = configService.get<boolean>('isDev');
-  const allowedOrigins =
-    configService.get<string>('CORS_ORIGINS')?.split(',') || [];
 
   app.enableCors({
-    // In dev: allow all origins. In prod: use specific origins or allow all if none specified
-    origin: isDev || allowedOrigins.length === 0 ? true : allowedOrigins,
+    origin: true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'Accept',
-      'X-Requested-With',
-      'Origin',
-      'Access-Control-Request-Method',
-      'Access-Control-Request-Headers',
-    ],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     exposedHeaders: ['Content-Range', 'X-Content-Range'],
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
   });
 
   const apiPrefix = configService.get<string>('API_PREFIX', 'api');
