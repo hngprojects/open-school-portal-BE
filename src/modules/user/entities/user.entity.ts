@@ -1,9 +1,7 @@
-import { Entity, Column, JoinColumn, OneToMany, ManyToOne, Unique } from 'typeorm';
+import { Entity, Column, OneToMany, Unique } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
-import { Stream } from '../../academic/entities/stream.entity';
-import { Session } from '../../sessions/entities/session.entity';
-
+import { Session } from '../../session/entities/session.entity';
 
 export enum UserRole {
   ADMIN = 'ADMIN',
@@ -54,7 +52,7 @@ export class User extends BaseEntity {
   is_verified?: boolean;
 
   @OneToMany(() => Session, (session) => session.user)
-  sessions: Session[];
+  sessions!: Session[];
 
   @Column({ type: 'timestamp', nullable: true, default: null })
   last_login_at: Date | null;
@@ -65,11 +63,6 @@ export class User extends BaseEntity {
   @Column({ type: 'timestamp', nullable: true })
   reset_token_expiry?: Date;
 
-  // Added for Stream Management
-  // Many students belong to one stream (e.g. 40 students in JSS1 A)
-  @ManyToOne(() => Stream, (stream) => stream.students)
-  @JoinColumn({ name: 'stream_id' })
-  stream: Stream;
-  @OneToMany(() => Session, (session) => session.user)
-  sessions!: Session[];
+  @Column({ type: 'timestamp', nullable: true, default: null })
+  deleted_at: Date | null;
 }

@@ -25,6 +25,7 @@ export const ACCOUNT_CREATED = 'account created';
 export const ACCOUNT_NOT_FOUND = 'account not found';
 export const ACCOUNT_ALREADY_EXISTS = 'account already exists';
 export const USER_NOT_FOUND = 'user not found';
+export const ACCOUNT_DELETED = 'account deleted';
 
 // Email Verification
 export const EMAIL_VERIFICATION_SENT = 'email verification sent';
@@ -128,6 +129,8 @@ export const NO_PENDING_INVITES = 'No pending invites found';
 export const INVITE_ALREADY_SENT = 'INVITE_ALREADY_SENT';
 
 //Academic Session
+export const ACADEMIC_SESSION =
+  'Retrieves the currently active academic session';
 export const ACADEMIC_SESSION_CREATED =
   'Academic session created successfully.';
 export const DUPLICATE_SESSION_NAME =
@@ -135,6 +138,12 @@ export const DUPLICATE_SESSION_NAME =
 export const INVALID_DATE_RANGE = 'End date must be after start date.';
 export const START_DATE_IN_PAST = 'Start date cannot be in the past.';
 export const END_DATE_IN_PAST = 'End date cannot be in the past.';
+export const ACTIVE_ACADEMIC_SESSION_SUCCESS =
+  'Academic session retrieved successfully.';
+export const MULTIPLE_ACTIVE_ACADEMIC_SESSION =
+  'Multiple academic session records detected.';
+export const ACADEMIC_SESSION_LIST_SUCCESS =
+  'Academic session list retrieved successfully.';
 
 // Session management messages
 export const SESSION_REVOKED = 'session revoked successfully';
