@@ -15,7 +15,6 @@ import {
   ApiBody,
   ApiBearerAuth,
   ApiOperation,
-  ApiParam,
   ApiQuery,
   ApiResponse,
   ApiTags,
@@ -29,6 +28,7 @@ import { UserRole } from '../shared/enums';
 
 import { AcademicSessionService } from './academic-session.service';
 import { AcademicSessionSwagger } from './docs/academic-session.swagger';
+import { ActivateAcademicSessionDto } from './dto/activate-academic-session.dto';
 import { CreateAcademicSessionDto } from './dto/create-academic-session.dto';
 
 @ApiTags('Academic Session')
@@ -48,6 +48,39 @@ export class AcademicSessionController {
   @ApiResponse(AcademicSessionSwagger.decorators.create.response)
   create(@Body() createAcademicSessionDto: CreateAcademicSessionDto) {
     return this.academicSessionService.create(createAcademicSessionDto);
+  }
+
+  @Post('activate')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Activate an academic session',
+    description:
+      'Activates a session and automatically links all classes and streams to it. Deactivates any currently active session.',
+  })
+  @ApiBody({ type: ActivateAcademicSessionDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Session activated successfully with link counts',
+    schema: {
+      example: {
+        status_code: 200,
+        message: 'Session activated and linked successfully',
+        data: {
+          classes_linked: 5,
+          streams_linked: 3,
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Session not found' })
+  @ApiResponse({ status: 400, description: 'Session already active' })
+  async activateAcademicSession(
+    @Body() activateDto: ActivateAcademicSessionDto,
+  ) {
+    return this.academicSessionService.activateAcademicSession(activateDto);
   }
 
   @Get('active')
@@ -108,29 +141,6 @@ export class AcademicSessionController {
       page: Number.isNaN(parsedPage) ? undefined : parsedPage,
       limit: Number.isNaN(parsedLimit) ? undefined : parsedLimit,
     });
-  }
-
-  @Patch('activate/:id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @ApiBearerAuth()
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation(AcademicSessionSwagger.decorators.activateSession.operation)
-  @ApiParam({
-    name: 'id',
-    type: String,
-    description: 'The ID of the academic session to activate',
-    example: '550e8400-e29b-41d4-a716-446655440000',
-  })
-  @ApiResponse(AcademicSessionSwagger.decorators.activateSession.response)
-  @ApiResponse(
-    AcademicSessionSwagger.decorators.activateSession.errorResponses[0],
-  )
-  @ApiResponse(
-    AcademicSessionSwagger.decorators.activateSession.errorResponses[1],
-  )
-  async activateSession(@Param('id') id: string) {
-    return this.academicSessionService.activateSession(id);
   }
 
   @Get(':id')

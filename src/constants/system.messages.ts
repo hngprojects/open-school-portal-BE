@@ -157,6 +157,12 @@ export const SESSION_ACTIVATION_FAILED =
   'Failed to activate academic session. Please try again.';
 export const ACADEMY_SESSION_ACTIVATED =
   'Academic session activated successfully.';
+export const ACADEMIC_SESSION_ACTIVATED_SUCCESS =
+  'Academic session activated and linked successfully';
+export const ACADEMIC_SESSION_ALREADY_ACTIVE =
+  'Academic session is already active';
+export const ACADEMIC_SESSION_NOT_FOUND_ERROR = 'Academic session not found';
+
 // Session management messages
 export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';

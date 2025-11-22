@@ -14,7 +14,7 @@ const dataSource = new DataSource({
   password: database.pass || 'postgres',
   database: database.name,
   entities: [__dirname + '/**/*.entity.{ts,js}'],
-  migrations: [__dirname + '/migrations/*{.ts,.js}'],
+  migrations: [__dirname + '/migrations/**/*.{ts,js}'],
   synchronize: true,
   migrationsRun: false,
   migrationsTableName: 'migrations',
