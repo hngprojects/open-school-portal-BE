@@ -21,3 +21,18 @@ export class CannotRevokeOtherSessionsException extends ForbiddenException {
 }
 
 // TO DO: Add more domain exceptions here
+export class BadUserRequestException extends BaseException {
+  constructor(errorMessage: string, userId: string = '') {
+    const formedErrorMessage =
+      userId.length > 0 ? errorMessage + ` for user ${userId}` : errorMessage;
+    super(formedErrorMessage, HttpStatus.BAD_REQUEST);
+  }
+}
+
+export class UnauthorizedRequestException extends BaseException {
+  constructor(errorMessage: string, userId: string = '') {
+    const formedErrorMessage =
+      userId.length > 0 ? errorMessage + ` for user ${userId}` : errorMessage;
+    super(formedErrorMessage, HttpStatus.UNAUTHORIZED);
+  }
+}

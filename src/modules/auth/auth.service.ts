@@ -1,18 +1,23 @@
 import * as crypto from 'crypto';
 
 import {
+  Injectable,
+  UnauthorizedException,
   BadRequestException,
   ConflictException,
   Inject,
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
+  HttpStatus,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
+import {
+  BadUserRequestException,
+  UserNotFoundException,
+  UnauthorizedRequestException,
+} from '../../common/exceptions/domain.exceptions';
 import config from '../../config/config';
 import { EmailTemplateID } from '../../constants/email-constants';
 import * as sysMsg from '../../constants/system.messages';
@@ -27,8 +32,11 @@ import {
   LogoutDto,
   RefreshTokenDto,
   ResetPasswordDto,
+  ChangeUserPasswordDto,
 } from './dto/auth.dto';
 import { LoginDto } from './dto/login.dto';
+import { password_util } from './utils/password.util';
+import { response_template } from './utils/response.util';
 
 @Injectable()
 export class AuthService {
@@ -269,7 +277,7 @@ export class AuthService {
   async activateUserAccount(id: string) {
     const user = await this.userService.findOne(id);
 
-    if (!user) throw new NotFoundException(sysMsg.USER_NOT_FOUND);
+    if (!user) throw new UserNotFoundException(id);
 
     if (user.is_active) {
       return sysMsg.USER_IS_ACTIVATED;
@@ -361,5 +369,98 @@ export class AuthService {
     return {
       message: sysMsg.LOGOUT_SUCCESS,
     };
+  }
+  /**
+   * Changes the user's password after verifying the current password.
+   * Returns the strict response_template format.
+   */
+  async changePassword(
+    userId: string,
+    payload: ChangeUserPasswordDto,
+    method: string, // Passed from Controller (@Req().method)
+    path: string, // Passed from Controller (@Req().path)
+  ) {
+    this.logger.info(`Attempting change password for user: ${userId}`);
+
+    try {
+      // Validate new password confirmation
+      if (payload.new_password !== payload.confirm_new_password) {
+        throw new BadUserRequestException(
+          'New password and confirm password do not match',
+          userId,
+        );
+      }
+
+      // Validate user's existence
+      const user = await this.userService.findOne(userId);
+
+      if (!user) {
+        throw new UserNotFoundException(userId);
+      }
+
+      // Verify Current Password
+      const isPasswordValid = await password_util.comparePassword(
+        payload.current_password,
+        user.password,
+      );
+
+      if (!isPasswordValid) {
+        throw new UnauthorizedRequestException(
+          'The current password provided is incorrect',
+          userId,
+        );
+      }
+
+      // Hash New Password
+      const hashedNewPassword = await password_util.hashPassword(
+        payload.new_password,
+      );
+
+      // Update User's Passwod
+      await this.userService.updateUser(
+        { password: hashedNewPassword },
+        { id: userId },
+        { useTransaction: false },
+      );
+
+      this.logger.info(`Password successfully updated for user: ${userId}`);
+
+      // Return Response
+      return response_template(
+        'Password updated successfully',
+        { userId: user.id },
+        null,
+        HttpStatus.OK,
+        method,
+        path,
+        new Date().toISOString(),
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to change password for user ${userId}`,
+        error.stack,
+      );
+
+      // Helper logic to extract the correct status code
+      const status = error.getStatus
+        ? error.getStatus()
+        : HttpStatus.INTERNAL_SERVER_ERROR;
+
+      const error_message =
+        error.response?.message ||
+        error.message ||
+        'An unexpected error occurred';
+
+      // 7. Return Agreed Response (Error)
+      return response_template(
+        'Failed to update password', // General message
+        null, // No data
+        error_message, // Specific error string
+        status,
+        method,
+        path,
+        new Date().toISOString(),
+      );
+    }
   }
 }

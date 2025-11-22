@@ -8,6 +8,7 @@ import {
   Post,
   Get,
   Headers,
+  Req,
 } from '@nestjs/common';
 import {
   ApiOperation,
@@ -15,6 +16,7 @@ import {
   ApiTags,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { Request } from 'express';
 
 import * as sysMsg from '../../constants/system.messages';
 
@@ -31,6 +33,7 @@ import {
   ForgotPasswordDto,
   LogoutDto,
   RefreshTokenDto,
+  ChangeUserPasswordRequestDto,
   ResetPasswordDto,
 } from './dto/auth.dto';
 import { LoginDto } from './dto/login.dto';
@@ -167,5 +170,42 @@ export class AuthController {
   })
   async logout(@Body() logoutDto: LogoutDto) {
     return this.authService.logout(logoutDto);
+  }
+
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Change logged-in user's password" })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Password successfully updated',
+    schema: {
+      example: {
+        message: 'Password updated successfully',
+        data: { userId: 1 },
+        error: null,
+        statusCode: 200,
+        method: 'POST',
+        path: '/auth/change-password',
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'New password and confirm password do not match',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Current password is incorrect',
+  })
+  async changePassword(
+    @Body() payload: ChangeUserPasswordRequestDto,
+    @Req() req: Request,
+  ) {
+    return this.authService.changePassword(
+      payload.user_id,
+      payload,
+      req.method,
+      req.path,
+    );
   }
 }

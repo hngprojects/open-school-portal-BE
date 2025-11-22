@@ -1,3 +1,5 @@
+import { UUID } from 'crypto';
+
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsNotEmpty,
@@ -10,6 +12,7 @@ import {
   Matches,
   IsJWT,
   IsUUID,
+  IsStrongPassword,
 } from 'class-validator';
 
 export enum UserRole {
@@ -204,4 +207,44 @@ export class LogoutDto {
   @IsUUID()
   @IsNotEmpty()
   user_id: string;
+}
+
+export class ChangeUserPasswordDto {
+  @IsNotEmpty()
+  @IsString()
+  current_password: string;
+
+  @IsNotEmpty()
+  @IsStrongPassword()
+  @IsString()
+  @MinLength(8, { message: 'minimum of 8 characters required' })
+  new_password: string;
+
+  @IsNotEmpty()
+  @IsStrongPassword()
+  @IsString()
+  @MinLength(8, { message: 'minimum of 8 characters required' })
+  confirm_new_password: string;
+}
+
+export class ChangeUserPasswordRequestDto {
+  @IsNotEmpty()
+  @IsString()
+  user_id: UUID;
+
+  @IsNotEmpty()
+  @IsString()
+  current_password: string;
+
+  @IsNotEmpty()
+  @IsStrongPassword()
+  @IsString()
+  @MinLength(8, { message: 'minimum of 8 characters required' })
+  new_password: string;
+
+  @IsNotEmpty()
+  @IsStrongPassword()
+  @IsString()
+  @MinLength(8, { message: 'minimum of 8 characters required' })
+  confirm_new_password: string;
 }

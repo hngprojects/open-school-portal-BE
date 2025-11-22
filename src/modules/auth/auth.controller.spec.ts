@@ -4,11 +4,13 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { Request } from 'express';
 
 import * as sysMsg from '../../constants/system.messages';
 
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { ChangeUserPasswordRequestDto } from './dto/auth.dto';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -18,6 +20,7 @@ describe('AuthController', () => {
     activateUserAccount: jest.fn(),
     getProfile: jest.fn(),
     logout: jest.fn(),
+    changePassword: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -192,6 +195,47 @@ describe('AuthController', () => {
 
       expect(authService.logout).toHaveBeenCalledWith(logoutDto);
       expect(authService.logout).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('changePassword', () => {
+    it('should call authService.changePassword with the correct parameters and return the result', async () => {
+      // Arrange
+      const payload: ChangeUserPasswordRequestDto = {
+        user_id: 'user-123-456-789-012',
+        current_password: 'oldPassword',
+        new_password: 'newPassword',
+        confirm_new_password: 'newPassword',
+      };
+
+      // Mocking the Express Request object
+      const mockRequest = {
+        method: 'POST',
+        path: '/auth/change-password',
+      } as unknown as Request;
+
+      const expectedResponse = {
+        message: 'Password updated successfully',
+        data: { userId: payload.user_id },
+        error: null,
+        statusCode: HttpStatus.OK,
+        method: 'POST',
+        path: '/auth/change-password',
+      };
+
+      mockAuthService.changePassword.mockResolvedValue(expectedResponse);
+
+      // Act
+      const result = await controller.changePassword(payload, mockRequest);
+
+      // Assert
+      expect(authService.changePassword).toHaveBeenCalledWith(
+        payload.user_id,
+        payload,
+        mockRequest.method,
+        mockRequest.path,
+      );
+      expect(result).toEqual(expectedResponse);
     });
   });
 });
