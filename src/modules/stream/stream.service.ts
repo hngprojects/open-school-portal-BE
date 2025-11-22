@@ -12,7 +12,7 @@ import { Repository } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../constants/system.messages';
-import { Class } from '../classes/entities/classes.entity';
+import { Class } from '../class/entities/class.entity';
 
 import { CreateStreamDto } from './dto/create-stream.dto';
 import { Stream } from './entities/stream.entity';
@@ -41,7 +41,7 @@ export class StreamService {
     }
 
     const parentClass = await this.classRepository.findOne({
-      where: { id: createStreamDto.class_id as unknown as number },
+      where: { id: createStreamDto.class_id },
     });
 
     if (!parentClass) {
