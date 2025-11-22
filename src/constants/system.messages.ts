@@ -15,10 +15,15 @@ export const LOGIN_FAILED = 'login failed';
 export const INVALID_CREDENTIALS = 'invalid credentials';
 export const TOKEN_EXPIRED = 'token expired';
 export const TOKEN_INVALID = 'token invalid';
+export const TOKEN_REFRESH_SUCCESS = 'Tokens refresh successful';
+export const LOGOUT_SUCCESS = 'logout success';
 
 export const ACTIVATE_ACCOUNT = 'Activate a user account';
 export const USER_IS_ACTIVATED = 'user already activated';
 export const USER_ACTIVATED = 'user activated';
+export const USER_INACTIVE = 'user account inactive';
+export const USER_ACTIVE = 'user account active';
+export const PROFILE_RETRIEVED = 'user profile retrieved successfully';
 
 // User / Account
 export const ACCOUNT_CREATED = 'account created';
@@ -58,6 +63,7 @@ export const UNAUTHORIZED = 'unauthorized';
 export const FORBIDDEN = 'forbidden';
 export const NOT_ALLOWED = 'not allowed';
 export const PERMISSION_DENIED = 'permission denied';
+export const AUTHORIZATION_HEADER_MISSING = 'authorization header missing';
 
 // Validation
 export const VALIDATION_ERROR = 'validation error';

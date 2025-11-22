@@ -8,6 +8,8 @@ import {
   IsEnum,
   MinLength,
   Matches,
+  IsJWT,
+  IsUUID,
 } from 'class-validator';
 
 export enum UserRole {
@@ -137,4 +139,69 @@ export class ResetPasswordDto {
       'Password must contain at least one uppercase letter, one lowercase letter, and one number',
   })
   newPassword: string;
+}
+export class RefreshTokenDto {
+  @ApiProperty({
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    description: 'JWT refresh token with 7 days expiration',
+  })
+  @IsJWT()
+  @IsNotEmpty()
+  refresh_token: string;
+}
+
+export class AuthMeResponseDto {
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
+  id: string;
+
+  @ApiProperty({ example: 'john.doe@example.com' })
+  email: string;
+
+  @ApiProperty({ example: 'John' })
+  first_name: string;
+
+  @ApiProperty({ example: 'Doe' })
+  last_name: string;
+
+  @ApiProperty({ example: ['STUDENT'], type: [String] })
+  role: UserRole[];
+
+  @ApiProperty({ example: 'Michael' })
+  middle_name: string;
+
+  @ApiProperty({ example: 'Male' })
+  gender: string;
+
+  @ApiProperty({ example: '2000-01-15' })
+  dob: string;
+
+  @ApiProperty({ example: '+1234567890' })
+  phone: string;
+
+  @ApiProperty({ example: true })
+  is_active: boolean;
+
+  @ApiProperty({ example: '2024-01-15T10:30:00Z' })
+  created_at: Date;
+
+  @ApiProperty({ example: '2024-01-15T10:30:00Z' })
+  updated_at: Date;
+}
+
+export class LogoutDto {
+  @ApiProperty({
+    example: 'session-id-123',
+    description: 'session id',
+  })
+  @IsUUID()
+  @IsNotEmpty()
+  session_id: string;
+
+  @ApiProperty({
+    example: 'user-id-123',
+    description: 'User id',
+  })
+  @IsUUID()
+  @IsNotEmpty()
+  user_id: string;
 }
