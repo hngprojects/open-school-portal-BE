@@ -1,12 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Entity, Column, OneToMany } from 'typeorm';
+
+import { BaseEntity } from '../../../entities/base-entity';
 
 import { ClassTeacher } from './class-teacher.entity';
 
 @Entity()
-export class Class {
-  @PrimaryGeneratedColumn()
-  id: number;
-
+export class Class extends BaseEntity {
   @Column()
   name: string; // e.g., "Grade 10"
 

@@ -11,6 +11,8 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
 
+  app.enableCors();
+
   const apiPrefix = configService.get<string>('API_PREFIX', 'api');
   const apiVersion = configService.get<string>('API_VERSION', 'v1');
   const globalPrefix = `${apiPrefix}/${apiVersion}`;
@@ -34,10 +36,23 @@ async function bootstrap() {
     .setDescription('API documentation for Open School Portal')
     .setVersion('1.0')
     .addTag('Waitlist')
+    .addBearerAuth({
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+      description:
+        'Enter JWT token obtained from the login endpoint. Format: Bearer <token>',
+    })
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document);
+  SwaggerModule.setup('docs', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+      tagsSorter: 'alpha',
+      operationsSorter: 'alpha',
+    },
+  });
 
   // Use Winston logger globally
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
