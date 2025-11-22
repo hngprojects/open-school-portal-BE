@@ -4,6 +4,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
+import * as sysMsg from '../../../constants/system.messages';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { ClassLevel } from '../../shared/enums';
 import { CreateClassDto } from '../dto/create-class.dto';
@@ -185,16 +186,9 @@ describe('ClassService', () => {
         level: ClassLevel.JUNIOR_SECONDARY,
         academic_session_id: 'c438779a-514a-47e1-9596-b21e0bf87334',
       };
-      await expect(service.createClass(dto)).rejects.toThrow();
-    });
-
-    it('should throw BadRequestException for invalid class level', async () => {
-      const dto = {
-        class_name: 'Grade 12',
-        level: 'INVALID_LEVEL',
-        academic_session_id: 'c438779a-514a-47e1-9596-b21e0bf87334',
-      } as unknown as CreateClassDto;
-      await expect(service.createClass(dto)).rejects.toThrow();
+      await expect(service.createClass(dto)).rejects.toThrow(
+        sysMsg.INVALID_CLASS_PARAMETER,
+      );
     });
   });
 

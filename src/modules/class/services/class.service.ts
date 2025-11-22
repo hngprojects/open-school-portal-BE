@@ -6,7 +6,6 @@ import {
 
 import * as sysMsg from '../../../constants/system.messages';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
-import { ClassLevel } from '../../shared/enums';
 import { Stream } from '../../stream/entities/stream.entity';
 import { CreateClassDto } from '../dto/create-class.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
@@ -32,17 +31,12 @@ export class ClassService {
       throw new BadRequestException(sysMsg.INVALID_CLASS_PARAMETER);
     }
 
-    // 2. Validate level
-    if (!Object.values(ClassLevel).includes(createClassDto.level)) {
-      throw new BadRequestException(sysMsg.INVALID_CLASS_PARAMETER);
-    }
-
-    // 3. Validate academic session
+    // 2. Validate academic session
     if (!createClassDto.academic_session_id) {
-      throw new BadRequestException('Academic session ID is required');
+      throw new BadRequestException(sysMsg.ACADEMIC_SESSION_ID_REQUIRED);
     }
 
-    // 4. Fetch academic session
+    // 3. Fetch academic session
     const academicSession = await this.academicSessionModelAction.get({
       identifierOptions: { id: createClassDto.academic_session_id },
     });
@@ -50,7 +44,7 @@ export class ClassService {
       throw new BadRequestException('Academic session not found');
     }
 
-    // 5. Check for duplicate class name
+    // 4. Check for duplicate class name
     const existing = await this.classModelAction.get({
       identifierOptions: { name },
     });
@@ -58,7 +52,7 @@ export class ClassService {
       throw new BadRequestException(sysMsg.CLASS_ALREADY_EXISTS);
     }
 
-    // 6. Create class using Model Action
+    // 5. Create class using Model Action
     const newClass = await this.classModelAction.create({
       createPayload: {
         name,

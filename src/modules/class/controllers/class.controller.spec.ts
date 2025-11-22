@@ -66,7 +66,7 @@ describe('ClassController', () => {
           teacher_id: 't1',
           name: 'John Doe',
           assignment_date: new Date('2023-09-01T08:00:00Z'),
-          stream: 'Science',
+          streams: ['Science'],
         },
       ];
       mockClassService.getTeachersByClass.mockResolvedValue(teachers);

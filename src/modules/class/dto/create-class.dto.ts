@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
   IsNotEmpty,
@@ -47,6 +47,17 @@ export class CreateClassDto {
   })
   @IsUUID('4', { message: 'Invalid academic session ID' })
   academic_session_id: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    example: [
+      'b1a2c3d4-5678-1234-9876-abcdefabcdef',
+      'e2f3a4b5-6789-2345-8765-fedcbafedcba',
+    ],
+    description: 'List of stream UUIDs to associate with the class (optional)',
+  })
+  @IsUUID('4', { each: true, message: 'Each stream must be a valid UUID' })
+  streams?: string[];
 }
 
 export class ClassResponseDto {
@@ -71,4 +82,22 @@ export class ClassResponseDto {
     id: string;
     name: string;
   };
+
+  @ApiPropertyOptional({
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'b1a2c3d4-5678-1234-9876-abcdefabcdef' },
+        name: { type: 'string', example: 'Science' },
+      },
+    },
+    example: [
+      { id: 'b1a2c3d4-5678-1234-9876-abcdefabcdef', name: 'Science' },
+      { id: 'e2f3a4b5-6789-2345-8765-fedcbafedcba', name: 'Arts' },
+    ],
+    description:
+      'List of streams (id and name) associated with the class (optional)',
+  })
+  streams?: Array<{ id: string; name: string }>;
 }
