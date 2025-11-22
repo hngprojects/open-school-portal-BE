@@ -147,6 +147,7 @@ export const MULTIPLE_ACTIVE_ACADEMIC_SESSION =
   'Multiple academic session records detected.';
 export const ACADEMIC_SESSION_LIST_SUCCESS =
   'Academic session list retrieved successfully.';
+export const ACADEMIC_SESSION_ID_REQUIRED = 'academic session ID is required';
 export const INVALID_SESSION_ID = 'Invalid session ID provided.';
 export const SESSION_ACTIVATED_SUCCESSFULLY =
   'Academic session activated successfully.';
@@ -154,7 +155,6 @@ export const SESSION_ACTIVATION_FAILED =
   'Failed to activate academic session. Please try again.';
 export const ACADEMY_SESSION_ACTIVATED =
   'Academic session activated successfully.';
-export const ACADEMIC_SESSION_ID_REQUIRED = 'academic session ID is required';
 
 // Session management messages
 export const SESSION_REVOKED = 'session revoked successfully';
