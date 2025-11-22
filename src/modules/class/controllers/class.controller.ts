@@ -32,8 +32,8 @@ import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
 import { ClassService } from '../services/class.service';
 
 @ApiBearerAuth()
-@ApiTags('Classes')
-@Controller('classes')
+@ApiTags('Class')
+@Controller('class')
 export class ClassController {
   constructor(private readonly classService: ClassService) {}
 
