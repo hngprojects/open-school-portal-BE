@@ -15,7 +15,7 @@ export class CreateSessionsTable1731808800003 implements MigrationInterface {
             "provider" VARCHAR DEFAULT 'jwt',
             "is_active" BOOLEAN DEFAULT true,
             "revoked_at" TIMESTAMP,
-            CONSTRAINT "FK_sessions_user" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE
+            CONSTRAINT "FK_sessions_user" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE
           );
         `);
   }

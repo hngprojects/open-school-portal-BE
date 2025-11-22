@@ -19,12 +19,12 @@ export class NewUserMigration1763494386133 implements MigrationInterface {
       END$$;
     `);
 
-    // Create users table if it does not exist
+    // Create user table if it does not exist
     await queryRunner.query(`
       DO $$
       BEGIN
-          IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users') THEN
-              CREATE TABLE "users" (
+          IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'user') THEN
+              CREATE TABLE "user" (
                   "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                   "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                   "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
@@ -50,8 +50,8 @@ export class NewUserMigration1763494386133 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    // Drop the users table if it exists
-    await queryRunner.query(`DROP TABLE IF EXISTS "users"`);
+    // Drop the user table if it exists
+    await queryRunner.query(`DROP TABLE IF EXISTS "user"`);
 
     // Drop enum type if it exists
     await queryRunner.query(`DO $$
