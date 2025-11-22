@@ -105,6 +105,7 @@ describe('ClassService', () => {
       const dto: CreateClassDto = {
         class_name: 'Grade 11',
         level: ClassLevel.JUNIOR_SECONDARY,
+        academic_session_id: 'c438779a-514a-47e1-9596-b21e0bf87334',
       };
       mockClassModelAction.get.mockResolvedValue(null);
       mockClassModelAction.create = jest.fn().mockResolvedValue({
@@ -132,6 +133,7 @@ describe('ClassService', () => {
       const dto: CreateClassDto = {
         class_name: 'Grade 10',
         level: ClassLevel.JUNIOR_SECONDARY,
+        academic_session_id: 'c438779a-514a-47e1-9596-b21e0bf87334',
       };
       mockClassModelAction.get.mockResolvedValue({
         id: '1',
@@ -148,6 +150,7 @@ describe('ClassService', () => {
       const dto: CreateClassDto = {
         class_name: '   ',
         level: ClassLevel.JUNIOR_SECONDARY,
+        academic_session_id: 'c438779a-514a-47e1-9596-b21e0bf87334',
       };
       await expect(service.createClass(dto)).rejects.toThrow();
     });
@@ -156,6 +159,7 @@ describe('ClassService', () => {
       const dto = {
         class_name: 'Grade 12',
         level: 'INVALID_LEVEL',
+        academic_session_id: 'c438779a-514a-47e1-9596-b21e0bf87334',
       } as unknown as CreateClassDto;
       await expect(service.createClass(dto)).rejects.toThrow();
     });

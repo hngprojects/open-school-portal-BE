@@ -37,6 +37,7 @@ describe('ClassController', () => {
       const dto: CreateClassDto = {
         class_name: 'JSS2',
         level: ClassLevel.JUNIOR_SECONDARY,
+        academic_session_id: 'c438779a-514a-47e1-9596-b21e0bf87334',
       };
       const created: ClassResponseDto = {
         id: '1',

@@ -19,7 +19,8 @@ export const ClassSwagger = {
         description: 'Admin creates a new class with name and level/category.',
       },
       body: {
-        description: 'Class creation payload',
+        description:
+          'Class creation payload. Requires academic_session_id (UUID of an existing academic session).',
         type: 'CreateClassDto',
         examples: {
           valid: {
@@ -27,6 +28,7 @@ export const ClassSwagger = {
             value: {
               class_name: 'JSS2',
               level: 'Junior Secondary',
+              academic_session_id: 'c438779a-514a-47e1-9596-b21e0bf87334',
             },
           },
           invalid: {
@@ -34,6 +36,7 @@ export const ClassSwagger = {
             value: {
               class_name: '',
               level: 'Primary',
+              academic_session_id: '',
             },
           },
         },

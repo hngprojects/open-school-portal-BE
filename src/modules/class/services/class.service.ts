@@ -3,15 +3,13 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 
 import * as sysMsg from '../../../constants/system.messages';
+import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { ClassLevel } from '../../shared/enums';
 import { Stream } from '../../stream/entities/stream.entity';
 import { CreateClassDto } from '../dto/create-class.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
-import { ClassTeacher } from '../entities/class-teacher.entity';
 import { Class } from '../entities/class.entity';
 import { ClassTeacherModelAction } from '../model-actions/class-teacher.action';
 import { ClassModelAction } from '../model-actions/class.actions';
@@ -19,10 +17,9 @@ import { ClassModelAction } from '../model-actions/class.actions';
 @Injectable()
 export class ClassService {
   constructor(
-    @InjectRepository(ClassTeacher)
-    private classTeacherRepository: Repository<ClassTeacher>,
     private readonly classesModelAction: ClassModelAction,
     private readonly classTeacherModelAction: ClassTeacherModelAction,
+    private readonly academicSessionModelAction: AcademicSessionModelAction,
   ) {}
 
   /**
@@ -40,7 +37,20 @@ export class ClassService {
       throw new BadRequestException(sysMsg.INVALID_CLASS_PARAMETER);
     }
 
-    // 3. Check for duplicate class name
+    // 3. Validate academic session
+    if (!createClassDto.academic_session_id) {
+      throw new BadRequestException('Academic session ID is required');
+    }
+
+    // 4. Fetch academic session
+    const academicSession = await this.academicSessionModelAction.get({
+      identifierOptions: { id: createClassDto.academic_session_id },
+    });
+    if (!academicSession) {
+      throw new BadRequestException('Academic session not found');
+    }
+
+    // 5. Check for duplicate class name
     const existing = await this.classesModelAction.get({
       identifierOptions: { name },
     });
@@ -48,11 +58,12 @@ export class ClassService {
       throw new BadRequestException(sysMsg.CLASS_ALREADY_EXISTS);
     }
 
-    // 4. Create class using Model Action
+    // 6. Create class using Model Action
     const newClass = await this.classesModelAction.create({
       createPayload: {
         name,
         level: createClassDto.level,
+        academicSession,
       },
       transactionOptions: { useTransaction: false },
     });

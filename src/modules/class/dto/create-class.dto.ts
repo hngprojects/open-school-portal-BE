@@ -6,6 +6,7 @@ import {
   MaxLength,
   Matches,
   IsEnum,
+  IsUUID,
 } from 'class-validator';
 
 import * as sysMsg from '../../../constants/system.messages';
@@ -39,6 +40,13 @@ export class CreateClassDto {
   })
   @IsEnum(ClassLevel, { message: sysMsg.CLASS_LEVEL_INVALID })
   level: ClassLevel;
+
+  @ApiProperty({
+    example: 'c438779a-514a-47e1-9596-b21e0bf87334',
+    description: 'Academic session ID',
+  })
+  @IsUUID('4', { message: 'Invalid academic session ID' })
+  academic_session_id: string;
 }
 
 export class ClassResponseDto {

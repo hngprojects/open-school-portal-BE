@@ -1,6 +1,7 @@
-import { Entity, Column, OneToMany } from 'typeorm';
+import { Entity, Column, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
+import { AcademicSession } from '../../academic-session/entities/academic-session.entity';
 import { ClassLevel } from '../../shared/enums';
 import { Stream } from '../../stream/entities/stream.entity';
 
@@ -19,4 +20,10 @@ export class Class extends BaseEntity {
 
   @OneToMany(() => ClassTeacher, (assignment) => assignment.class)
   teacher_assignment: ClassTeacher[];
+
+  @ManyToOne(() => AcademicSession, (session) => session.classes, {
+    nullable: false,
+  })
+  @JoinColumn({ name: 'academic_session_id' })
+  academicSession: AcademicSession;
 }
