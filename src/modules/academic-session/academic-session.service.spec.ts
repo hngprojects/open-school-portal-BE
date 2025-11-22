@@ -3,8 +3,11 @@ import {
   ConflictException,
   HttpStatus,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common'; // Added HttpStatus
 import { Test, TestingModule } from '@nestjs/testing';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { Logger } from 'winston';
 
 import * as sysMsg from '../../constants/system.messages';
 
@@ -13,6 +16,7 @@ import {
   ICreateSessionResponse,
 } from './academic-session.service';
 import { CreateAcademicSessionDto } from './dto/create-academic-session.dto';
+import { UpdateAcademicSessionDto } from './dto/update-academic-session.dto';
 import {
   AcademicSession,
   SessionStatus,
@@ -22,6 +26,7 @@ import { AcademicSessionModelAction } from './model-actions/academic-session-act
 describe('AcademicSessionService', () => {
   let service: AcademicSessionService;
   let mockSessionModelAction: jest.Mocked<AcademicSessionModelAction>;
+  let mockLogger: jest.Mocked<Logger>;
 
   beforeEach(async () => {
     // FIX: Use Partial<T> to define the required methods and the two-step assertion
@@ -29,10 +34,21 @@ describe('AcademicSessionService', () => {
       get: jest.fn(),
       create: jest.fn(),
       list: jest.fn(),
+      update: jest.fn(),
     };
 
     mockSessionModelAction =
       mockModelActionProvider as unknown as jest.Mocked<AcademicSessionModelAction>;
+
+    // Mock Logger
+    mockLogger = {
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      debug: jest.fn(),
+      log: jest.fn(),
+      child: jest.fn().mockReturnThis(),
+    } as unknown as jest.Mocked<Logger>;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -40,6 +56,10 @@ describe('AcademicSessionService', () => {
         {
           provide: AcademicSessionModelAction,
           useValue: mockSessionModelAction,
+        },
+        {
+          provide: WINSTON_MODULE_PROVIDER,
+          useValue: mockLogger,
         },
       ],
     }).compile();
@@ -248,9 +268,237 @@ describe('AcademicSessionService', () => {
   });
 
   describe('update', () => {
-    it('should return update message', () => {
-      const result = service.update(1);
-      expect(result).toBe('This action updates a #1 academicSession');
+    // Mock existing session
+    const existingSession: AcademicSession = {
+      id: '1',
+      name: '2024/2025',
+      startDate: new Date('2024-01-01'),
+      endDate: new Date('2024-12-31'),
+      status: SessionStatus.ACTIVE,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    // Mock update session DTO
+    const updateSessionDto: UpdateAcademicSessionDto = {
+      name: '2026/2027',
+      startDate: new Date('2026-01-01').toISOString(),
+      endDate: new Date('2026-12-31').toISOString(),
+    };
+
+    // Mock updated session
+    const mockUpdatedSession: AcademicSession = {
+      id: '1',
+      name: '2026/2027',
+      startDate: new Date('2026-01-01'),
+      endDate: new Date('2026-12-31'),
+      status: SessionStatus.ACTIVE,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    // Mock expected success response
+    const expectedSuccessResponse = {
+      status_code: HttpStatus.OK,
+      message: sysMsg.ACADEMIC_SESSION_UPDATED,
+      data: mockUpdatedSession,
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    // Happy path
+    it('should update academic session successfully', async () => {
+      // Mock first get() call - session exists
+      mockSessionModelAction.get.mockResolvedValueOnce(existingSession);
+      // Mock second get() call - name is unique
+      mockSessionModelAction.get.mockResolvedValueOnce(null);
+      // Mock update() call - returns updated session
+      mockSessionModelAction.update.mockResolvedValue(mockUpdatedSession);
+
+      const result = await service.update('1', updateSessionDto);
+
+      // Assert success response
+      expect(result).toEqual(expectedSuccessResponse);
+
+      // Assert get() should be called twice
+      expect(mockSessionModelAction.get).toHaveBeenCalledTimes(2);
+
+      // Assert first get() checks if session exists by id
+      expect(mockSessionModelAction.get).toHaveBeenNthCalledWith(1, {
+        identifierOptions: { id: '1' },
+      });
+
+      // Assert second get() checks if name is unique
+      expect(mockSessionModelAction.get).toHaveBeenNthCalledWith(2, {
+        identifierOptions: { name: updateSessionDto.name },
+      });
+
+      // Assert update() should be called with correct payload
+      expect(mockSessionModelAction.update).toHaveBeenCalledWith({
+        identifierOptions: { id: '1' },
+        updatePayload: {
+          name: updateSessionDto.name,
+          startDate: expect.any(Date),
+          endDate: expect.any(Date),
+        },
+        transactionOptions: {
+          useTransaction: false,
+        },
+      });
+    });
+
+    // Session not found - should throw NotFoundException
+    it('should throw NotFoundException if session does not exist', async () => {
+      mockSessionModelAction.get.mockResolvedValueOnce(null);
+
+      await expect(
+        service.update('non-existent-id', updateSessionDto),
+      ).rejects.toThrow(
+        new NotFoundException(sysMsg.ACADEMIC_SESSION_NOT_FOUND),
+      );
+
+      expect(mockSessionModelAction.get).toHaveBeenCalledTimes(1);
+      expect(mockSessionModelAction.update).not.toHaveBeenCalled();
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        sysMsg.ACADEMIC_SESSION_NOT_FOUND,
+        expect.objectContaining({ sessionId: 'non-existent-id' }),
+      );
+    });
+
+    // Start date in the past - should throw BadRequestException
+    it('should throw BadRequestException if start date is in the past', async () => {
+      const invalidDto: UpdateAcademicSessionDto = {
+        name: '2026/2027',
+        startDate: new Date(Date.now() - 86400000).toISOString(),
+        endDate: new Date('2026-12-31').toISOString(),
+      };
+
+      mockSessionModelAction.get.mockResolvedValueOnce(existingSession);
+
+      await expect(service.update('1', invalidDto)).rejects.toThrow(
+        new BadRequestException(sysMsg.START_DATE_IN_PAST),
+      );
+
+      expect(mockSessionModelAction.get).toHaveBeenCalledTimes(1);
+      expect(mockSessionModelAction.update).not.toHaveBeenCalled();
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        sysMsg.START_DATE_IN_PAST,
+        expect.objectContaining({
+          sessionId: '1',
+          startDate: invalidDto.startDate,
+        }),
+      );
+    });
+
+    // End date in the past - should throw BadRequestException
+    it('should throw BadRequestException if end date is in the past', async () => {
+      const invalidDto: UpdateAcademicSessionDto = {
+        name: '2026/2027',
+        startDate: new Date('2026-01-01').toISOString(),
+        endDate: new Date(Date.now() - 86400000).toISOString(),
+      };
+
+      mockSessionModelAction.get.mockResolvedValueOnce(existingSession);
+
+      await expect(service.update('1', invalidDto)).rejects.toThrow(
+        new BadRequestException(sysMsg.END_DATE_IN_PAST),
+      );
+
+      expect(mockSessionModelAction.get).toHaveBeenCalledTimes(1);
+      expect(mockSessionModelAction.update).not.toHaveBeenCalled();
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        sysMsg.END_DATE_IN_PAST,
+        expect.objectContaining({
+          sessionId: '1',
+          endDate: invalidDto.endDate,
+        }),
+      );
+    });
+
+    // End date before or equal to start date - should throw BadRequestException
+    it('should throw BadRequestException if end date is before or equal to start date', async () => {
+      const startDate = new Date(Date.now() + 86400000); // Tomorrow
+      const invalidDto: UpdateAcademicSessionDto = {
+        name: '2026/2027',
+        startDate: startDate.toISOString(),
+        endDate: startDate.toISOString(), // Same as start date
+      };
+
+      mockSessionModelAction.get.mockResolvedValueOnce(existingSession);
+
+      await expect(service.update('1', invalidDto)).rejects.toThrow(
+        new BadRequestException(sysMsg.INVALID_DATE_RANGE),
+      );
+
+      expect(mockSessionModelAction.get).toHaveBeenCalledTimes(1);
+      expect(mockSessionModelAction.update).not.toHaveBeenCalled();
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        sysMsg.INVALID_DATE_RANGE,
+        expect.objectContaining({
+          sessionId: '1',
+          startDate: invalidDto.startDate,
+          endDate: invalidDto.endDate,
+        }),
+      );
+    });
+
+    // Duplicate name (different session) - should throw ConflictException
+    it('should throw ConflictException if name already exists for another session', async () => {
+      const duplicateNameSession: AcademicSession = {
+        id: '2',
+        name: '2026/2027',
+        startDate: new Date('2026-01-01'),
+        endDate: new Date('2026-12-31'),
+        status: SessionStatus.ACTIVE,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      //  session exists
+      mockSessionModelAction.get.mockResolvedValueOnce(existingSession);
+      //  name already exists for different session
+      mockSessionModelAction.get.mockResolvedValueOnce(duplicateNameSession);
+
+      await expect(service.update('1', updateSessionDto)).rejects.toThrow(
+        new ConflictException(sysMsg.DUPLICATE_SESSION_NAME),
+      );
+
+      expect(mockSessionModelAction.get).toHaveBeenCalledTimes(2);
+      expect(mockSessionModelAction.update).not.toHaveBeenCalled();
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        sysMsg.DUPLICATE_SESSION_NAME,
+        expect.objectContaining({
+          sessionId: '1',
+          name: updateSessionDto.name,
+        }),
+      );
+    });
+
+    // Same name but same session (updating to same name) - should succeed
+    it('should allow updating to the same name if it is the same session', async () => {
+      const sameNameDto: UpdateAcademicSessionDto = {
+        name: '2024/2025', // Same as existing session name
+        startDate: new Date('2026-01-01').toISOString(),
+        endDate: new Date('2026-12-31').toISOString(),
+      };
+
+      const updatedWithSameName: AcademicSession = {
+        ...existingSession,
+        name: '2024/2025', // Same name
+        startDate: new Date('2026-01-01'),
+        endDate: new Date('2026-12-31'),
+      };
+
+      mockSessionModelAction.get.mockResolvedValueOnce(existingSession);
+      mockSessionModelAction.get.mockResolvedValueOnce(existingSession);
+      mockSessionModelAction.update.mockResolvedValue(updatedWithSameName);
+
+      const result = await service.update('1', sameNameDto);
+
+      expect(result.status_code).toBe(HttpStatus.OK);
+      expect(mockSessionModelAction.update).toHaveBeenCalled();
     });
   });
 
