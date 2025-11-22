@@ -49,6 +49,10 @@ export const PASSWORD_RESET_TOKEN_INVALID = 'password reset token invalid';
 export const PASSWORD_RESET_TOKEN_EXPIRED = 'password reset token expired';
 export const PASSWORD_SAME_AS_OLD =
   'new password cannot be same as old password';
+export const PASSWORD_UPDATE_SUCCESS = 'Password updated successfully';
+export const PASSWORD_UPDATE_FAILURE = 'Failed to change password for user';
+export const PASSWORD_CURRENT_INCORRECT =
+  'The current password provided is incorrect';
 
 // Multi-Factor Authentication (MFA)
 export const MFA_REQUIRED = 'mfa required';
@@ -159,3 +163,6 @@ export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
 export const SESSION_NOT_FOUND = 'session not found';
 export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
+
+// processes errors
+export const UNEXPECTED_ERROR = 'An unexpected error occurred';

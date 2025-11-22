@@ -210,7 +210,7 @@ describe('AuthController', () => {
 
       // Mocking the Express Request object
       const mockRequest = {
-        method: 'POST',
+        method: 'PATCH',
         path: '/auth/change-password',
       } as unknown as Request;
 
@@ -219,7 +219,7 @@ describe('AuthController', () => {
         data: { userId: payload.user_id },
         error: null,
         statusCode: HttpStatus.OK,
-        method: 'POST',
+        method: 'PATCH',
         path: '/auth/change-password',
       };
 

@@ -172,7 +172,7 @@ export class AuthController {
     return this.authService.logout(logoutDto);
   }
 
-  @Post('change-password')
+  @Patch('change-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Change logged-in user's password" })
   @ApiResponse({
@@ -184,7 +184,7 @@ export class AuthController {
         data: { userId: 1 },
         error: null,
         statusCode: 200,
-        method: 'POST',
+        method: 'PATCH',
         path: '/auth/change-password',
       },
     },

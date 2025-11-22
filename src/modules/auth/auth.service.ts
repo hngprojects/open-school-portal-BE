@@ -36,7 +36,6 @@ import {
 } from './dto/auth.dto';
 import { LoginDto } from './dto/login.dto';
 import { password_util } from './utils/password.util';
-import { response_template } from './utils/response.util';
 
 @Injectable()
 export class AuthService {
@@ -370,6 +369,7 @@ export class AuthService {
       message: sysMsg.LOGOUT_SUCCESS,
     };
   }
+
   /**
    * Changes the user's password after verifying the current password.
    * Returns the strict response_template format.
@@ -406,7 +406,7 @@ export class AuthService {
 
       if (!isPasswordValid) {
         throw new UnauthorizedRequestException(
-          'The current password provided is incorrect',
+          sysMsg.PASSWORD_CURRENT_INCORRECT,
           userId,
         );
       }
@@ -423,21 +423,22 @@ export class AuthService {
         { useTransaction: false },
       );
 
-      this.logger.info(`Password successfully updated for user: ${userId}`);
+      this.logger.info(`${sysMsg.PASSWORD_UPDATE_SUCCESS} for user: ${userId}`);
 
       // Return Response
-      return response_template(
-        'Password updated successfully',
-        { userId: user.id },
-        null,
-        HttpStatus.OK,
+
+      return {
+        message: sysMsg.PASSWORD_UPDATE_SUCCESS,
+        data: { userId: user.id },
+        error: null,
+        status_code: HttpStatus.OK,
         method,
         path,
-        new Date().toISOString(),
-      );
+        timestamp: new Date().toISOString(),
+      };
     } catch (error) {
       this.logger.error(
-        `Failed to change password for user ${userId}`,
+        `${sysMsg.PASSWORD_UPDATE_FAILURE} ${userId}`,
         error.stack,
       );
 
@@ -447,20 +448,17 @@ export class AuthService {
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
       const error_message =
-        error.response?.message ||
-        error.message ||
-        'An unexpected error occurred';
+        error.response?.message || error.message || sysMsg.UNEXPECTED_ERROR;
 
-      // 7. Return Agreed Response (Error)
-      return response_template(
-        'Failed to update password', // General message
-        null, // No data
-        error_message, // Specific error string
-        status,
+      return {
+        message: sysMsg.PASSWORD_UPDATE_FAILURE, // General message
+        data: null,
+        error: error_message, // Specific error string
+        status_code: status,
         method,
         path,
-        new Date().toISOString(),
-      );
+        timestamp: new Date().toISOString(),
+      };
     }
   }
 }
