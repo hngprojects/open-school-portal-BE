@@ -146,6 +146,7 @@ export const MULTIPLE_ACTIVE_ACADEMIC_SESSION =
   'Multiple academic session records detected.';
 export const ACADEMIC_SESSION_LIST_SUCCESS =
   'Academic session list retrieved successfully.';
+export const ACADEMIC_SESSION_ID_REQUIRED = 'academic session ID is required';
 
 // Session management messages
 export const SESSION_REVOKED = 'session revoked successfully';
