@@ -340,8 +340,8 @@ describe('TeacherService', () => {
       await service.findAll(query);
 
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'teacher.is_active = :isActive',
-        { isActive: true },
+        'teacher.is_active = :is_active',
+        { is_active: true },
       );
     });
 
@@ -371,8 +371,10 @@ describe('TeacherService', () => {
       await service.findAll(query);
 
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        expect.stringContaining('LOWER'),
-        expect.objectContaining({ searchTerm: expect.any(String) }),
+        expect.stringContaining('ILIKE'),
+        expect.objectContaining({
+          searchTerm: expect.any(String),
+        }),
       );
     });
   });
