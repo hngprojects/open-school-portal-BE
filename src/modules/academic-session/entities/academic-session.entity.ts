@@ -1,6 +1,7 @@
-import { Entity, Column } from 'typeorm';
+import { Entity, Column, OneToMany } from 'typeorm';
 
-import { BaseEntity } from '../../../entities/base-entity'; // Assuming BaseEntity path
+import { BaseEntity } from '../../../entities/base-entity';
+import { Class } from '../../class/entities/class.entity';
 
 export enum SessionStatus {
   ACTIVE = 'Active',
@@ -25,4 +26,7 @@ export class AcademicSession extends BaseEntity {
     default: SessionStatus.INACTIVE,
   })
   status: SessionStatus;
+
+  @OneToMany(() => Class, (classEntity) => classEntity.academicSession)
+  classes: Class[];
 }

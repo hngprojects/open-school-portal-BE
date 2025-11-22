@@ -63,6 +63,7 @@ describe('AcademicSessionService', () => {
       status: SessionStatus.INACTIVE,
       createdAt: new Date(),
       updatedAt: new Date(),
+      classes: [],
     };
 
     const expectedSuccessResponse: ICreateSessionResponse = {
@@ -157,6 +158,7 @@ describe('AcademicSessionService', () => {
         status: SessionStatus.ACTIVE,
         createdAt: new Date(),
         updatedAt: new Date(),
+        classes: [],
       },
       {
         id: '2',
@@ -166,6 +168,7 @@ describe('AcademicSessionService', () => {
         status: SessionStatus.INACTIVE,
         createdAt: new Date(),
         updatedAt: new Date(),
+        classes: [],
       },
     ];
 
@@ -278,6 +281,7 @@ describe('AcademicSessionService', () => {
         status: overrides.status ?? SessionStatus.ACTIVE,
         createdAt: overrides.createdAt ?? new Date(),
         updatedAt: overrides.updatedAt ?? new Date(),
+        classes: overrides.classes ?? [],
       };
     };
 
