@@ -218,7 +218,7 @@ describe('AuthController', () => {
         message: 'Password updated successfully',
         data: { userId: payload.user_id },
         error: null,
-        statusCode: HttpStatus.OK,
+        status_code: HttpStatus.OK,
         method: 'PATCH',
         path: '/auth/change-password',
       };
