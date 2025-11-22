@@ -16,6 +16,7 @@ export const INVALID_CREDENTIALS = 'invalid credentials';
 export const TOKEN_EXPIRED = 'token expired';
 export const TOKEN_INVALID = 'token invalid';
 export const TOKEN_REFRESH_SUCCESS = 'Tokens refresh successful';
+export const LOGOUT_SUCCESS = 'logout success';
 
 export const ACTIVATE_ACCOUNT = 'Activate a user account';
 export const USER_IS_ACTIVATED = 'user already activated';
@@ -146,6 +147,13 @@ export const MULTIPLE_ACTIVE_ACADEMIC_SESSION =
   'Multiple academic session records detected.';
 export const ACADEMIC_SESSION_LIST_SUCCESS =
   'Academic session list retrieved successfully.';
+export const INVALID_SESSION_ID = 'Invalid session ID provided.';
+export const SESSION_ACTIVATED_SUCCESSFULLY =
+  'Academic session activated successfully.';
+export const SESSION_ACTIVATION_FAILED =
+  'Failed to activate academic session. Please try again.';
+export const ACADEMY_SESSION_ACTIVATED =
+  'Academic session activated successfully.';
 export const ACADEMIC_SESSION_ID_REQUIRED = 'academic session ID is required';
 
 // Session management messages
