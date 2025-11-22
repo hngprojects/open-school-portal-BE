@@ -46,19 +46,9 @@ export class CloudinaryService {
       throw new BadRequestException(sysMsg.FILE_REQUIRED);
     }
 
-    // Validate file type
-    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
-    if (!allowedMimes.includes(file.mimetype)) {
-      this.logger.warn(`Unsupported file type attempted: ${file.mimetype}`);
-      throw new BadRequestException(sysMsg.UNSUPPORTED_FILE_TYPE);
-    }
-
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      this.logger.warn(`File too large: ${file.size} bytes`);
-      throw new BadRequestException(sysMsg.FILE_TOO_LARGE);
-    }
+    // File validation (mimetype and size) is handled by FileInterceptor
+    // using pictureUploadConfig. If the file reaches this service, it has
+    // already passed validation.
 
     try {
       const uploadOptions: UploadApiOptions = {
