@@ -135,6 +135,8 @@ export const ACADEMIC_SESSION =
   'Retrieves the currently active academic session';
 export const ACADEMIC_SESSION_CREATED =
   'Academic session created successfully.';
+export const ACADEMIC_SESSION_UPDATED =
+  'Academic session updated successfully.';
 export const DUPLICATE_SESSION_NAME =
   'An academic session with this name already exists.';
 export const INVALID_DATE_RANGE = 'End date must be after start date.';
@@ -146,6 +148,7 @@ export const MULTIPLE_ACTIVE_ACADEMIC_SESSION =
   'Multiple academic session records detected.';
 export const ACADEMIC_SESSION_LIST_SUCCESS =
   'Academic session list retrieved successfully.';
+export const ACADEMIC_SESSION_NOT_FOUND = 'Academic session not found.';
 
 // Session management messages
 export const SESSION_REVOKED = 'session revoked successfully';

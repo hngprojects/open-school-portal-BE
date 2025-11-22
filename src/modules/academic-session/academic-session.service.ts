@@ -2,14 +2,19 @@ import {
   BadRequestException,
   ConflictException,
   HttpStatus,
+  Inject,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { FindOptionsOrder } from 'typeorm';
+import { Logger } from 'winston';
 
 import * as sysMsg from '../../constants/system.messages';
 
 import { CreateAcademicSessionDto } from './dto/create-academic-session.dto';
+import { UpdateAcademicSessionDto } from './dto/update-academic-session.dto';
 import {
   AcademicSession,
   SessionStatus,
@@ -29,9 +34,13 @@ export interface ICreateSessionResponse {
 }
 @Injectable()
 export class AcademicSessionService {
+  private readonly logger: Logger;
   constructor(
     private readonly sessionModelAction: AcademicSessionModelAction,
-  ) {}
+    @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
+  ) {
+    this.logger = baseLogger.child({ context: AcademicSessionService.name });
+  }
   async create(
     createSessionDto: CreateAcademicSessionDto,
   ): Promise<ICreateSessionResponse> {
@@ -112,8 +121,81 @@ export class AcademicSessionService {
     return `This action returns a #${id} academicSession`;
   }
 
-  update(id: number) {
-    return `This action updates a #${id} academicSession`;
+  async update(
+    sessionId: string,
+    updateAcademicSessionDto: UpdateAcademicSessionDto,
+  ) {
+    //check if session exists
+    const session = await this.sessionModelAction.get({
+      identifierOptions: { id: sessionId },
+    });
+    if (!session) {
+      this.logger.warn(sysMsg.ACADEMIC_SESSION_NOT_FOUND, {
+        sessionId: sessionId,
+      });
+      throw new NotFoundException(sysMsg.ACADEMIC_SESSION_NOT_FOUND);
+    }
+
+    //validate start date is before end date
+    const start = new Date(updateAcademicSessionDto.startDate);
+    if (start < new Date()) {
+      this.logger.error(sysMsg.START_DATE_IN_PAST, {
+        sessionId: sessionId,
+        startDate: updateAcademicSessionDto.startDate,
+      });
+      throw new BadRequestException(sysMsg.START_DATE_IN_PAST);
+    }
+    const end = new Date(updateAcademicSessionDto.endDate);
+    if (end < new Date()) {
+      this.logger.error(sysMsg.END_DATE_IN_PAST, {
+        sessionId: sessionId,
+        endDate: updateAcademicSessionDto.endDate,
+      });
+      throw new BadRequestException(sysMsg.END_DATE_IN_PAST);
+    }
+
+    //end date cannot be before start date
+    if (end <= start) {
+      this.logger.error(sysMsg.INVALID_DATE_RANGE, {
+        sessionId: sessionId,
+        startDate: updateAcademicSessionDto.startDate,
+        endDate: updateAcademicSessionDto.endDate,
+      });
+      throw new BadRequestException(sysMsg.INVALID_DATE_RANGE);
+    }
+
+    //validate name is unique
+    const existingSession = await this.sessionModelAction.get({
+      identifierOptions: { name: updateAcademicSessionDto.name },
+    });
+
+    if (existingSession && existingSession.id !== sessionId) {
+      this.logger.warn(sysMsg.DUPLICATE_SESSION_NAME, {
+        sessionId: sessionId,
+        name: updateAcademicSessionDto.name,
+      });
+      throw new ConflictException(sysMsg.DUPLICATE_SESSION_NAME);
+    }
+
+    //update session
+    const updatedSession = await this.sessionModelAction.update({
+      identifierOptions: { id: sessionId },
+      updatePayload: {
+        name: updateAcademicSessionDto.name,
+        startDate: start,
+        endDate: end,
+      },
+      transactionOptions: {
+        useTransaction: false,
+      },
+    });
+
+    //return updated session
+    return {
+      status_code: HttpStatus.OK,
+      message: sysMsg.ACADEMIC_SESSION_UPDATED,
+      data: updatedSession,
+    };
   }
 
   remove(id: number) {
