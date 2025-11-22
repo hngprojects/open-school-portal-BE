@@ -4,6 +4,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
+import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { ClassLevel } from '../../shared/enums';
 import { CreateClassDto } from '../dto/create-class.dto';
 import { ClassTeacher } from '../entities/class-teacher.entity';
@@ -84,6 +85,17 @@ describe('ClassService', () => {
           provide: getRepositoryToken(ClassTeacher),
           useValue: {},
         },
+        {
+          provide: AcademicSessionModelAction,
+          useValue: {
+            get: jest.fn(),
+            findOne: jest.fn(),
+            find: jest.fn(),
+            create: jest.fn(),
+            update: jest.fn(),
+            delete: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -107,6 +119,13 @@ describe('ClassService', () => {
         level: ClassLevel.JUNIOR_SECONDARY,
         academic_session_id: 'c438779a-514a-47e1-9596-b21e0bf87334',
       };
+      // Mock AcademicSessionModelAction.get to return a valid session
+      (
+        service['academicSessionModelAction'].get as jest.Mock
+      ).mockResolvedValue({
+        id: 'c438779a-514a-47e1-9596-b21e0bf87334',
+        name: '2024-2025',
+      });
       mockClassModelAction.get.mockResolvedValue(null);
       mockClassModelAction.create = jest.fn().mockResolvedValue({
         id: '2',
@@ -119,7 +138,14 @@ describe('ClassService', () => {
         identifierOptions: { name: 'Grade 11' },
       });
       expect(mockClassModelAction.create).toHaveBeenCalledWith({
-        createPayload: { name: 'Grade 11', level: ClassLevel.JUNIOR_SECONDARY },
+        createPayload: {
+          name: 'Grade 11',
+          level: ClassLevel.JUNIOR_SECONDARY,
+          academicSession: {
+            id: 'c438779a-514a-47e1-9596-b21e0bf87334',
+            name: '2024-2025',
+          },
+        },
         transactionOptions: { useTransaction: false },
       });
       expect(result).toEqual({
@@ -135,6 +161,13 @@ describe('ClassService', () => {
         level: ClassLevel.JUNIOR_SECONDARY,
         academic_session_id: 'c438779a-514a-47e1-9596-b21e0bf87334',
       };
+      // Mock AcademicSessionModelAction.get to return a valid session
+      (
+        service['academicSessionModelAction'].get as jest.Mock
+      ).mockResolvedValue({
+        id: 'c438779a-514a-47e1-9596-b21e0bf87334',
+        name: '2024-2025',
+      });
       mockClassModelAction.get.mockResolvedValue({
         id: '1',
         name: 'Grade 10',
