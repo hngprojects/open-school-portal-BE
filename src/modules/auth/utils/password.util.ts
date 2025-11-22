@@ -1,7 +1,4 @@
 import * as bcrypt from 'bcrypt';
-import * as dotenv from 'dotenv';
-
-dotenv.config();
 
 export class password_util {
   private static readonly salt_round = 10;

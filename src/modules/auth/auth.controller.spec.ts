@@ -232,8 +232,6 @@ describe('AuthController', () => {
       expect(authService.changePassword).toHaveBeenCalledWith(
         payload.user_id,
         payload,
-        mockRequest.method,
-        mockRequest.path,
       );
       expect(result).toEqual(expectedResponse);
     });

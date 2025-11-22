@@ -53,6 +53,10 @@ export const PASSWORD_UPDATE_SUCCESS = 'Password updated successfully';
 export const PASSWORD_UPDATE_FAILURE = 'Failed to change password for user';
 export const PASSWORD_CURRENT_INCORRECT =
   'The current password provided is incorrect';
+export const PASSWORD_MINIMUM_CHARACTER_REQUIRED =
+  'minimum of 8 characters required';
+export const PASSWORD_MUST_MATCH =
+  'Confirmation password must match new password';
 
 // Multi-Factor Authentication (MFA)
 export const MFA_REQUIRED = 'mfa required';

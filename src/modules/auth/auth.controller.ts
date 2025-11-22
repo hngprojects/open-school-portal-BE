@@ -8,7 +8,6 @@ import {
   Post,
   Get,
   Headers,
-  Req,
 } from '@nestjs/common';
 import {
   ApiOperation,
@@ -16,7 +15,6 @@ import {
   ApiTags,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { Request } from 'express';
 
 import * as sysMsg from '../../constants/system.messages';
 
@@ -197,15 +195,7 @@ export class AuthController {
     status: HttpStatus.UNAUTHORIZED,
     description: 'Current password is incorrect',
   })
-  async changePassword(
-    @Body() payload: ChangeUserPasswordRequestDto,
-    @Req() req: Request,
-  ) {
-    return this.authService.changePassword(
-      payload.user_id,
-      payload,
-      req.method,
-      req.path,
-    );
+  async changePassword(@Body() payload: ChangeUserPasswordRequestDto) {
+    return this.authService.changePassword(payload.user_id, payload);
   }
 }

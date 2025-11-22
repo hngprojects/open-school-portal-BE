@@ -15,6 +15,10 @@ import {
   IsStrongPassword,
 } from 'class-validator';
 
+import * as sysMsg from '../../../constants/system.messages';
+
+import { isEqualTo } from './custom-validator.dto';
+
 export enum UserRole {
   ADMIN = 'ADMIN',
   TEACHER = 'TEACHER',
@@ -217,13 +221,13 @@ export class ChangeUserPasswordDto {
   @IsNotEmpty()
   @IsStrongPassword()
   @IsString()
-  @MinLength(8, { message: 'minimum of 8 characters required' })
+  @MinLength(8, { message: sysMsg.PASSWORD_MINIMUM_CHARACTER_REQUIRED })
   new_password: string;
 
   @IsNotEmpty()
   @IsStrongPassword()
   @IsString()
-  @MinLength(8, { message: 'minimum of 8 characters required' })
+  @MinLength(8, { message: sysMsg.PASSWORD_MINIMUM_CHARACTER_REQUIRED })
   confirm_new_password: string;
 }
 
@@ -251,7 +255,7 @@ export class ChangeUserPasswordRequestDto {
   @IsNotEmpty()
   @IsStrongPassword()
   @IsString()
-  @MinLength(8, { message: 'minimum of 8 characters required' })
+  @MinLength(8, { message: sysMsg.PASSWORD_MINIMUM_CHARACTER_REQUIRED })
   new_password: string;
 
   @ApiProperty({
@@ -261,6 +265,7 @@ export class ChangeUserPasswordRequestDto {
   @IsNotEmpty()
   @IsStrongPassword()
   @IsString()
-  @MinLength(8, { message: 'minimum of 8 characters required' })
+  @MinLength(8, { message: sysMsg.PASSWORD_MINIMUM_CHARACTER_REQUIRED })
+  @isEqualTo('new_password', { message: sysMsg.PASSWORD_MUST_MATCH })
   confirm_new_password: string;
 }
