@@ -153,11 +153,10 @@ describe('ClassService', () => {
     });
 
     it('should throw BadRequestException for invalid class level', async () => {
-      // @ts-expect-error: purposely using invalid value for negative test
-      const dto: CreateClassDto = {
+      const dto = {
         class_name: 'Grade 12',
         level: 'INVALID_LEVEL',
-      };
+      } as unknown as CreateClassDto;
       await expect(service.createClass(dto)).rejects.toThrow();
     });
   });
