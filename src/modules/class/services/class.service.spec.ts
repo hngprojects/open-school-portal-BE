@@ -1,8 +1,11 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
+import { ClassLevel } from '../../shared/enums';
+import { CreateClassDto } from '../dto/create-class.dto';
 import { ClassTeacher } from '../entities/class-teacher.entity';
 import { Class } from '../entities/class.entity';
 import { ClassTeacherModelAction } from '../model-actions/class-teacher.action';
@@ -18,7 +21,7 @@ const MOCK_ACTIVE_SESSION = '2024-2025';
 const mockClass = {
   id: MOCK_CLASS_ID,
   name: 'Grade 10',
-  stream: 'Science',
+  streams: [{ name: 'Science' }],
 } as unknown as Class;
 
 const mockTeacherAssignment = {
@@ -45,6 +48,7 @@ describe('ClassService', () => {
 
   const mockClassModelAction = {
     get: jest.fn(),
+    create: jest.fn(),
   };
 
   const mockClassTeacherModelAction = {
@@ -76,6 +80,10 @@ describe('ClassService', () => {
           provide: WINSTON_MODULE_PROVIDER,
           useValue: mockLogger,
         },
+        {
+          provide: getRepositoryToken(ClassTeacher),
+          useValue: {},
+        },
       ],
     }).compile();
 
@@ -90,6 +98,68 @@ describe('ClassService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('createClass', () => {
+    it('should create a class successfully', async () => {
+      const dto: CreateClassDto = {
+        class_name: 'Grade 11',
+        level: ClassLevel.JUNIOR_SECONDARY,
+      };
+      mockClassModelAction.get.mockResolvedValue(null);
+      mockClassModelAction.create = jest.fn().mockResolvedValue({
+        id: '2',
+        name: 'Grade 11',
+        level: ClassLevel.JUNIOR_SECONDARY,
+      });
+
+      const result = await service.createClass(dto);
+      expect(mockClassModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { name: 'Grade 11' },
+      });
+      expect(mockClassModelAction.create).toHaveBeenCalledWith({
+        createPayload: { name: 'Grade 11', level: ClassLevel.JUNIOR_SECONDARY },
+        transactionOptions: { useTransaction: false },
+      });
+      expect(result).toEqual({
+        id: '2',
+        name: 'Grade 11',
+        level: ClassLevel.JUNIOR_SECONDARY,
+      });
+    });
+
+    it('should throw BadRequestException for duplicate class name', async () => {
+      const dto: CreateClassDto = {
+        class_name: 'Grade 10',
+        level: ClassLevel.JUNIOR_SECONDARY,
+      };
+      mockClassModelAction.get.mockResolvedValue({
+        id: '1',
+        name: 'Grade 10',
+        level: ClassLevel.JUNIOR_SECONDARY,
+      });
+
+      await expect(service.createClass(dto)).rejects.toThrow(
+        'class already exists',
+      );
+    });
+
+    it('should throw BadRequestException for invalid class name', async () => {
+      const dto: CreateClassDto = {
+        class_name: '   ',
+        level: ClassLevel.JUNIOR_SECONDARY,
+      };
+      await expect(service.createClass(dto)).rejects.toThrow();
+    });
+
+    it('should throw BadRequestException for invalid class level', async () => {
+      // @ts-expect-error: purposely using invalid value for negative test
+      const dto: CreateClassDto = {
+        class_name: 'Grade 12',
+        level: 'INVALID_LEVEL',
+      };
+      await expect(service.createClass(dto)).rejects.toThrow();
+    });
   });
 
   describe('getTeachersByClass', () => {
@@ -116,7 +186,7 @@ describe('ClassService', () => {
         teacher_id: 'teacher-uuid-101',
         name: 'John Doe',
         assignment_date: mockTeacherAssignment.assignment_date,
-        stream: 'Science',
+        streams: ['Science'],
       });
     });
 
