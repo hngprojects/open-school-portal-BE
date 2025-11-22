@@ -125,6 +125,13 @@ export const SUBSCRIPTION_ACTIVE = 'subscription active';
 export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
 
+// Streams
+export const STREAM_NAME_REQUIRED = 'Stream name is required';
+export const CLASS_NOT_FOUND = 'Class not found';
+export const STREAM_ALREADY_EXISTS_IN_CLASS =
+  'Stream name already exists within this class';
+export const STREAM_CREATED_SUCCESSFULLY = 'Stream created successfully';
+
 // Invites
 export const INVITE_SENT = 'INVITE_SENT';
 export const PENDING_INVITES_FETCHED = 'Pending invites retrieved successfully';
