@@ -52,6 +52,10 @@ export class ClassController {
       id: created.id,
       name: created.name,
       level: created.level,
+      academicSession: {
+        id: created.academicSession.id,
+        name: created.academicSession.name,
+      },
     };
     return new ApiSuccessResponseDto(sysMsg.CLASS_CREATED, response);
   }

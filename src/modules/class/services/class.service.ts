@@ -17,7 +17,7 @@ import { ClassModelAction } from '../model-actions/class.actions';
 @Injectable()
 export class ClassService {
   constructor(
-    private readonly classesModelAction: ClassModelAction,
+    private readonly classModelAction: ClassModelAction,
     private readonly classTeacherModelAction: ClassTeacherModelAction,
     private readonly academicSessionModelAction: AcademicSessionModelAction,
   ) {}
@@ -51,7 +51,7 @@ export class ClassService {
     }
 
     // 5. Check for duplicate class name
-    const existing = await this.classesModelAction.get({
+    const existing = await this.classModelAction.get({
       identifierOptions: { name },
     });
     if (existing) {
@@ -59,7 +59,7 @@ export class ClassService {
     }
 
     // 6. Create class using Model Action
-    const newClass = await this.classesModelAction.create({
+    const newClass = await this.classModelAction.create({
       createPayload: {
         name,
         level: createClassDto.level,
@@ -77,7 +77,7 @@ export class ClassService {
     classId: string,
     sessionId?: string,
   ): Promise<TeacherAssignmentResponseDto[]> {
-    const classExist = await this.classesModelAction.get({
+    const classExist = await this.classModelAction.get({
       identifierOptions: { id: classId },
     });
 

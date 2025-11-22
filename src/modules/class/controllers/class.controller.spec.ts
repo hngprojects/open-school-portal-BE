@@ -43,6 +43,10 @@ describe('ClassController', () => {
         id: '1',
         name: 'JSS2',
         level: ClassLevel.JUNIOR_SECONDARY,
+        academicSession: {
+          id: 'c438779a-514a-47e1-9596-b21e0bf87334',
+          name: '2024-2025',
+        },
       };
       mockClassService.createClass.mockResolvedValue(created);
 

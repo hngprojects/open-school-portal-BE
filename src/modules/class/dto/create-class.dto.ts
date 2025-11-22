@@ -58,4 +58,17 @@ export class ClassResponseDto {
 
   @ApiProperty({ enum: ClassLevel })
   level: ClassLevel;
+
+  @ApiProperty({
+    example: {
+      id: 'c438779a-514a-47e1-9596-b21e0bf87334',
+      name: '2024-2025',
+    },
+    description: 'Academic session for the class',
+    required: true,
+  })
+  academicSession: {
+    id: string;
+    name: string;
+  };
 }

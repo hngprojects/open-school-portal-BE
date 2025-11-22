@@ -8,7 +8,7 @@ import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
  */
 
 export const ClassSwagger = {
-  tags: ['Classes'],
+  tags: ['Class'],
   summary: 'Class Management',
   description:
     'Endpoints for managing classes and retrieving class information.',
