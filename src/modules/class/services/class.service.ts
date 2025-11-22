@@ -1,7 +1,22 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
+import { ApiSuccessResponseDto } from '../../../common/dto/response.dto';
+import {
+  CLASS_CREATED,
+  CLASS_OR_CLASS_STREAM_ALREADY_EXIST,
+  SESSION_NOT_FOUND,
+} from '../../../constants/system.messages';
+import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
+import { CreateClassDto } from '../dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
 import { ClassTeacherModelAction } from '../model-actions/class-teacher.action';
 import { ClassModelAction } from '../model-actions/class.actions';
@@ -10,7 +25,9 @@ import { ClassModelAction } from '../model-actions/class.actions';
 export class ClassService {
   private readonly logger: Logger;
   constructor(
+    private readonly dataSource: DataSource,
     private readonly classModelAction: ClassModelAction,
+    private readonly sessionModelAction: AcademicSessionModelAction,
     private readonly classTeacherModelAction: ClassTeacherModelAction,
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
   ) {
@@ -58,6 +75,56 @@ export class ClassService {
       assignment_date: assignment.assignment_date,
       stream: assignment.class.stream,
     }));
+  }
+
+  async create(createClassDto: CreateClassDto) {
+    console.log('createClassDto', createClassDto);
+    const { name, stream, session_id } = createClassDto;
+
+    const sessionExist = await this.sessionModelAction.get({
+      identifierOptions: { id: session_id },
+    });
+
+    // Check if session exist
+    if (!sessionExist) {
+      throw new BadRequestException(SESSION_NOT_FOUND);
+    }
+
+    // Check for existing class name/stream in session
+    const { payload } = await this.classModelAction.find({
+      findOptions: {
+        name,
+        stream,
+        session_id,
+      },
+      transactionOptions: {
+        useTransaction: false,
+      },
+    });
+
+    if (payload.length > 0) {
+      throw new ConflictException(CLASS_OR_CLASS_STREAM_ALREADY_EXIST);
+    }
+
+    // Use transaction for atomic creation
+    const createdClass = await this.dataSource.transaction(async (manager) => {
+      const newClass = await this.classModelAction.create({
+        createPayload: {
+          name: name.trim(),
+          session_id,
+          stream,
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      this.logger.info(CLASS_CREATED, newClass);
+      return newClass;
+    });
+
+    return new ApiSuccessResponseDto(CLASS_CREATED, createdClass);
   }
 
   // Mock helper for active session
