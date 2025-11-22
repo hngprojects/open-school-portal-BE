@@ -4,6 +4,7 @@ import {
   HttpStatus,
   Inject,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
@@ -11,6 +12,7 @@ import { Repository } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../constants/system.messages';
+import { Class } from '../classes/entities/classes.entity';
 
 import { CreateStreamDto } from './dto/create-stream.dto';
 import { Stream } from './entities/stream.entity';
@@ -21,6 +23,8 @@ export class StreamService {
   constructor(
     @InjectRepository(Stream)
     private readonly streamRepository: Repository<Stream>,
+    @InjectRepository(Class)
+    private readonly classRepository: Repository<Class>,
     @Inject(WINSTON_MODULE_PROVIDER) logger: Logger,
   ) {
     this.logger = logger.child({ context: StreamService.name });
@@ -36,14 +40,13 @@ export class StreamService {
       throw new BadRequestException(sysMsg.STREAM_NAME_REQUIRED);
     }
 
-    // TODO: Add this check when the class module is implemented
-    // const parentClass = await this.classRepository.findOne({
-    //   where: { id: createStreamDto.class_id },
-    // });
+    const parentClass = await this.classRepository.findOne({
+      where: { id: createStreamDto.class_id as unknown as number },
+    });
 
-    // if (!parentClass) {
-    //   throw new NotFoundException(sysMsg.CLASS_NOT_FOUND);
-    // }
+    if (!parentClass) {
+      throw new NotFoundException(sysMsg.CLASS_NOT_FOUND);
+    }
 
     const existingStream = await this.streamRepository.findOne({
       where: {
