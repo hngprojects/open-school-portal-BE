@@ -4,7 +4,6 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Request } from 'express';
 
 import * as sysMsg from '../../constants/system.messages';
 
@@ -208,27 +207,16 @@ describe('AuthController', () => {
         confirm_new_password: 'newPassword',
       };
 
-      // Mocking the Express Request object
-      const mockRequest = {
-        method: 'PATCH',
-        path: '/auth/change-password',
-      } as unknown as Request;
-
       const expectedResponse = {
         message: 'Password updated successfully',
-        data: { userId: payload.user_id },
-        error: null,
         status_code: HttpStatus.OK,
-        method: 'PATCH',
-        path: '/auth/change-password',
+        data: null,
       };
 
       mockAuthService.changePassword.mockResolvedValue(expectedResponse);
 
-      // Act
-      const result = await controller.changePassword(payload, mockRequest);
+      const result = await controller.changePassword(payload);
 
-      // Assert
       expect(authService.changePassword).toHaveBeenCalledWith(
         payload.user_id,
         payload,
