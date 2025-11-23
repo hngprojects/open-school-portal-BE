@@ -8,20 +8,17 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import {
-  ROLE_NOT_FOUND,
   USER_NOT_FOUND,
   USER_ALREADY_HAS_ROLE,
   USER_ROLE_UPDATED,
 } from '../../../constants/system.messages';
+import { User } from '../../user/entities/user.entity';
 
 import { UpdateUserRoleDto } from './dto/update-role.dto';
-import { Role } from './entities/role.entity';
-import { User } from './entities/user.entity';
 
 @Injectable()
 export class AuthRolesService {
   constructor(
-    @InjectRepository(Role) private roleRepository: Repository<Role>,
     @InjectRepository(User) private userRepository: Repository<User>,
   ) {}
 
@@ -36,24 +33,17 @@ export class AuthRolesService {
       throw new NotFoundException(USER_NOT_FOUND);
     }
 
-    // Find role
-    const role = await this.roleRepository.findOne({
-      where: { id: dto.role_id },
-    });
-
-    // Check if role exists
-    if (!role) {
-      throw new NotFoundException(ROLE_NOT_FOUND);
-    }
-
     // Check if user already has that role
-    if (user.role_id === dto.role_id) {
+    const hasRole = user.role.some(
+      (existingRole) => existingRole.toLowerCase() === dto.role.toLowerCase(),
+    );
+
+    if (hasRole) {
       throw new ConflictException(USER_ALREADY_HAS_ROLE);
     }
 
     // Update user's role
-    user.role_id = dto.role_id;
-    user.role = role;
+    user.role = [dto.role];
 
     const updatedUser = await this.userRepository.save(user);
 

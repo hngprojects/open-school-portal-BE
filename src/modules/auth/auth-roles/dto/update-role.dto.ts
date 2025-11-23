@@ -1,12 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsUUID, IsNotEmpty } from 'class-validator';
+import { IsEnum, IsNotEmpty } from 'class-validator';
+
+import { UserRole } from '../../../user/dto/create-user.dto';
 
 export class UpdateUserRoleDto {
   @ApiProperty({
-    description: 'The ID of the role to assign to the user',
-    example: '123e4567-e89b-12d3-a456-426614174000',
+    description: 'The new role to assign to the user',
+    example: 'ADMIN',
+    enum: UserRole,
   })
-  @IsUUID()
+  @IsEnum(UserRole, {
+    message: 'Role must be one of: ADMIN, TEACHER, STUDENT, PARENT',
+  })
   @IsNotEmpty()
-  role_id: string;
+  role: UserRole;
 }

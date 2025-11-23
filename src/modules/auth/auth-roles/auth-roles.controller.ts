@@ -8,21 +8,32 @@ import {
   ParseUUIDPipe,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 
+import { UserRole } from '../../shared/enums';
+import { Roles } from '../decorators/roles.decorator';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { RolesGuard } from '../guards/roles.guard';
 
 import { AuthRolesService } from './auth-roles.service';
 import { UpdateUserRoleDto } from './dto/update-role.dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@ApiBearerAuth()
 export class AuthRolesController {
   constructor(private authRolesService: AuthRolesService) {}
 
   @Patch('users/:user_id/role')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update user role' })
   @ApiParam({ name: 'user_id', type: String })
   @ApiResponse({
@@ -40,6 +51,10 @@ export class AuthRolesController {
   @ApiResponse({
     status: HttpStatus.FORBIDDEN,
     description: 'Insufficient permissions',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Unauthorized - Invalid or missing token',
   })
   async updateUserRole(
     @Param('user_id', ParseUUIDPipe) userId: string,
