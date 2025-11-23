@@ -5,6 +5,7 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { DataSource, FindOptionsOrder } from 'typeorm';
 
@@ -28,13 +29,22 @@ export interface ICreateSessionResponse {
   message: string;
   data: AcademicSession;
 }
+
+export interface IDeleteSessionResponse {
+  status_code: HttpStatus;
+  message: string;
+  data: Record<string, never>;
+}
+
 @Injectable()
 export class AcademicSessionService {
   private readonly logger = new Logger(AcademicSessionService.name);
+
   constructor(
     private readonly sessionModelAction: AcademicSessionModelAction,
     private readonly dataSource: DataSource,
   ) {}
+
   async create(
     createSessionDto: CreateAcademicSessionDto,
   ): Promise<ICreateSessionResponse> {
@@ -159,15 +169,84 @@ export class AcademicSessionService {
     };
   }
 
-  findOne(id: number) {
+  // async activateSession(sessionId: string) {
+  //   const session = await this.sessionModelAction.get({
+  //     identifierOptions: { id: sessionId },
+  //   });
+
+  //   if (!session) {
+  //     throw new BadRequestException(sysMsg.SESSION_NOT_FOUND);
+  //   }
+
+  //   const updatedAcademicSession = await this.dataSource.transaction(
+  //     async (manager) => {
+  //       await this.sessionModelAction.update({
+  //         updatePayload: { status: SessionStatus.INACTIVE },
+  //         identifierOptions: {},
+  //         transactionOptions: {
+  //           useTransaction: true,
+  //           transaction: manager,
+  //         },
+  //       });
+
+  //       const updateResult = await this.sessionModelAction.update({
+  //         identifierOptions: { id: sessionId },
+  //         updatePayload: { status: SessionStatus.ACTIVE },
+  //         transactionOptions: {
+  //           useTransaction: true,
+  //           transaction: manager,
+  //         },
+  //       });
+  //       if (!updateResult) {
+  //         throw new BadRequestException(
+  //           `Failed to activate session ${sessionId}. Session may have been deleted.`,
+  //         );
+  //       }
+
+  //       const updated = await this.sessionModelAction.get({
+  //         identifierOptions: { id: sessionId },
+  //       });
+
+  //       return updated;
+  //     },
+  //   );
+  //   return {
+  //     status_code: HttpStatus.OK,
+  //     message: sysMsg.ACADEMIC_SESSION_CREATED,
+  //     data: updatedAcademicSession,
+  //   };
+  // }
+
+  findOne(id: string) {
     return `This action returns a #${id} academicSession`;
   }
 
-  update(id: number) {
+  update(id: string) {
     return `This action updates a #${id} academicSession`;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} academicSession`;
+  async remove(id): Promise<IDeleteSessionResponse> {
+    const existingSession = await this.sessionModelAction.get({
+      identifierOptions: { id },
+    });
+
+    if (!existingSession) {
+      throw new NotFoundException(sysMsg.SESSION_NOT_FOUND);
+    }
+
+    if (existingSession.status === SessionStatus.ACTIVE) {
+      throw new BadRequestException(sysMsg.CANNOT_DELETE_ACTIVE_SESSION);
+    }
+
+    await this.sessionModelAction.delete({
+      identifierOptions: { id },
+      transactionOptions: { useTransaction: false },
+    });
+
+    return {
+      status_code: HttpStatus.OK,
+      message: sysMsg.ACADEMIC_SESSION_DELETED,
+      data: {},
+    };
   }
 }

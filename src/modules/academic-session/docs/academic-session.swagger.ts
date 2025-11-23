@@ -382,6 +382,18 @@ export const AcademicSessionSwagger = {
         description: 'Academic session created successfully.',
       },
     },
+    // YOUR DELETE FEATURE - ADDED
+    delete: {
+      operation: {
+        summary: 'Delete Academic Session',
+        description:
+          'Deletes an academic session by its ID. Cannot delete active sessions or sessions with linked data.',
+      },
+      response: {
+        status: 200,
+        description: 'Academic session deleted successfully.',
+      },
+    },
     findAll: {
       operation: {
         summary: 'Get All Academic Sessions',
@@ -403,6 +415,7 @@ export const AcademicSessionSwagger = {
         status: 200,
         description: sysMsg.ACTIVE_ACADEMIC_SESSION_SUCCESS,
       },
+      // FROM DEV - INCLUDES errorResponses
       errorResponses: [
         {
           status: 404,
