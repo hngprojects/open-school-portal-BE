@@ -1,7 +1,7 @@
 import { HttpStatus } from '@nestjs/common';
 
 import * as sysMsg from '../../../constants/system.messages';
-import { CreateClassResponseDto } from '../dto';
+import { CreateClassDto } from '../dto/create-class.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
 
 /**
@@ -65,7 +65,7 @@ export const ClassSwagger = {
         created: {
           status: HttpStatus.CREATED,
           description: sysMsg.CLASS_CREATED,
-          type: CreateClassResponseDto,
+          type: CreateClassDto,
         },
         badRequest: {
           status: HttpStatus.BAD_REQUEST,
