@@ -456,41 +456,65 @@ describe('AcademicSessionService', () => {
       );
     });
   });
-  // TODO: Update tests for activateAcademicSession to test auto-linking functionality
-  describe.skip('AcademicSessionService - activateSession', () => {
+  describe('AcademicSessionService - activateSession (with auto-linking)', () => {
     let service: AcademicSessionService;
     let mockSessionModelAction: jest.Mocked<AcademicSessionModelAction>;
-    let mockDataSource: Partial<DataSource>;
+    let mockClassModelAction: any;
+    let mockSessionClassModelAction: any;
+    let mockDataSource: any;
+    let mockTransactionManager: Partial<EntityManager>;
 
-    const sessionId = '1';
-    const mockSession: AcademicSession = {
-      id: sessionId,
+    const session_id = '123e4567-e89b-12d3-a456-426614174000';
+    const mockInactiveSession: AcademicSession = {
+      id: session_id,
       name: '2024/2025',
-      startDate: new Date(),
-      endDate: new Date(),
+      startDate: new Date('2024-09-01'),
+      endDate: new Date('2025-06-30'),
       status: SessionStatus.INACTIVE,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
+    const mockActiveSession: AcademicSession = {
+      ...mockInactiveSession,
+      status: SessionStatus.ACTIVE,
+    };
+
+    const mockClasses = [
+      { id: 'class-1', name: 'Grade 10', stream: 'Science' },
+      { id: 'class-2', name: 'Grade 11', stream: 'Arts' },
+      { id: 'class-3', name: 'Grade 12', stream: 'Commerce' },
+    ];
+
     beforeEach(async () => {
-      // FIX: Add all required methods including update
+      // Mock transaction manager
+      mockTransactionManager = {};
+
+      // Mock DataSource with transaction
+      mockDataSource = {
+        transaction: jest.fn().mockImplementation(async (callback) => {
+          return callback(mockTransactionManager);
+        }),
+      };
+
+      // Mock SessionModelAction
       mockSessionModelAction = {
         get: jest.fn(),
-        update: jest.fn(), // <-- This was missing!
+        list: jest.fn(),
+        update: jest.fn(),
+        create: jest.fn(),
       } as unknown as jest.Mocked<AcademicSessionModelAction>;
 
-      mockDataSource = {
-        transaction: jest
-          .fn()
-          .mockImplementation(
-            async (callback: (manager: EntityManager) => unknown) => {
-              const mockManager: Partial<EntityManager> = {
-                update: jest.fn().mockResolvedValue({ affected: 1 }),
-              };
-              return callback(mockManager as EntityManager);
-            },
-          ),
+      // Mock ClassModelAction
+      mockClassModelAction = {
+        list: jest.fn(),
+      };
+
+      // Mock SessionClassModelAction
+      mockSessionClassModelAction = {
+        create: jest.fn(),
+        list: jest.fn(),
+        update: jest.fn(),
       };
 
       const module: TestingModule = await Test.createTestingModule({
@@ -500,100 +524,426 @@ describe('AcademicSessionService', () => {
             provide: AcademicSessionModelAction,
             useValue: mockSessionModelAction,
           },
+          {
+            provide: 'ClassModelAction',
+            useValue: mockClassModelAction,
+          },
+          {
+            provide: 'SessionClassModelAction',
+            useValue: mockSessionClassModelAction,
+          },
           { provide: DataSource, useValue: mockDataSource },
         ],
       }).compile();
 
       service = module.get<AcademicSessionService>(AcademicSessionService);
+      // Manually inject dependencies (since they use @Inject decorator)
+      (service as any).classModelAction = mockClassModelAction;
+      (service as any).sessionClassModelAction = mockSessionClassModelAction;
     });
 
-    it('should activate a session successfully', async () => {
+    it('should activate session and auto-link all classes successfully', async () => {
       // Setup mocks
-      mockSessionModelAction.get
-        .mockResolvedValueOnce(mockSession) // First call before transaction
-        .mockResolvedValueOnce({
-          ...mockSession,
-          status: SessionStatus.ACTIVE,
-        }); // Second call within transaction to get updated session
+      mockSessionModelAction.get.mockResolvedValue(mockInactiveSession);
+      mockSessionModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { total: 0 },
+      });
+      mockSessionModelAction.update.mockResolvedValue(mockActiveSession);
+      mockClassModelAction.list.mockResolvedValue({
+        payload: mockClasses,
+        paginationMeta: { total: 3 },
+      });
+      mockSessionClassModelAction.create.mockResolvedValue({});
 
-      // Mock update to return the update result
-      mockSessionModelAction.update
-        .mockResolvedValueOnce({ affected: 1 } as any)
-        .mockResolvedValueOnce({ affected: 1 } as any);
-
-      const result = await service.activateAcademicSession({
-        session_id: sessionId,
+      const result = await service.activateSession({
+        session_id: session_id,
       });
 
       // Assertions
       expect(result).toEqual({
         status_code: HttpStatus.OK,
-        message: sysMsg.ACADEMY_SESSION_ACTIVATED,
-        data: { ...mockSession, status: SessionStatus.ACTIVE },
-      });
-
-      // Verify mockSessionModelAction.get was called to check if session exists
-      expect(mockSessionModelAction.get).toHaveBeenCalledWith({
-        identifierOptions: { id: sessionId },
-      });
-
-      // Verify first update deactivated all sessions
-      expect(mockSessionModelAction.update).toHaveBeenNthCalledWith(1, {
-        updatePayload: { status: SessionStatus.INACTIVE },
-        identifierOptions: {},
-        transactionOptions: {
-          useTransaction: true,
-          transaction: expect.any(Object),
+        message: sysMsg.ACADEMIC_SESSION_ACTIVATED,
+        data: {
+          session: mockActiveSession,
+          classes_linked: 3,
         },
       });
 
-      // Verify second update activated the target session
-      expect(mockSessionModelAction.update).toHaveBeenNthCalledWith(2, {
-        identifierOptions: { id: sessionId },
+      // Verify session validation
+      expect(mockSessionModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: session_id },
+      });
+
+      // Verify activation
+      expect(mockSessionModelAction.update).toHaveBeenCalledWith({
+        identifierOptions: { id: session_id },
         updatePayload: { status: SessionStatus.ACTIVE },
         transactionOptions: {
           useTransaction: true,
-          transaction: expect.any(Object),
+          transaction: mockTransactionManager,
+        },
+      });
+
+      // Verify all classes were linked
+      expect(mockClassModelAction.list).toHaveBeenCalledWith({});
+      expect(mockSessionClassModelAction.create).toHaveBeenCalledTimes(3);
+      mockClasses.forEach((cls, index) => {
+        expect(mockSessionClassModelAction.create).toHaveBeenNthCalledWith(
+          index + 1,
+          {
+            createPayload: {
+              session_id: session_id,
+              class_id: cls.id,
+            },
+            transactionOptions: {
+              useTransaction: true,
+              transaction: mockTransactionManager,
+            },
+          },
+        );
+      });
+    });
+
+    it('should throw NotFoundException if session does not exist', async () => {
+      mockSessionModelAction.get.mockResolvedValue(null);
+
+      await expect(
+        service.activateSession({ session_id: session_id }),
+      ).rejects.toThrow(sysMsg.ACADEMIC_SESSION_NOT_FOUND);
+
+      expect(mockSessionModelAction.update).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException if session is already active', async () => {
+      mockSessionModelAction.get.mockResolvedValue(mockActiveSession);
+
+      await expect(
+        service.activateSession({ session_id: session_id }),
+      ).rejects.toThrow(sysMsg.ACADEMIC_SESSION_ALREADY_ACTIVE);
+
+      expect(mockSessionModelAction.update).not.toHaveBeenCalled();
+    });
+
+    it('should deactivate previous active session before activating new one', async () => {
+      const previousActiveSession: AcademicSession = {
+        id: 'prev-session-id',
+        name: '2023/2024',
+        startDate: new Date('2023-09-01'),
+        endDate: new Date('2024-06-30'),
+        status: SessionStatus.ACTIVE,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockSessionModelAction.get.mockResolvedValue(mockInactiveSession);
+      mockSessionModelAction.list
+        .mockResolvedValueOnce({
+          payload: [previousActiveSession],
+          paginationMeta: { total: 1 },
+        })
+        .mockResolvedValueOnce({
+          payload: [],
+          paginationMeta: { total: 0 },
+        });
+      mockSessionModelAction.update.mockResolvedValue(mockActiveSession);
+      mockClassModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { total: 0 },
+      });
+
+      await service.activateSession({ session_id: session_id });
+
+      // Verify previous session was deactivated
+      expect(mockSessionModelAction.update).toHaveBeenNthCalledWith(1, {
+        identifierOptions: { id: previousActiveSession.id },
+        updatePayload: { status: SessionStatus.INACTIVE },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: mockTransactionManager,
+        },
+      });
+
+      // Verify new session was activated
+      expect(mockSessionModelAction.update).toHaveBeenNthCalledWith(2, {
+        identifierOptions: { id: session_id },
+        updatePayload: { status: SessionStatus.ACTIVE },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: mockTransactionManager,
         },
       });
     });
 
-    it('should throw BadRequestException if session not found', async () => {
-      mockSessionModelAction.get.mockResolvedValue(null);
+    it('should remove links from previous active session', async () => {
+      const previousActiveSession: AcademicSession = {
+        id: 'prev-session-id',
+        name: '2023/2024',
+        startDate: new Date('2023-09-01'),
+        endDate: new Date('2024-06-30'),
+        status: SessionStatus.ACTIVE,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
 
-      await expect(
-        service.activateAcademicSession({ session_id: sessionId }),
-      ).rejects.toThrow(BadRequestException);
-      await expect(
-        service.activateAcademicSession({ session_id: sessionId }),
-      ).rejects.toThrow(sysMsg.SESSION_NOT_FOUND);
+      const previousLinks = [
+        {
+          id: 'link-1',
+          session_id: 'prev-session-id',
+          class_id: 'class-1',
+          deleted_at: null,
+        },
+        {
+          id: 'link-2',
+          session_id: 'prev-session-id',
+          class_id: 'class-2',
+          deleted_at: null,
+        },
+      ];
+
+      mockSessionModelAction.get.mockResolvedValue(mockInactiveSession);
+      mockSessionModelAction.list.mockResolvedValue({
+        payload: [previousActiveSession],
+        paginationMeta: { total: 1 },
+      });
+      mockSessionModelAction.update.mockResolvedValue(mockActiveSession);
+      mockSessionClassModelAction.list.mockResolvedValue({
+        payload: previousLinks,
+        paginationMeta: { total: 2 },
+      });
+      mockSessionClassModelAction.update.mockResolvedValue({});
+      mockClassModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { total: 0 },
+      });
+
+      await service.activateSession({ session_id: session_id });
+
+      // Verify previous links were soft-deleted
+      expect(mockSessionClassModelAction.list).toHaveBeenCalledWith({
+        filterRecordOptions: {
+          session_id: previousActiveSession.id,
+          deleted_at: null,
+        },
+      });
+      expect(mockSessionClassModelAction.update).toHaveBeenCalledTimes(2);
+      previousLinks.forEach((link, index) => {
+        expect(mockSessionClassModelAction.update).toHaveBeenNthCalledWith(
+          index + 1,
+          {
+            identifierOptions: { id: link.id },
+            updatePayload: { deleted_at: expect.any(Date) },
+            transactionOptions: {
+              useTransaction: true,
+              transaction: mockTransactionManager,
+            },
+          },
+        );
+      });
     });
 
-    it('should throw BadRequestException if update fails to activate session', async () => {
-      mockSessionModelAction.get.mockResolvedValue(mockSession);
-      mockSessionModelAction.update
-        .mockResolvedValueOnce({ affected: 1 } as any) // First update succeeds
-        .mockResolvedValueOnce(null); // Second update returns null (failure)
+    it('should handle duplicate class linking gracefully (unique constraint)', async () => {
+      mockSessionModelAction.get.mockResolvedValue(mockInactiveSession);
+      mockSessionModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { total: 0 },
+      });
+      mockSessionModelAction.update.mockResolvedValue(mockActiveSession);
+      mockClassModelAction.list.mockResolvedValue({
+        payload: mockClasses,
+        paginationMeta: { total: 3 },
+      });
 
-      await expect(
-        service.activateAcademicSession({ session_id: sessionId }),
-      ).rejects.toThrow(BadRequestException);
-      await expect(
-        service.activateAcademicSession({ session_id: sessionId }),
-      ).rejects.toThrow(
-        `Failed to activate session ${sessionId}. Session may have been deleted.`,
-      );
+      // Simulate unique constraint violation on second class
+      mockSessionClassModelAction.create
+        .mockResolvedValueOnce({}) // First class succeeds
+        .mockRejectedValueOnce({ code: '23505' }) // Second class - duplicate
+        .mockResolvedValueOnce({}); // Third class succeeds
+
+      const result = await service.activateSession({
+        session_id: session_id,
+      });
+
+      expect(result.data.classes_linked).toBe(2); // Only 2 linked (1 duplicate skipped)
     });
 
-    it('should throw error if transaction fails', async () => {
-      mockSessionModelAction.get.mockResolvedValue(mockSession);
-      (mockDataSource.transaction as jest.Mock).mockRejectedValueOnce(
-        new Error('DB error'),
-      );
+    it('should rollback transaction if class linking fails with non-duplicate error', async () => {
+      mockSessionModelAction.get.mockResolvedValue(mockInactiveSession);
+      mockSessionModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { total: 0 },
+      });
+      mockSessionModelAction.update.mockResolvedValue(mockActiveSession);
+      mockClassModelAction.list.mockResolvedValue({
+        payload: mockClasses,
+        paginationMeta: { total: 3 },
+      });
+
+      // Simulate non-duplicate error
+      const dbError = new Error('Database connection lost');
+      (dbError as any).code = 'CONNECTION_ERROR';
+      mockSessionClassModelAction.create
+        .mockResolvedValueOnce({})
+        .mockRejectedValueOnce(dbError);
 
       await expect(
-        service.activateAcademicSession({ session_id: sessionId }),
-      ).rejects.toThrow('DB error');
+        service.activateSession({ session_id: session_id }),
+      ).rejects.toThrow('Database connection lost');
+    });
+
+    it('should activate session even when no classes exist', async () => {
+      mockSessionModelAction.get.mockResolvedValue(mockInactiveSession);
+      mockSessionModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { total: 0 },
+      });
+      mockSessionModelAction.update.mockResolvedValue(mockActiveSession);
+      mockClassModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { total: 0 },
+      });
+
+      const result = await service.activateSession({
+        session_id: session_id,
+      });
+
+      expect(result).toEqual({
+        status_code: HttpStatus.OK,
+        message: sysMsg.ACADEMIC_SESSION_ACTIVATED,
+        data: {
+          session: mockActiveSession,
+          classes_linked: 0,
+        },
+      });
+      expect(mockSessionClassModelAction.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('AcademicSessionService - linkClassesToActiveSession', () => {
+    let service: AcademicSessionService;
+    let mockSessionModelAction: jest.Mocked<AcademicSessionModelAction>;
+    let mockClassModelAction: any;
+    let mockSessionClassModelAction: any;
+    let mockDataSource: any;
+    let mockTransactionManager: Partial<EntityManager>;
+
+    const mockActiveSession: AcademicSession = {
+      id: 'active-session-id',
+      name: '2024/2025',
+      startDate: new Date('2024-09-01'),
+      endDate: new Date('2025-06-30'),
+      status: SessionStatus.ACTIVE,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const mockClasses = [
+      { id: 'class-1', name: 'Grade 10' },
+      { id: 'class-2', name: 'Grade 11' },
+    ];
+
+    beforeEach(async () => {
+      mockTransactionManager = {};
+
+      mockDataSource = {
+        transaction: jest.fn().mockImplementation(async (callback) => {
+          return callback(mockTransactionManager);
+        }),
+      };
+
+      mockSessionModelAction = {
+        get: jest.fn(),
+        list: jest.fn(),
+        update: jest.fn(),
+        create: jest.fn(),
+      } as unknown as jest.Mocked<AcademicSessionModelAction>;
+
+      mockClassModelAction = {
+        list: jest.fn(),
+      };
+
+      mockSessionClassModelAction = {
+        create: jest.fn(),
+        list: jest.fn(),
+      };
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          AcademicSessionService,
+          {
+            provide: AcademicSessionModelAction,
+            useValue: mockSessionModelAction,
+          },
+          {
+            provide: 'ClassModelAction',
+            useValue: mockClassModelAction,
+          },
+          {
+            provide: 'SessionClassModelAction',
+            useValue: mockSessionClassModelAction,
+          },
+          { provide: DataSource, useValue: mockDataSource },
+        ],
+      }).compile();
+
+      service = module.get<AcademicSessionService>(AcademicSessionService);
+      (service as any).classModelAction = mockClassModelAction;
+      (service as any).sessionClassModelAction = mockSessionClassModelAction;
+    });
+
+    it('should link all classes to active session successfully', async () => {
+      mockSessionModelAction.list.mockResolvedValue({
+        payload: [mockActiveSession],
+        paginationMeta: { total: 1 },
+      });
+      mockClassModelAction.list.mockResolvedValue({
+        payload: mockClasses,
+        paginationMeta: { total: 2 },
+      });
+      mockSessionClassModelAction.create.mockResolvedValue({});
+
+      const result = await service.linkClassesToActiveSession();
+
+      expect(result).toEqual({
+        status_code: HttpStatus.OK,
+        message: 'Classes linked to active session successfully',
+        data: {
+          session_id: mockActiveSession.id,
+          session_name: mockActiveSession.name,
+          classes_linked: 2,
+        },
+      });
+
+      expect(mockSessionClassModelAction.create).toHaveBeenCalledTimes(2);
+    });
+
+    it('should throw NotFoundException if no active session exists', async () => {
+      mockSessionModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { total: 0 },
+      });
+
+      await expect(service.linkClassesToActiveSession()).rejects.toThrow(
+        sysMsg.NO_ACTIVE_ACADEMIC_SESSION,
+      );
+
+      expect(mockClassModelAction.list).not.toHaveBeenCalled();
+    });
+
+    it('should handle case when no classes exist', async () => {
+      mockSessionModelAction.list.mockResolvedValue({
+        payload: [mockActiveSession],
+        paginationMeta: { total: 1 },
+      });
+      mockClassModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { total: 0 },
+      });
+
+      const result = await service.linkClassesToActiveSession();
+
+      expect(result.data.classes_linked).toBe(0);
+      expect(mockSessionClassModelAction.create).not.toHaveBeenCalled();
     });
   });
 });

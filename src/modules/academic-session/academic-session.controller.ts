@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   HttpStatus,
   UseGuards,
@@ -33,15 +34,15 @@ import { CreateAcademicSessionDto } from './dto/create-academic-session.dto';
 
 @ApiTags('Academic Session')
 @Controller('academic-session')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
+@ApiBearerAuth()
 export class AcademicSessionController {
   constructor(
     private readonly academicSessionService: AcademicSessionService,
   ) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation(AcademicSessionSwagger.decorators.create.operation)
   @ApiBody(AcademicSessionSwagger.decorators.create.body)
@@ -50,37 +51,34 @@ export class AcademicSessionController {
     return this.academicSessionService.create(createAcademicSessionDto);
   }
 
-  @Post('activate')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @ApiBearerAuth()
+  @Put('activate')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Activate an academic session',
-    description:
-      'Activates a session and automatically links all classes and streams to it. Deactivates any currently active session.',
-  })
-  @ApiBody({ type: ActivateAcademicSessionDto })
-  @ApiResponse({
-    status: 200,
-    description: 'Session activated successfully with link counts',
-    schema: {
-      example: {
-        status_code: 200,
-        message: 'Session activated and linked successfully',
-        data: {
-          classes_linked: 5,
-          streams_linked: 3,
-        },
-      },
-    },
-  })
-  @ApiResponse({ status: 404, description: 'Session not found' })
-  @ApiResponse({ status: 400, description: 'Session already active' })
+  @ApiOperation(AcademicSessionSwagger.decorators.activateSession.operation)
+  @ApiBody(AcademicSessionSwagger.decorators.activateSession.body)
+  @ApiResponse(AcademicSessionSwagger.decorators.activateSession.response)
+  @ApiResponse(
+    AcademicSessionSwagger.decorators.activateSession.errorResponses[0],
+  )
+  @ApiResponse(
+    AcademicSessionSwagger.decorators.activateSession.errorResponses[1],
+  )
+  @ApiResponse(
+    AcademicSessionSwagger.decorators.activateSession.errorResponses[2],
+  )
   async activateAcademicSession(
     @Body() activateDto: ActivateAcademicSessionDto,
   ) {
-    return this.academicSessionService.activateAcademicSession(activateDto);
+    return this.academicSessionService.activateSession(activateDto);
+  }
+
+  @Post('link-classes')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation(AcademicSessionSwagger.decorators.linkClasses.operation)
+  @ApiResponse(AcademicSessionSwagger.decorators.linkClasses.response)
+  @ApiResponse(AcademicSessionSwagger.decorators.linkClasses.errorResponses[0])
+  @ApiResponse(AcademicSessionSwagger.decorators.linkClasses.errorResponses[1])
+  async linkClassesToActiveSession() {
+    return this.academicSessionService.linkClassesToActiveSession();
   }
 
   @Get('active')

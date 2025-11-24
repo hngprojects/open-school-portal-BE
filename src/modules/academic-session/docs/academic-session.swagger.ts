@@ -426,20 +426,79 @@ export const AcademicSessionSwagger = {
       operation: {
         summary: 'Activate Academic Session',
         description:
-          'Activates a specific academic session by ID. This will deactivate all other sessions and activate the specified one. Only one session can be active at a time.',
+          'Activates a specific academic session by ID. This will deactivate all other sessions, remove their class links, activate the specified session, and automatically link all existing classes to the newly activated session. Only one session can be active at a time.',
+      },
+      body: {
+        type: 'ActivateAcademicSessionDto',
       },
       response: {
         status: 200,
-        description: 'Session activated successfully.',
+        description:
+          'Session activated and all classes auto-linked successfully.',
+        schema: {
+          example: {
+            status_code: 200,
+            message: 'Academic session activated successfully',
+            data: {
+              session: {
+                id: '123e4567-e89b-12d3-a456-426614174000',
+                name: '2024/2025',
+                startDate: '2024-09-01',
+                endDate: '2025-06-30',
+                status: 'Active',
+                createdAt: '2024-01-15T10:30:00Z',
+                updatedAt: '2024-01-15T10:30:00Z',
+              },
+              classes_linked: 5,
+            },
+          },
+        },
       },
       errorResponses: [
         {
-          status: 400,
+          status: 404,
           description: 'Session not found.',
+        },
+        {
+          status: 400,
+          description: 'Session already active.',
         },
         {
           status: 500,
           description: 'Activation failed due to server error.',
+        },
+      ],
+    },
+    linkClasses: {
+      operation: {
+        summary: 'Link Classes to Active Session (Manual Override)',
+        description:
+          'Manually links all existing classes to the currently active academic session. This is typically not needed since activating a session automatically links all classes. Use this endpoint only for re-linking scenarios (e.g., after adding new classes or fixing broken links).',
+      },
+      response: {
+        status: 200,
+        description: 'Classes linked successfully',
+        schema: {
+          example: {
+            status_code: 200,
+            message: 'Classes linked to active session successfully',
+            data: {
+              session_id: '123e4567-e89b-12d3-a456-426614174000',
+              session_name: '2024-2025',
+              classes_linked: 5,
+            },
+          },
+        },
+      },
+      errorResponses: [
+        {
+          status: 404,
+          description:
+            'No active session found. Please activate a session first.',
+        },
+        {
+          status: 500,
+          description: 'Failed to link classes due to server error.',
         },
       ],
     },

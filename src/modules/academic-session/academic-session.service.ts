@@ -20,7 +20,6 @@ import {
 } from './entities/academic-session.entity';
 import { AcademicSessionModelAction } from './model-actions/academic-session-actions';
 import { SessionClassModelAction } from './model-actions/session-class-actions';
-import { SessionStreamModelAction } from './model-actions/session-stream-actions';
 
 export interface IListSessionsOptions {
   page?: number;
@@ -33,13 +32,32 @@ export interface ICreateSessionResponse {
   message: string;
   data: AcademicSession;
 }
+
+export interface IActivateSessionResponse {
+  status_code: HttpStatus;
+  message: string;
+  data: {
+    session: AcademicSession;
+    classes_linked: number;
+  };
+}
+
+export interface ILinkClassesResponse {
+  status_code: HttpStatus;
+  message: string;
+  data: {
+    session_id: string;
+    session_name: string;
+    classes_linked: number;
+  };
+}
+
 @Injectable()
 export class AcademicSessionService {
   private readonly logger = new Logger(AcademicSessionService.name);
   constructor(
     private readonly sessionModelAction: AcademicSessionModelAction,
     private readonly sessionClassModelAction: SessionClassModelAction,
-    private readonly sessionStreamModelAction: SessionStreamModelAction,
     private readonly classModelAction: ClassModelAction,
     private readonly dataSource: DataSource,
   ) {}
@@ -120,113 +138,153 @@ export class AcademicSessionService {
   }
 
   findOne(id: number) {
-    return `This action returns a #${id} academicSession`;
+    return `${sysMsg.ACTIVE_ACADEMIC_SESSION_SUCCESS} #${id}`;
   }
 
   update(id: number) {
-    return `This action updates a #${id} academicSession`;
+    return `${sysMsg.ACADEMIC_SESSION_UPDATED} #${id}`;
   }
 
   remove(id: number) {
-    return `This action removes a #${id} academicSession`;
+    return `${sysMsg.ACADEMIC_SESSION_REMOVED} #${id}`;
   }
 
-  async activateAcademicSession(activateDto: ActivateAcademicSessionDto) {
+  async activateSession(
+    activateDto: ActivateAcademicSessionDto,
+  ): Promise<IActivateSessionResponse> {
     return this.dataSource.transaction(async (manager) => {
-      // 1. Validate session exists
-      const session_to_activate = await this.sessionModelAction.get({
-        identifierOptions: { id: activateDto.session_id },
-      });
+      await this.validateSessionForActivation(activateDto.session_id);
 
-      if (!session_to_activate) {
-        throw new NotFoundException(sysMsg.ACADEMIC_SESSION_NOT_FOUND_ERROR);
-      }
+      await this.deactivateCurrentSessions(manager);
 
-      // 2. Check if already active
-      if (session_to_activate.status === SessionStatus.ACTIVE) {
-        throw new BadRequestException(sysMsg.ACADEMIC_SESSION_ALREADY_ACTIVE);
-      }
+      const activated_session = await this.activateSessionById(
+        activateDto.session_id,
+        manager,
+      );
 
-      // 3. Deactivate currently active session(s) and remove their links
-      const active_sessions = await this.sessionModelAction.list({
-        filterRecordOptions: { status: SessionStatus.ACTIVE },
-      });
+      const classes_linked = await this.linkClassesToSession(
+        activated_session.id,
+        manager,
+      );
 
-      for (const active_session of active_sessions.payload) {
-        await this.sessionModelAction.update({
-          identifierOptions: { id: active_session.id },
-          updatePayload: { status: SessionStatus.INACTIVE },
-          transactionOptions: { useTransaction: true, transaction: manager },
-        });
+      return {
+        status_code: HttpStatus.OK,
+        message:
+          classes_linked > 0
+            ? `${sysMsg.ACADEMIC_SESSION_ACTIVATED} ${classes_linked} ${sysMsg.CLASSES_LINKED}`
+            : sysMsg.ACADEMIC_SESSION_ACTIVATED,
+        data: {
+          session: activated_session,
+          classes_linked,
+        },
+      };
+    });
+  }
 
-        // Remove links from previously active session
-        await this.removePreviousSessionLinks(active_session.id, manager);
-      }
+  private async validateSessionForActivation(
+    sessionId: string,
+  ): Promise<AcademicSession> {
+    const session_to_activate = await this.sessionModelAction.get({
+      identifierOptions: { id: sessionId },
+    });
 
-      // 4. Activate new session
+    if (!session_to_activate) {
+      throw new NotFoundException(sysMsg.ACADEMIC_SESSION_NOT_FOUND);
+    }
+
+    if (session_to_activate.status === SessionStatus.ACTIVE) {
+      throw new BadRequestException(sysMsg.ACADEMIC_SESSION_ALREADY_ACTIVE);
+    }
+
+    return session_to_activate;
+  }
+
+  private async deactivateCurrentSessions(
+    manager: EntityManager,
+  ): Promise<void> {
+    const active_sessions = await this.sessionModelAction.list({
+      filterRecordOptions: { status: SessionStatus.ACTIVE },
+    });
+
+    for (const active_session of active_sessions.payload) {
       await this.sessionModelAction.update({
-        identifierOptions: { id: activateDto.session_id },
-        updatePayload: { status: SessionStatus.ACTIVE },
+        identifierOptions: { id: active_session.id },
+        updatePayload: { status: SessionStatus.INACTIVE },
         transactionOptions: { useTransaction: true, transaction: manager },
       });
 
-      // 5. Fetch all classes
+      await this.removePreviousSessionLinks(active_session.id, manager);
+    }
+  }
+
+  private async activateSessionById(
+    sessionId: string,
+    manager: EntityManager,
+  ): Promise<AcademicSession> {
+    const activated_session = await this.sessionModelAction.update({
+      identifierOptions: { id: sessionId },
+      updatePayload: { status: SessionStatus.ACTIVE },
+      transactionOptions: { useTransaction: true, transaction: manager },
+    });
+
+    return activated_session;
+  }
+
+  private async linkClassesToSession(
+    sessionId: string,
+    manager: EntityManager,
+  ): Promise<number> {
+    const all_classes = await this.classModelAction.list({});
+    let classes_linked = 0;
+
+    for (const class_entity of all_classes.payload) {
+      await this.sessionClassModelAction.create({
+        createPayload: {
+          session_id: sessionId,
+          class_id: class_entity.id,
+        },
+        transactionOptions: { useTransaction: true, transaction: manager },
+      });
+      classes_linked++;
+    }
+
+    return classes_linked;
+  }
+
+  async linkClassesToActiveSession(): Promise<ILinkClassesResponse> {
+    return this.dataSource.transaction(async (manager) => {
+      // 1. Get the active session
+      const active_session = await this.activeSessions();
+
+      if (!active_session) {
+        throw new NotFoundException(sysMsg.NO_ACTIVE_ACADEMIC_SESSION);
+      }
+
+      // 2. Fetch all classes
       const all_classes = await this.classModelAction.list({});
 
       let classes_linked = 0;
-      let streams_linked = 0;
-      const unique_streams = new Set<string>();
 
-      // 6. Link classes to session
+      // 3. Link all classes to active session
       for (const class_entity of all_classes.payload) {
-        try {
-          await this.sessionClassModelAction.create({
-            createPayload: {
-              session_id: activateDto.session_id,
-              class_id: class_entity.id,
-            },
-            transactionOptions: { useTransaction: true, transaction: manager },
-          });
-          classes_linked++;
-
-          // Track unique streams
-          if (class_entity.stream) {
-            unique_streams.add(class_entity.stream);
-          }
-        } catch (error) {
-          // Handle duplicate entries (unique constraint violation)
-          if (error.code !== '23505') {
-            throw error;
-          }
-        }
-      }
-
-      // 7. Link unique streams to session
-      for (const stream_name of unique_streams) {
-        try {
-          await this.sessionStreamModelAction.create({
-            createPayload: {
-              session_id: activateDto.session_id,
-              stream_name,
-            },
-            transactionOptions: { useTransaction: true, transaction: manager },
-          });
-          streams_linked++;
-        } catch (error) {
-          // Handle duplicate entries
-          if (error.code !== '23505') {
-            throw error;
-          }
-        }
+        await this.sessionClassModelAction.create({
+          createPayload: {
+            session_id: active_session.id,
+            class_id: class_entity.id,
+          },
+          transactionOptions: { useTransaction: true, transaction: manager },
+        });
+        classes_linked++;
       }
 
       // Return success with counts
       return {
         status_code: HttpStatus.OK,
-        message: sysMsg.ACADEMIC_SESSION_ACTIVATED_SUCCESS,
+        message: 'Classes linked to active session successfully',
         data: {
+          session_id: active_session.id,
+          session_name: active_session.name,
           classes_linked,
-          streams_linked,
         },
       };
     });
@@ -243,19 +301,6 @@ export class AcademicSessionService {
 
     for (const link of session_classes.payload) {
       await this.sessionClassModelAction.update({
-        identifierOptions: { id: link.id },
-        updatePayload: { deleted_at: new Date() },
-        transactionOptions: { useTransaction: true, transaction: manager },
-      });
-    }
-
-    // Soft delete session-stream links
-    const session_streams = await this.sessionStreamModelAction.list({
-      filterRecordOptions: { session_id: sessionId, deleted_at: null },
-    });
-
-    for (const link of session_streams.payload) {
-      await this.sessionStreamModelAction.update({
         identifierOptions: { id: link.id },
         updatePayload: { deleted_at: new Date() },
         transactionOptions: { useTransaction: true, transaction: manager },
