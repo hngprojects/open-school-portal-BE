@@ -125,19 +125,12 @@ export const SUBSCRIPTION_ACTIVE = 'subscription active';
 export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
 
-// Role Management
-export const ROLE_NOT_FOUND = 'role not found';
-export const ROLE_CREATED = 'role created';
-export const ROLE_UPDATED = 'role updated';
-export const ROLE_DELETED = 'role deleted';
-export const ROLE_ALREADY_EXISTS = 'role name already exists';
-export const CANNOT_MODIFY_SYSTEM_ROLES =
-  'cannot modify system roles (admin, teacher, student, parent)';
-export const PERMISSIONS_MUST_BE_ARRAY = 'permissions must be an array';
-
 // User Role Assignment
 export const USER_ROLE_UPDATED = 'User role updated successfully';
 export const USER_ALREADY_HAS_ROLE = 'user already has this role';
+// Streams
+export const STREAMS_RETRIEVED = 'Streams retrieved successfully';
+export const CLASS_NOT_FOUND = 'Class with the provided ID does not exist';
 // Invites
 export const INVITE_SENT = 'INVITE_SENT';
 export const PENDING_INVITES_FETCHED = 'Pending invites retrieved successfully';
