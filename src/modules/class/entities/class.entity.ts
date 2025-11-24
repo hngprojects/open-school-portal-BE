@@ -14,9 +14,6 @@ export class Class extends BaseEntity {
   @Column()
   name: string;
 
-  @Column({ nullable: true })
-  stream?: string;
-
   @Column()
   normalized_name: string;
 
