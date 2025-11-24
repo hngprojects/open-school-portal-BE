@@ -4,6 +4,7 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  HttpStatus,
 } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
@@ -11,10 +12,16 @@ import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
-import { CreateClassDto } from '../dto/create-class.dto';
+import { CreateClassDto, ClassResponseDto } from '../dto/create-class.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
 import { ClassTeacherModelAction } from '../model-actions/class-teacher.action';
 import { ClassModelAction } from '../model-actions/class.actions';
+
+export interface ICreateClassResponse {
+  status_code: number;
+  message: string;
+  data: ClassResponseDto;
+}
 
 @Injectable()
 export class ClassService {
@@ -72,7 +79,7 @@ export class ClassService {
     }));
   }
 
-  async create(createClassDto: CreateClassDto) {
+  async create(createClassDto: CreateClassDto): Promise<ICreateClassResponse> {
     const { name, stream, session_id } = createClassDto;
 
     // Fetch session details
@@ -120,16 +127,17 @@ export class ClassService {
       return newClass;
     });
 
-    // Map to ClassResponseDto
-    const responseDto = {
-      id: createdClass.id,
-      name: createdClass.name,
-      stream: createdClass.stream,
-      session_id: createdClass.session_id,
-      academic_session: sessionExist.name ?? '',
+    return {
+      status_code: HttpStatus.CREATED,
+      message: sysMsg.CLASS_CREATED,
+      data: {
+        id: createdClass.id,
+        name: createdClass.name,
+        session_id: createdClass.session_id,
+        academic_session: sessionExist.name ?? '',
+        stream: createdClass.stream,
+      },
     };
-
-    return responseDto;
   }
 
   // Mock helper for active session

@@ -43,12 +43,12 @@ export class ClassResponseDto {
   @ApiProperty()
   name: string;
 
-  @ApiProperty({ required: false })
-  stream?: string;
-
   @ApiProperty()
   session_id: string;
 
   @ApiProperty({ description: 'The academic session value (e.g., 2024-2025)' })
   academic_session: string;
+
+  @ApiProperty({ required: false })
+  stream?: string;
 }
