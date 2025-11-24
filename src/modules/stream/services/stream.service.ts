@@ -1,10 +1,12 @@
 import {
   ConflictException,
+  Inject,
   Injectable,
   NotFoundException,
-  Logger,
 } from '@nestjs/common';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { FindOptionsWhere } from 'typeorm';
+import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
@@ -17,13 +19,16 @@ import { StreamModelAction } from '../model-actions/stream.model-action';
 
 @Injectable()
 export class StreamService {
-  private readonly logger = new Logger(StreamService.name);
+  private readonly logger: Logger;
   constructor(
     private readonly streamModelAction: StreamModelAction,
     private readonly sessionStreamModelAction: SessionStreamModelAction,
     private readonly academicSessionModelAction: AcademicSessionModelAction,
     private readonly classModelAction: ClassModelAction,
-  ) {}
+    @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
+  ) {
+    this.logger = baseLogger.child({ context: StreamService.name });
+  }
 
   async create(createStreamDto: CreateStreamDto) {
     const { name, class_id } = createStreamDto;
