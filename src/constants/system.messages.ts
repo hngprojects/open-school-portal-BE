@@ -128,6 +128,10 @@ export const NOTIFICATION_FAILED = 'notification failed';
 // Streams
 export const STREAMS_RETRIEVED = 'Streams retrieved successfully';
 export const CLASS_NOT_FOUND = 'Class with the provided ID does not exist';
+export const STREAM_NAME_REQUIRED = 'Stream name is required';
+export const STREAM_ALREADY_EXISTS_IN_CLASS =
+  'Stream name already exists within this class';
+export const STREAM_CREATED_SUCCESSFULLY = 'Stream created successfully';
 // Invites
 export const INVITE_SENT = 'INVITE_SENT';
 export const PENDING_INVITES_FETCHED = 'Pending invites retrieved successfully';

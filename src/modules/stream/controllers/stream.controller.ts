@@ -1,9 +1,12 @@
 import {
+  Body,
   Controller,
   Get,
+  HttpCode,
   HttpStatus,
   Param,
   ParseUUIDPipe,
+  Post,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -19,6 +22,7 @@ import { Roles } from '../../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { UserRole } from '../../user/entities/user.entity';
+import { CreateStreamDto } from '../dto/create-stream.dto';
 import { StreamResponseDto } from '../dto/stream-response.dto';
 import { StreamService } from '../services/stream.service';
 
@@ -28,12 +32,48 @@ export interface IBaseResponse<T> {
   data: T;
 }
 
+export interface IStreamCreatedData {
+  id: string;
+  name: string;
+  class_id: string;
+  created_at: Date;
+  student_count: number;
+}
+
 @ApiTags('Stream')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('stream')
 export class StreamController {
   constructor(private readonly streamService: StreamService) {}
+
+  @Post()
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a new stream within a class' })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: sysMsg.STREAM_CREATED_SUCCESSFULLY,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: sysMsg.CLASS_NOT_FOUND,
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: sysMsg.STREAM_ALREADY_EXISTS_IN_CLASS,
+  })
+  async create(
+    @Body() createStreamDto: CreateStreamDto,
+  ): Promise<IBaseResponse<IStreamCreatedData>> {
+    const stream = await this.streamService.create(createStreamDto);
+
+    return {
+      status_code: HttpStatus.CREATED,
+      message: sysMsg.STREAM_CREATED_SUCCESSFULLY,
+      data: stream,
+    };
+  }
 
   @Get('class/:classId')
   @Roles(UserRole.ADMIN, UserRole.TEACHER)

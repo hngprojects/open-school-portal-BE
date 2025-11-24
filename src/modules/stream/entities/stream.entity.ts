@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
+import { AcademicSession } from '../../academic-session/entities/academic-session.entity';
 import { Class } from '../../class/entities/class.entity';
 import { Student } from '../../student/entities/student.entity';
 
@@ -16,6 +17,12 @@ import { Student } from '../../student/entities/student.entity';
 @Index(['class_id'])
 @Unique(['class_id', 'name'])
 export class Stream extends BaseEntity {
+  @ManyToOne(() => AcademicSession, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'session_id' })
+  session: AcademicSession;
+
   @Column({ type: 'varchar', length: 100 })
   name: string;
 
