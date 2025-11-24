@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
@@ -11,7 +10,6 @@ import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
-import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { Stream } from '../../stream/entities/stream.entity';
 import { CreateClassDto, ClassResponseDto } from '../dto/create-class.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
@@ -30,7 +28,6 @@ export class ClassService {
   constructor(
     private readonly dataSource: DataSource,
     private readonly classModelAction: ClassModelAction,
-    private readonly sessionModelAction: AcademicSessionModelAction,
     private readonly classTeacherModelAction: ClassTeacherModelAction,
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
   ) {
@@ -85,43 +82,30 @@ export class ClassService {
   }
 
   async create(createClassDto: CreateClassDto): Promise<ICreateClassResponse> {
-    const { name, stream, session_id } = createClassDto;
+    const { name, level } = createClassDto;
 
-    // Fetch session details
-    const sessionExist = await this.sessionModelAction.get({
-      identifierOptions: { id: session_id },
-    });
-    if (!sessionExist) {
-      throw new BadRequestException(sysMsg.SESSION_NOT_FOUND);
-    }
+    const normalizedName = name.toLowerCase();
 
-    const normalizedName = name.trim().toLowerCase();
-    const normalizedStream = stream ? stream.trim().toLowerCase() : '';
-
-    // Check for existing class name/stream in session
     const { payload } = await this.classModelAction.find({
       findOptions: {
         normalized_name: normalizedName,
-        normalized_stream: normalizedStream,
-        session_id,
       },
       transactionOptions: {
         useTransaction: false,
       },
     });
     if (payload.length > 0) {
-      throw new ConflictException(sysMsg.CLASS_OR_CLASS_STREAM_ALREADY_EXIST);
+      throw new ConflictException(sysMsg.CLASS_ALREADY_EXIST);
     }
 
     // Use transaction for atomic creation
     const createdClass = await this.dataSource.transaction(async (manager) => {
+      // Create class entity
       const newClass = await this.classModelAction.create({
         createPayload: {
-          name: name.trim(),
-          session_id,
-          stream: stream ? stream.trim() : undefined,
+          name,
           normalized_name: normalizedName,
-          normalized_stream: normalizedStream,
+          level,
         },
         transactionOptions: {
           useTransaction: true,
@@ -138,9 +122,7 @@ export class ClassService {
       data: {
         id: createdClass.id,
         name: createdClass.name,
-        session_id: createdClass.session_id,
-        academic_session: sessionExist.name ?? '',
-        stream: createdClass.stream,
+        level: createdClass.level,
       },
     };
   }

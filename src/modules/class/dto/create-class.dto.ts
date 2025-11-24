@@ -1,20 +1,22 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  IsUUID,
-  Matches,
-} from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsNotEmpty, IsString, Matches } from 'class-validator';
+
+import { ClassLevel } from '../entities/class.entity';
 
 export class CreateClassDto {
   @ApiProperty({
-    example: 's1a2b3c4-5678-90ab-cdef-1234567890ab',
-    description: 'The ID of the session where the class will be added',
+    example: ClassLevel.PRIMARY,
+    enum: ClassLevel,
+    description:
+      'The level/category of the class. Must be Nursery, Primary, or Secondary.',
   })
-  @IsNotEmpty({ message: 'session_id is required' })
-  @IsUUID('4', { message: 'session_id must be a valid UUID' })
-  session_id: string;
+  @IsNotEmpty({ message: 'Level/category is required' })
+  @IsString()
+  @Matches(/^(Nursery|Primary|Secondary)$/, {
+    message: 'Level must be Nursery, Primary, or Secondary',
+  })
+  level: ClassLevel;
 
   @ApiProperty({
     example: 'SSS 2',
@@ -24,16 +26,10 @@ export class CreateClassDto {
   @Matches(/^[a-zA-Z0-9 ]+$/, {
     message: 'Class name can only contain letters, numbers, and spaces',
   })
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : value,
+  )
   name: string;
-
-  @ApiProperty({
-    example: 'Science',
-    description: 'Optional stream for the class, e.g., Science, Arts, Commerce',
-    required: false,
-  })
-  @IsOptional()
-  @IsString()
-  stream?: string;
 }
 
 export class ClassResponseDto {
@@ -43,12 +39,6 @@ export class ClassResponseDto {
   @ApiProperty()
   name: string;
 
-  @ApiProperty()
-  session_id: string;
-
-  @ApiProperty({ description: 'The academic session value (e.g., 2024-2025)' })
-  academic_session: string;
-
-  @ApiProperty({ required: false })
-  stream?: string;
+  @ApiProperty({ enum: ClassLevel })
+  level: ClassLevel;
 }

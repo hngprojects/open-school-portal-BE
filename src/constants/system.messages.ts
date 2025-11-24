@@ -170,5 +170,5 @@ export const CLASS_ALREADY_HAS_TEACHER =
   'class already has a teacher assigned for this session';
 export const TEACHER_ASSIGNED = 'teacher successfully assigned to the class';
 export const CLASS_CREATED = 'Class successfully created.';
-export const CLASS_OR_CLASS_STREAM_ALREADY_EXIST =
-  'A class with the same name/stream already exists in this session.';
+export const CLASS_ALREADY_EXIST =
+  'A class with the same name already exists in this session.';

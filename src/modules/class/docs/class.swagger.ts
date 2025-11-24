@@ -43,7 +43,7 @@ export const ClassSwagger = {
       operation: {
         summary: 'Create a new class (Admin)',
         description:
-          'Creates a new class with a unique name within the school. Rejects names with special characters, empty strings, or whitespace-only values. Returns the newly created class including ID, name, stream, and session_id.',
+          'Creates a new class with a unique name and level/category (Nursery, Primary, Secondary) within the school.',
       },
       body: {
         name: {
@@ -51,14 +51,11 @@ export const ClassSwagger = {
           description:
             'The name of the class. Letters, numbers, and spaces only (e.g., "SSS 2").',
         },
-        stream: {
-          name: 'stream',
+        level: {
+          name: 'level',
           description:
-            'Optional stream for the class (e.g., "Science", "Arts", "Commerce").',
-        },
-        session_id: {
-          name: 'session_id',
-          description: 'The ID of the session this class belongs to.',
+            'The level/category of the class. Must be one of: Nursery, Primary, Secondary.',
+          enum: ['Nursery', 'Primary', 'Secondary'],
         },
       },
       responses: {
@@ -78,7 +75,7 @@ export const ClassSwagger = {
         },
         conflict: {
           status: HttpStatus.CONFLICT,
-          description: sysMsg.CLASS_OR_CLASS_STREAM_ALREADY_EXIST,
+          description: sysMsg.CLASS_ALREADY_EXIST,
         },
       },
     },
