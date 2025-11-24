@@ -10,11 +10,7 @@ import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
 import { ApiSuccessResponseDto } from '../../../common/dto/response.dto';
-import {
-  CLASS_CREATED,
-  CLASS_OR_CLASS_STREAM_ALREADY_EXIST,
-  SESSION_NOT_FOUND,
-} from '../../../constants/system.messages';
+import * as sysMsg from '../../../constants/system.messages';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { CreateClassDto } from '../dto/create-class.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
@@ -80,17 +76,16 @@ export class ClassService {
   async create(createClassDto: CreateClassDto) {
     const { name, stream, session_id } = createClassDto;
 
+    // Fetch session details
     const sessionExist = await this.sessionModelAction.get({
       identifierOptions: { id: session_id },
     });
-
-    // Check if session exist
     if (!sessionExist) {
-      throw new BadRequestException(SESSION_NOT_FOUND);
+      throw new BadRequestException(sysMsg.SESSION_NOT_FOUND);
     }
 
     const normalizedName = name.trim().toLowerCase();
-    const normalizedStream = stream.trim().toLowerCase();
+    const normalizedStream = stream ? stream.trim().toLowerCase() : '';
 
     // Check for existing class name/stream in session
     const { payload } = await this.classModelAction.find({
@@ -103,9 +98,8 @@ export class ClassService {
         useTransaction: false,
       },
     });
-
     if (payload.length > 0) {
-      throw new ConflictException(CLASS_OR_CLASS_STREAM_ALREADY_EXIST);
+      throw new ConflictException(sysMsg.CLASS_OR_CLASS_STREAM_ALREADY_EXIST);
     }
 
     // Use transaction for atomic creation
@@ -114,19 +108,30 @@ export class ClassService {
         createPayload: {
           name: name.trim(),
           session_id,
-          stream,
+          stream: stream ? stream.trim() : undefined,
+          normalized_name: normalizedName,
+          normalized_stream: normalizedStream,
         },
         transactionOptions: {
           useTransaction: true,
           transaction: manager,
         },
       });
-
-      this.logger.info(CLASS_CREATED, newClass);
+      this.logger.info(sysMsg.CLASS_CREATED, newClass);
       return newClass;
     });
 
-    return new ApiSuccessResponseDto(CLASS_CREATED, createdClass);
+    // Map to ClassResponseDto
+    const responseDto = {
+      id: createdClass.id,
+      name: createdClass.name,
+      stream: createdClass.stream,
+      session_id: createdClass.session_id,
+      academic_session_name: sessionExist.name ?? '',
+      academic_session: sessionExist.name ?? '',
+    };
+
+    return new ApiSuccessResponseDto(sysMsg.CLASS_CREATED, responseDto);
   }
 
   // Mock helper for active session
