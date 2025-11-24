@@ -8,7 +8,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { FindOptionsOrder } from 'typeorm';
+import { FindOptionsOrder, DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../constants/system.messages';
@@ -37,10 +37,12 @@ export class AcademicSessionService {
   private readonly logger: Logger;
   constructor(
     private readonly sessionModelAction: AcademicSessionModelAction,
+    private readonly dataSource: DataSource,
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
   ) {
     this.logger = baseLogger.child({ context: AcademicSessionService.name });
   }
+
   async create(
     createSessionDto: CreateAcademicSessionDto,
   ): Promise<ICreateSessionResponse> {
@@ -114,6 +116,54 @@ export class AcademicSessionService {
       message: sysMsg.ACADEMIC_SESSION_LIST_SUCCESS,
       data: payload,
       meta: paginationMeta,
+    };
+  }
+
+  async activateSession(sessionId: string) {
+    const session = await this.sessionModelAction.get({
+      identifierOptions: { id: sessionId },
+    });
+
+    if (!session) {
+      throw new BadRequestException(sysMsg.SESSION_NOT_FOUND);
+    }
+
+    const updatedAcademicSession = await this.dataSource.transaction(
+      async (manager) => {
+        await this.sessionModelAction.update({
+          updatePayload: { status: SessionStatus.INACTIVE },
+          identifierOptions: {},
+          transactionOptions: {
+            useTransaction: true,
+            transaction: manager,
+          },
+        });
+
+        const updateResult = await this.sessionModelAction.update({
+          identifierOptions: { id: sessionId },
+          updatePayload: { status: SessionStatus.ACTIVE },
+          transactionOptions: {
+            useTransaction: true,
+            transaction: manager,
+          },
+        });
+        if (!updateResult) {
+          throw new BadRequestException(
+            `Failed to activate session ${sessionId}. Session may have been deleted.`,
+          );
+        }
+
+        const updated = await this.sessionModelAction.get({
+          identifierOptions: { id: sessionId },
+        });
+
+        return updated;
+      },
+    );
+    return {
+      status_code: HttpStatus.OK,
+      message: sysMsg.ACADEMY_SESSION_ACTIVATED,
+      data: updatedAcademicSession,
     };
   }
 
