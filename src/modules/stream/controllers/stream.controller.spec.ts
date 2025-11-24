@@ -2,6 +2,7 @@ import { HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import * as sysMsg from '../../../constants/system.messages';
+import { CreateStreamDto } from '../dto/create-stream.dto';
 import { StreamResponseDto } from '../dto/stream-response.dto';
 import { StreamService } from '../services/stream.service';
 
@@ -9,6 +10,7 @@ import { StreamController } from './stream.controller';
 
 // Define interface for mock service
 interface IMockStreamService {
+  create: jest.Mock;
   getStreamsByClass: jest.Mock;
 }
 
@@ -20,6 +22,7 @@ describe('StreamController', () => {
 
   beforeEach(async () => {
     const mockServiceObj = {
+      create: jest.fn(),
       getStreamsByClass: jest.fn(),
     };
 
@@ -39,6 +42,36 @@ describe('StreamController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  describe('create', () => {
+    it('should create a stream and return success response', async () => {
+      const createDto: CreateStreamDto = {
+        name: 'Gold',
+        class_id: mockClassId,
+      };
+
+      const mockCreatedStream = {
+        id: 'new-stream-uuid',
+        name: 'Gold',
+        class_id: mockClassId,
+        created_at: new Date(),
+        student_count: 0,
+      };
+
+      service.create.mockResolvedValue(mockCreatedStream);
+
+      // Act
+      const result = await controller.create(createDto);
+
+      // Assert
+      expect(service.create).toHaveBeenCalledWith(createDto);
+      expect(result).toEqual({
+        status_code: HttpStatus.CREATED,
+        message: sysMsg.STREAM_CREATED_SUCCESSFULLY,
+        data: mockCreatedStream,
+      });
+    });
   });
 
   describe('getStreamsByClass', () => {
