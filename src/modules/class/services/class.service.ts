@@ -9,7 +9,6 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
-import { ApiSuccessResponseDto } from '../../../common/dto/response.dto';
 import * as sysMsg from '../../../constants/system.messages';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { CreateClassDto } from '../dto/create-class.dto';
@@ -127,11 +126,10 @@ export class ClassService {
       name: createdClass.name,
       stream: createdClass.stream,
       session_id: createdClass.session_id,
-      academic_session_name: sessionExist.name ?? '',
       academic_session: sessionExist.name ?? '',
     };
 
-    return new ApiSuccessResponseDto(sysMsg.CLASS_CREATED, responseDto);
+    return responseDto;
   }
 
   // Mock helper for active session

@@ -49,9 +49,6 @@ export class ClassResponseDto {
   @ApiProperty()
   session_id: string;
 
-  @ApiProperty({ description: 'The name of the academic session' })
-  academic_session_name: string;
-
   @ApiProperty({ description: 'The academic session value (e.g., 2024-2025)' })
   academic_session: string;
 }
