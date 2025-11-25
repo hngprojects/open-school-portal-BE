@@ -19,4 +19,7 @@ export class Student extends BaseEntity {
   @ManyToOne(() => Stream, (stream) => stream.students)
   @JoinColumn({ name: 'stream_id' })
   stream: Stream;
+
+  @Column({ type: 'timestamp', nullable: true, default: null })
+  deleted_at: Date | null;
 }

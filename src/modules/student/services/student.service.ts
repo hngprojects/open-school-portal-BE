@@ -188,8 +188,45 @@ export class StudentService {
     });
   }
 
-  remove(id: string) {
-    return `This action removes a #${id} term`;
+  async remove(id: string) {
+    const existingStudent = await this.studentModelAction.get({
+      identifierOptions: { id },
+      relations: {
+        user: true,
+      },
+    });
+    if (!existingStudent || existingStudent.deleted_at)
+      throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
+    return this.dataSource.transaction(async (manager) => {
+      await this.userModelAction.update({
+        identifierOptions: { id: existingStudent.user.id },
+        updatePayload: {
+          deleted_at: new Date(),
+          is_active: false,
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      await this.studentModelAction.update({
+        identifierOptions: { id },
+        updatePayload: {
+          deleted_at: new Date(),
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      this.logger.info(sysMsg.RESOURCE_UPDATED, {
+        studentId: id,
+      });
+
+      return { message: sysMsg.STUDENT_DELETED };
+    });
   }
 
   /**

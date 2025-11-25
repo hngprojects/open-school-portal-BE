@@ -16,7 +16,12 @@ import { Roles } from '../../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { UserRole } from '../../shared/enums';
-import { StudentSwagger, CreateStudentDocs, UpdateStudentDocs } from '../docs';
+import {
+  StudentSwagger,
+  CreateStudentDocs,
+  UpdateStudentDocs,
+  DeleteStudentDocs,
+} from '../docs';
 import { CreateStudentDto, PatchStudentDto, StudentResponseDto } from '../dto';
 import { StudentService } from '../services';
 
@@ -55,6 +60,10 @@ export class StudentController {
     return this.studentService.update(id, updateStudentDto);
   }
 
+  @DeleteStudentDocs()
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @HttpCode(HttpStatus.OK)
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.studentService.remove(id);
