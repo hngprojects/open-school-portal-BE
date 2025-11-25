@@ -9,14 +9,13 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Repository } from 'typeorm';
 import { Logger } from 'winston';
 
-import { EmailTemplateID } from '../../constants/email-constants';
-import * as sysMsg from '../../constants/system.messages';
-import { EmailService } from '../email/email.service';
-import { EmailPayload } from '../email/email.types';
-
-import { CreateWaitlistDto } from './dto/create-waitlist.dto';
-import { UpdateWaitlistDto } from './dto/update-waitlist.dto';
-import { Waitlist } from './entities/waitlist.entity';
+import { EmailTemplateID } from '../../../constants/email-constants';
+import * as sysMsg from '../../../constants/system.messages';
+import { EmailService } from '../../email/email.service';
+import { EmailPayload } from '../../email/email.types';
+import { CreateWaitlistDto } from '../dto/create-waitlist.dto';
+import { UpdateWaitlistDto } from '../dto/update-waitlist.dto';
+import { Waitlist } from '../entities/waitlist.entity';
 
 @Injectable()
 export class WaitlistService {
