@@ -162,3 +162,26 @@ export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
 export const SESSION_NOT_FOUND = 'session not found';
 export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
+//department
+export const DEPARTMENT_NOT_FOUND = 'Department not found';
+export const DEPARTMENT_CREATED = 'Department created successfully';
+export const DEPARTMENT_UPDATED = 'Department updated successfully';
+export const DEPARTMENT_DELETED = 'Department deleted successfully';
+export const DEPARTMENT_ALREADY_EXISTS = 'Department already exists';
+export const DEPARTMENT_LIST_SUCCESS = 'Department list retrieved successfully';
+export const DEPARTMENT_LIST_FAILED = 'Failed to retrieve department list';
+export const DEPARTMENT_LIST_EMPTY = 'No departments found';
+export const DEPARTMENT_LIST_NOT_FOUND = 'Department list not found';
+export const DEPARTMENT_HAS_ASSOCIATED_SUBJECTS =
+  'Cannot delete department that has associated subjects';
+//subject
+export const SUBJECT_NOT_FOUND = 'Subject not found';
+export const SUBJECT_CREATED = 'Subject created successfully';
+export const SUBJECT_UPDATED = 'Subject updated successfully';
+export const SUBJECT_DELETED = 'Subject deleted successfully';
+export const SUBJECT_ALREADY_EXISTS = 'Subject with this code already exists';
+export const SUBJECT_LIST_SUCCESS = 'Subjects retrieved successfully';
+export const SUBJECT_RETRIEVED_SUCCESS = 'Subject retrieved successfully';
+export const SUBJECT_LIST_FAILED = 'Failed to retrieve subjects';
+export const SUBJECT_LIST_EMPTY = 'No subjects found';
+export const DEPARTMENTS_NOT_FOUND = 'One or more departments not found';

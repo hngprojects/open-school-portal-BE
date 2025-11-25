@@ -13,6 +13,7 @@ import { LoggingInterceptor } from './middleware/logging.interceptor';
 import { AcademicSessionModule } from './modules/academic-session/academic-session.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ClassModule } from './modules/class/class.module';
+import { DepartmentModule } from './modules/department/department.module';
 import { EmailModule } from './modules/email/email.module';
 import { InviteModule } from './modules/invites/invites.module';
 import { SchoolModule } from './modules/school/school.module';
@@ -58,6 +59,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     ClassModule,
     InviteModule,
     AcademicSessionModule,
+    DepartmentModule,
     SubjectModule,
     TermModule,
     StreamModule,
