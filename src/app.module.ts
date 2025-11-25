@@ -23,6 +23,7 @@ import { SessionModule } from './modules/session/session.module';
 import { StreamModule } from './modules/stream/stream.module';
 import { StudentModule } from './modules/student/student.module';
 import { SubjectModule } from './modules/subject/subject.module';
+import { SuperadminModule } from './modules/superadmin/superadmin.module';
 import { TeachersModule } from './modules/teacher/teacher.module';
 import { TermModule } from './modules/term/term.module';
 import { UploadModule } from './modules/upload/upload.module';
@@ -71,6 +72,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     StreamModule,
     ContactModule,
     StudentModule,
+    SuperadminModule,
   ],
   controllers: [AppController],
   providers: [
