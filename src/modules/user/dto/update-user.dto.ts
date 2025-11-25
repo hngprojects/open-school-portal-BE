@@ -16,4 +16,12 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   photo_url?: string;
+
+  @IsString()
+  @IsOptional()
+  gender: string;
+
+  @IsString()
+  @IsOptional()
+  dob: string;
 }

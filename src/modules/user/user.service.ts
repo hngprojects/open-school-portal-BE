@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 
 import { ApiSuccessResponseDto } from '../../common/dto/response.dto';
@@ -6,7 +6,6 @@ import { UserNotFoundException } from '../../common/exceptions/domain.exceptions
 import * as sysMsg from '../../constants/system.messages';
 
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { UserModelAction } from './model-actions/user-actions';
 
@@ -51,30 +50,6 @@ export class UserService {
       identifierOptions,
       transactionOptions: options ?? { useTransaction: false },
     });
-  }
-
-  async updateUserProfile(userId: string, dto: UpdateUserDto) {
-    // Optional: log payload for debugging
-    console.log('Updating user:', userId);
-    console.log('Payload:', dto);
-
-    const updateResult = await this.userModelAction.update({
-      identifierOptions: { id: userId },
-      updatePayload: dto,
-      transactionOptions: { useTransaction: false },
-    });
-
-    if (!updateResult) {
-      throw new BadRequestException(`Failed to update user ${userId}.`);
-    }
-
-    const updatedUser = await this.userModelAction.get({
-      identifierOptions: { id: userId },
-    });
-
-    console.log('Updated user:', updatedUser);
-
-    return updatedUser;
   }
 
   async findByResetToken(resetToken: string) {
