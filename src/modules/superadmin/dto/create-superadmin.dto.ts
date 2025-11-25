@@ -1,6 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsJWT, IsNotEmpty, IsString } from 'class-validator';
 
+import * as sysMsg from '../../../constants/system.messages';
+
+import { isEqualTo } from './password-matching.dto';
+
 export class CreateSuperadminDto {
   @ApiProperty({
     example: 'johndoe@example.com',
@@ -47,6 +51,7 @@ export class CreateSuperadminDto {
     description:
       'a confirmation copy of the provided password for the superadmin',
   })
+  @isEqualTo('password', { message: sysMsg.SUPERADMIN_PASSWORD_MUST_MATCH })
   @IsString()
   @IsNotEmpty()
   confirm_password: string;

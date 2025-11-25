@@ -210,3 +210,5 @@ export const SUPERADMIN_PASSWORDS_REQUIRED =
   'password and confirmation password are required';
 export const SUPERADMIN_EMAIL_EXISTS =
   'speradmin with this email already exists';
+export const SUPERADMIN_PASSWORD_MUST_MATCH =
+  'password and confirmation password must match';
