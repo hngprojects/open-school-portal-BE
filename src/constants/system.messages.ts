@@ -163,6 +163,10 @@ export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
 export const SESSION_NOT_FOUND = 'session not found';
 export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
 
+// Parent messages
+export const PARENT_CREATED = 'Parent created successfully';
+export const PARENT_UPDATED = 'Parent updated successfully';
+export const PARENT_NOT_FOUND = 'Parent not found';
 // Contact messages
 export const CONTACT_MESSAGE_SENT = 'Contact message sent successfully';
 export const CONTACT_MESSAGE_FAILED = 'Failed to send contact message';
