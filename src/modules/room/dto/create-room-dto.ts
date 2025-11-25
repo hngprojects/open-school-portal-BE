@@ -43,7 +43,7 @@ export class CreateRoomDTO {
   description?: string;
 
   @IsOptional()
-  @IsArray({ message: 'Streams must be provided as  an array' })
+  @IsArray({ message: 'Streams must be provided as an array' })
   @ArrayNotEmpty({ message: 'If providing streams, the list cannot be empty' })
   @IsUUID('4', { each: true, message: 'Invalid Stream ID provided' })
   streams?: string[];

@@ -193,7 +193,10 @@ export const RoomSwagger = {
               floor: '2nd Floor',
               description: 'Physics laboratory with projector',
               building: 'Main Block',
-              streams: ['uuid-1', 'uuid-2'],
+              streams: [
+                '550e8400-e29b-41d4-a716-446655440000',
+                'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+              ],
             },
           },
         },

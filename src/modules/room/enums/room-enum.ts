@@ -5,5 +5,5 @@ export enum RoomType {
 
 export enum RoomStatus {
   'AVAILABLE' = 'AVAILABLE',
-  'INUSE' = 'IN USE',
+  'IN_USE' = 'IN_USE',
 }

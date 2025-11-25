@@ -9,8 +9,8 @@ import { Room } from '../entities/room.entity';
 export class RoomModelAction extends AbstractModelAction<Room> {
   constructor(
     @InjectRepository(Room)
-    sessionRepository: Repository<Room>,
+    roomRepository: Repository<Room>,
   ) {
-    super(sessionRepository, Room);
+    super(roomRepository, Room);
   }
 }
