@@ -10,6 +10,7 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 import { LoggerModule } from './common/logger.module';
 import configuration from './config/config';
 import { LoggingInterceptor } from './middleware/logging.interceptor';
+import { AcademicModule } from './modules/academic/academic.module';
 import { AcademicSessionModule } from './modules/academic-session/academic-session.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ClassModule } from './modules/class/class.module';
@@ -69,6 +70,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     StreamModule,
     ContactModule,
     StudentModule,
+    AcademicModule,
   ],
   controllers: [AppController],
   providers: [
