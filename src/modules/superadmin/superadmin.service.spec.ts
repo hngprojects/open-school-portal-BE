@@ -12,6 +12,7 @@ import { SessionService } from '../session/session.service';
 
 import { CreateSuperadminDto } from './dto/create-superadmin.dto';
 import { LoginSuperadminDto } from './dto/login-superadmin.dto';
+import { LogoutDto } from './dto/superadmin-logout.dto';
 import { SuperAdmin } from './entities/superadmin.entity';
 import { SuperadminModelAction } from './model-actions/superadmin-actions';
 import { SuperadminService } from './superadmin.service';
@@ -98,6 +99,7 @@ describe('SuperadminService', () => {
     expect(service).toBeDefined();
   });
 
+  // create a superadmin's test
   describe('createSuperAdmin', () => {
     const dtoInput: Partial<CreateSuperadminDto> = {
       firstName: 'Test',
@@ -198,7 +200,7 @@ describe('SuperadminService', () => {
     });
   });
 
-  // The login method's tests go here
+  // login's test
   describe('login', () => {
     const loginDto: LoginSuperadminDto = {
       email: 'admin@example.com',
@@ -356,6 +358,121 @@ describe('SuperadminService', () => {
       await service.login(loginDto);
 
       expect(mockLogger.info).toHaveBeenCalledWith(sysMsg.LOGIN_SUCCESS);
+    });
+  });
+
+  // logout's test
+  describe('logout', () => {
+    it('should successfully revoke session and return success message', async () => {
+      const logoutDto: LogoutDto = {
+        user_id: 'user-id-123',
+        session_id: 'session-id-456',
+      };
+
+      mockSessionService.revokeSession.mockResolvedValue(undefined);
+
+      const result = await service.logout(logoutDto);
+
+      expect(mockSessionService.revokeSession).toHaveBeenCalledWith(
+        logoutDto.user_id,
+        logoutDto.session_id,
+      );
+      expect(mockLogger.info).toHaveBeenCalledWith(sysMsg.LOGOUT_SUCCESS);
+      expect(result).toEqual({ message: sysMsg.LOGOUT_SUCCESS });
+    });
+
+    it('should handle session service not being available', async () => {
+      const logoutDto = {
+        user_id: 'user-id-123',
+        session_id: 'session-id-456',
+      };
+
+      const moduleWithoutSession: TestingModule =
+        await Test.createTestingModule({
+          providers: [
+            SuperadminService,
+            {
+              provide: WINSTON_MODULE_PROVIDER,
+              useValue: mockLogger,
+            },
+            {
+              provide: getRepositoryToken(SuperAdmin),
+              useValue: {},
+            },
+            {
+              provide: SuperadminModelAction,
+              useValue: mockModelActionImpl,
+            },
+            {
+              provide: DataSource,
+              useValue: mockDataSource,
+            },
+            {
+              provide: JwtService,
+              useValue: mockJwtService,
+            },
+            {
+              provide: SessionService,
+              useValue: null,
+            },
+          ],
+        }).compile();
+
+      const serviceWithoutSession =
+        moduleWithoutSession.get<SuperadminService>(SuperadminService);
+
+      const result = await serviceWithoutSession.logout(logoutDto);
+
+      expect(result).toEqual({ message: sysMsg.LOGOUT_SUCCESS });
+      expect(mockLogger.info).toHaveBeenCalledWith(sysMsg.LOGOUT_SUCCESS);
+    });
+
+    it('should pass correct parameters to revoke session', async () => {
+      const logoutDto: LogoutDto = {
+        user_id: 'different-user-id',
+        session_id: 'different-session-id',
+      };
+
+      mockSessionService.revokeSession.mockResolvedValue(undefined);
+
+      await service.logout(logoutDto);
+
+      expect(mockSessionService.revokeSession).toHaveBeenCalledWith(
+        'different-user-id',
+        'different-session-id',
+      );
+      expect(mockSessionService.revokeSession).toHaveBeenCalledTimes(1);
+    });
+
+    it('should log success message after logout', async () => {
+      const logoutDto: LogoutDto = {
+        user_id: 'user-id-123',
+        session_id: 'session-id-456',
+      };
+
+      mockSessionService.revokeSession.mockResolvedValue(undefined);
+
+      await service.logout(logoutDto);
+
+      expect(mockLogger.info).toHaveBeenCalledWith(sysMsg.LOGOUT_SUCCESS);
+    });
+
+    it('should handle session revoke errors gracefully', async () => {
+      const logoutDto: LogoutDto = {
+        user_id: 'user-id-123',
+        session_id: 'session-id-456',
+      };
+
+      const error = new Error('Session revocation failed');
+      mockSessionService.revokeSession.mockRejectedValue(error);
+
+      await expect(service.logout(logoutDto)).rejects.toThrow(
+        'Session revocation failed',
+      );
+      expect(mockSessionService.revokeSession).toHaveBeenCalledWith(
+        logoutDto.user_id,
+        logoutDto.session_id,
+      );
     });
   });
 });

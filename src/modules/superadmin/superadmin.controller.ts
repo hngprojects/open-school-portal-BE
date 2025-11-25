@@ -6,6 +6,7 @@ import * as sysMsg from '../../constants/system.messages';
 
 import { CreateSuperadminDto } from './dto/create-superadmin.dto';
 import { LoginSuperadminDto } from './dto/login-superadmin.dto';
+import { LogoutDto } from './dto/superadmin-logout.dto';
 import { SuperadminService } from './superadmin.service';
 
 @Controller('superadmin')
@@ -34,5 +35,17 @@ export class SuperadminController {
   })
   async login(@Body() loginSuperadminDto: LoginSuperadminDto) {
     return this.superadminService.login(loginSuperadminDto);
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: sysMsg.LOGOUT_SUCCESS })
+  @ApiResponse({
+    status: 200,
+    description: sysMsg.LOGOUT_SUCCESS,
+    type: ApiSuccessResponseDto,
+  })
+  async logout(@Body() logoutDto: LogoutDto) {
+    return this.superadminService.logout(logoutDto);
   }
 }

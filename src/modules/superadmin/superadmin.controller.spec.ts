@@ -5,6 +5,7 @@ import * as sysMsg from '../../constants/system.messages';
 
 import { CreateSuperadminDto } from './dto/create-superadmin.dto';
 import { LoginSuperadminDto } from './dto/login-superadmin.dto';
+import { LogoutDto } from './dto/superadmin-logout.dto';
 import { SuperadminController } from './superadmin.controller';
 import { SuperadminService } from './superadmin.service';
 
@@ -40,6 +41,7 @@ describe('SuperadminController', () => {
     expect(controller).toBeDefined();
   });
 
+  // tests for create endpoint
   describe('create', () => {
     const dto: CreateSuperadminDto = {
       firstName: 'John',
@@ -73,6 +75,7 @@ describe('SuperadminController', () => {
     });
   });
 
+  // tests for login endpoint
   describe('login', () => {
     const loginDto: LoginSuperadminDto = {
       email: 'admin@example.com',
@@ -128,6 +131,43 @@ describe('SuperadminController', () => {
       await expect(controller.login(loginDto)).rejects.toThrow(
         ConflictException,
       );
+    });
+  });
+
+  // tests for logout endpoint
+  describe('logout', () => {
+    const logoutDto = {
+      user_id: 'user-id-123',
+      session_id: 'session-id-456',
+    };
+
+    it('should call service.logout and return its result', async () => {
+      const serviceResult = {
+        message: sysMsg.LOGOUT_SUCCESS,
+      };
+
+      // lazily add logout mock to the mocked service (typed via unknown)
+      type SvcWithLogout = jest.Mocked<Partial<SuperadminService>> & {
+        logout: jest.Mock;
+      };
+      const svc = mockService as unknown as SvcWithLogout;
+      svc.logout = jest.fn().mockResolvedValue(serviceResult);
+
+      const result = await controller.logout(logoutDto as unknown as LogoutDto);
+
+      expect(svc.logout).toHaveBeenCalledWith(logoutDto);
+      expect(result).toEqual(serviceResult);
+    });
+
+    it('should propagate errors from the service', async () => {
+      const svc = mockService as unknown as {
+        logout: jest.Mock;
+      };
+      svc.logout = jest.fn().mockRejectedValue(new ConflictException('boom'));
+
+      await expect(
+        controller.logout(logoutDto as unknown as LogoutDto),
+      ).rejects.toThrow(ConflictException);
     });
   });
 });

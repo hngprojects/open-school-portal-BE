@@ -16,6 +16,7 @@ import { SessionService } from '../session/session.service';
 
 import { CreateSuperadminDto } from './dto/create-superadmin.dto';
 import { LoginSuperadminDto } from './dto/login-superadmin.dto';
+import { LogoutDto } from './dto/superadmin-logout.dto';
 import { SuperadminModelAction } from './model-actions/superadmin-actions';
 
 @Injectable()
@@ -157,10 +158,19 @@ export class SuperadminService {
   /**
    * logs out a logged on superadmin
    */
-  // async logout() {
-  //   // TODO: Implement session/token revocation if needed
-  //   return { message: sysMsg.LOGOUT_SUCCESS };
-  // }
+  async logout(logoutDto: LogoutDto) {
+    if (this.sessionService) {
+      // follow the same parameter order used in AuthService tests (user_id, session_id)
+      await this.sessionService.revokeSession(
+        logoutDto.user_id,
+        logoutDto.session_id,
+      );
+    }
+
+    this.logger.info(sysMsg.LOGOUT_SUCCESS);
+
+    return { message: sysMsg.LOGOUT_SUCCESS };
+  }
 
   /**
    * sends a reset password email to the provided email, having
