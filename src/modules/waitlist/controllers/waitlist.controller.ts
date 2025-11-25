@@ -34,10 +34,10 @@ export class WaitlistController {
       message: sysMsg.WAITLIST_ADDED_SUCCESSFULLY,
       data: {
         id: waitlistEntry.id,
-        firstName: waitlistEntry.firstName,
-        lastName: waitlistEntry.lastName,
+        first_name: waitlistEntry.first_name,
+        last_name: waitlistEntry.last_name,
         email: waitlistEntry.email,
-        createdAt: waitlistEntry.createdAt,
+        created_at: waitlistEntry.createdAt,
       },
     };
   }
@@ -52,10 +52,10 @@ export class WaitlistController {
       message: sysMsg.WAITLIST_RETRIEVED_SUCCESSFULLY,
       data: entries.map((entry) => ({
         id: entry.id,
-        firstName: entry.firstName,
-        lastName: entry.lastName,
+        first_name: entry.first_name,
+        last_name: entry.last_name,
         email: entry.email,
-        createdAt: entry.createdAt,
+        created_at: entry.createdAt,
       })),
     };
   }
@@ -70,10 +70,10 @@ export class WaitlistController {
       message: sysMsg.OPERATION_SUCCESSFUL,
       data: {
         id: entry.id,
-        firstName: entry.firstName,
-        lastName: entry.lastName,
+        first_name: entry.first_name,
+        last_name: entry.last_name,
         email: entry.email,
-        createdAt: entry.createdAt,
+        created_at: entry.createdAt,
       },
     };
   }
