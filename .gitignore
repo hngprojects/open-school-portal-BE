@@ -35,7 +35,7 @@ lerna-debug.log*
 !.vscode/extensions.json
 
 # Environment variables
-.env
 logs/
 # package-lock.json
 package-lock.json
+config.bat

@@ -42,11 +42,11 @@ export class WaitlistService {
     const savedEntry = await this.waitlistRepository.save(waitlistEntry);
 
     const emailPayload: EmailPayload = {
-      to: [{ email: savedEntry.email, name: savedEntry.firstName }],
+      to: [{ email: savedEntry.email, name: savedEntry.first_name }],
       subject: "You're on the Waitlist! | Open School Portal",
       templateNameID: EmailTemplateID.WAITLIST_WELCOME,
       templateData: {
-        greeting: `Hi ${savedEntry.firstName},`,
+        greeting: `Hi ${savedEntry.first_name},`,
       },
     };
 
