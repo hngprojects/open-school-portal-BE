@@ -8,9 +8,9 @@ import {
 } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
-import { Stream } from '../../academic/entities/stream.entity';
+// import { Stream } from '../../academic/entities/stream.entity';
 import { Session } from '../../session/entities/session.entity';
-// import { Stream } from '../../stream/entities/stream.entity';
+import { Stream } from '../../stream/entities/stream.entity';
 
 export enum UserRole {
   ADMIN = 'ADMIN',

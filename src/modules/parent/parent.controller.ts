@@ -1,15 +1,18 @@
-import { PaginationMeta } from '@hng-sdk/orm';
 import {
   Controller,
   Post,
-  Get,
   Body,
-  Param,
-  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiBody,
+  ApiResponse,
+} from '@nestjs/swagger';
 
 import * as sysMsg from '../../constants/system.messages';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -17,20 +20,13 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserRole } from '../shared/enums';
 
-import {
-  ApiParentTags,
-  ApiParentBearerAuth,
-  ApiCreateParent,
-  ApiGetParent,
-  ApiListParents,
-} from './docs/parent.swagger';
 import { CreateParentDto, ParentResponseDto } from './dto';
 import { ParentService } from './parent.service';
 
 @Controller('parents')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@ApiParentTags()
-@ApiParentBearerAuth()
+@ApiTags('Parents')
+@ApiBearerAuth()
 export class ParentController {
   constructor(private readonly parentService: ParentService) {}
 
@@ -38,7 +34,17 @@ export class ParentController {
   @Post()
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
-  @ApiCreateParent()
+  @ApiOperation({ summary: 'Create a new parent (ADMIN only)' })
+  @ApiBody({ type: CreateParentDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Parent created successfully',
+    type: ParentResponseDto,
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Email already exists',
+  })
   async create(@Body() createDto: CreateParentDto): Promise<{
     message: string;
     status_code: number;
@@ -49,51 +55,6 @@ export class ParentController {
       message: sysMsg.PARENT_CREATED,
       status_code: HttpStatus.CREATED,
       data,
-    };
-  }
-
-  // --- GET: GET SINGLE PARENT BY ID (ADMIN OR PARENT THEMSELVES) ---
-  @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.PARENT)
-  @ApiGetParent()
-  async getParent(@Param('id') id: string): Promise<{
-    message: string;
-    status_code: number;
-    data: ParentResponseDto;
-  }> {
-    const data = await this.parentService.findOne(id);
-    return {
-      message: sysMsg.PARENTS_FETCHED,
-      status_code: HttpStatus.OK,
-      data,
-    };
-  }
-
-  // --- GET: LIST ALL PARENTS (ADMIN ONLY) ---
-  @Get()
-  @Roles(UserRole.ADMIN)
-  @ApiListParents()
-  async listParents(
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
-    @Query('search') search?: string,
-  ): Promise<{
-    message: string;
-    status_code: number;
-    data: ParentResponseDto[];
-    meta: Partial<PaginationMeta>; // Fixed: no more 'any'
-  }> {
-    const { data, paginationMeta } = await this.parentService.findAll({
-      page,
-      limit,
-      search,
-    });
-
-    return {
-      message: sysMsg.PARENTS_FETCHED,
-      status_code: HttpStatus.OK,
-      data,
-      meta: paginationMeta,
     };
   }
 }
