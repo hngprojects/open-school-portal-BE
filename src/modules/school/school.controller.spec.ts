@@ -9,6 +9,12 @@ jest.mock('fs/promises', () => ({
   mkdir: jest.fn(),
   unlink: jest.fn(),
 }));
+jest.mock('./decorators/installation-api.decorator', () => ({
+  installationApi:
+    () =>
+    (target: unknown, propertyKey: string, descriptor: PropertyDescriptor) =>
+      descriptor,
+}));
 
 import { Test, TestingModule } from '@nestjs/testing';
 
