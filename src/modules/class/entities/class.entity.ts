@@ -15,22 +15,12 @@ import { ClassTeacher } from './class-teacher.entity';
 
 @Unique(['name', 'arm', 'academicSession'])
 @Entity()
-@Unique(['normalized_name', 'session_id'])
 export class Class extends BaseEntity {
-  @Column()
-  session_id: string;
-
   @Column()
   name: string;
 
   @Column({ nullable: true })
   stream?: string;
-
-  @Column()
-  normalized_name: string;
-
-  @Column({ nullable: true })
-  normalized_stream: string | null;
 
   @Column()
   arm: string;
