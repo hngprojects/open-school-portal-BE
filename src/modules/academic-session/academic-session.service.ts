@@ -187,19 +187,19 @@ export class AcademicSessionService {
     }
 
     //validate start date is before end date
-    const start = new Date(updateAcademicSessionDto.startDate);
+    const start = new Date(updateAcademicSessionDto.start_date);
     if (start < new Date()) {
       this.logger.error(sysMsg.START_DATE_IN_PAST, {
         sessionId: sessionId,
-        startDate: updateAcademicSessionDto.startDate,
+        startDate: updateAcademicSessionDto.start_date,
       });
       throw new BadRequestException(sysMsg.START_DATE_IN_PAST);
     }
-    const end = new Date(updateAcademicSessionDto.endDate);
+    const end = new Date(updateAcademicSessionDto.end_date);
     if (end < new Date()) {
       this.logger.error(sysMsg.END_DATE_IN_PAST, {
         sessionId: sessionId,
-        endDate: updateAcademicSessionDto.endDate,
+        endDate: updateAcademicSessionDto.end_date,
       });
       throw new BadRequestException(sysMsg.END_DATE_IN_PAST);
     }
@@ -208,8 +208,8 @@ export class AcademicSessionService {
     if (end <= start) {
       this.logger.error(sysMsg.INVALID_DATE_RANGE, {
         sessionId: sessionId,
-        startDate: updateAcademicSessionDto.startDate,
-        endDate: updateAcademicSessionDto.endDate,
+        startDate: updateAcademicSessionDto.start_date,
+        endDate: updateAcademicSessionDto.end_date,
       });
       throw new BadRequestException(sysMsg.INVALID_DATE_RANGE);
     }

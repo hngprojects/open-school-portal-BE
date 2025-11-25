@@ -292,8 +292,8 @@ describe('AcademicSessionService', () => {
     // Mock update session DTO
     const updateSessionDto: UpdateAcademicSessionDto = {
       name: '2026/2027',
-      startDate: new Date('2026-01-01').toISOString(),
-      endDate: new Date('2026-12-31').toISOString(),
+      start_date: new Date('2026-01-01').toISOString(),
+      end_date: new Date('2026-12-31').toISOString(),
     };
 
     // Mock updated session
@@ -381,8 +381,8 @@ describe('AcademicSessionService', () => {
     it('should throw BadRequestException if start date is in the past', async () => {
       const invalidDto: UpdateAcademicSessionDto = {
         name: '2026/2027',
-        startDate: new Date(Date.now() - 86400000).toISOString(),
-        endDate: new Date('2026-12-31').toISOString(),
+        start_date: new Date(Date.now() - 86400000).toISOString(),
+        end_date: new Date('2026-12-31').toISOString(),
       };
 
       mockSessionModelAction.get.mockResolvedValueOnce(existingSession);
@@ -397,7 +397,7 @@ describe('AcademicSessionService', () => {
         sysMsg.START_DATE_IN_PAST,
         expect.objectContaining({
           sessionId: '1',
-          startDate: invalidDto.startDate,
+          startDate: invalidDto.start_date,
         }),
       );
     });
@@ -406,8 +406,8 @@ describe('AcademicSessionService', () => {
     it('should throw BadRequestException if end date is in the past', async () => {
       const invalidDto: UpdateAcademicSessionDto = {
         name: '2026/2027',
-        startDate: new Date('2026-01-01').toISOString(),
-        endDate: new Date(Date.now() - 86400000).toISOString(),
+        start_date: new Date('2026-01-01').toISOString(),
+        end_date: new Date(Date.now() - 86400000).toISOString(),
       };
 
       mockSessionModelAction.get.mockResolvedValueOnce(existingSession);
@@ -422,7 +422,7 @@ describe('AcademicSessionService', () => {
         sysMsg.END_DATE_IN_PAST,
         expect.objectContaining({
           sessionId: '1',
-          endDate: invalidDto.endDate,
+          endDate: invalidDto.end_date,
         }),
       );
     });
@@ -432,8 +432,8 @@ describe('AcademicSessionService', () => {
       const startDate = new Date(Date.now() + 86400000); // Tomorrow
       const invalidDto: UpdateAcademicSessionDto = {
         name: '2026/2027',
-        startDate: startDate.toISOString(),
-        endDate: startDate.toISOString(), // Same as start date
+        start_date: startDate.toISOString(),
+        end_date: startDate.toISOString(), // Same as start date
       };
 
       mockSessionModelAction.get.mockResolvedValueOnce(existingSession);
@@ -448,8 +448,8 @@ describe('AcademicSessionService', () => {
         sysMsg.INVALID_DATE_RANGE,
         expect.objectContaining({
           sessionId: '1',
-          startDate: invalidDto.startDate,
-          endDate: invalidDto.endDate,
+          startDate: invalidDto.start_date,
+          endDate: invalidDto.end_date,
         }),
       );
     });
@@ -490,8 +490,8 @@ describe('AcademicSessionService', () => {
     it('should allow updating to the same name if it is the same session', async () => {
       const sameNameDto: UpdateAcademicSessionDto = {
         name: '2024/2025', // Same as existing session name
-        startDate: new Date('2026-01-01').toISOString(),
-        endDate: new Date('2026-12-31').toISOString(),
+        start_date: new Date('2026-01-01').toISOString(),
+        end_date: new Date('2026-12-31').toISOString(),
       };
 
       const updatedWithSameName: AcademicSession = {
@@ -499,6 +499,7 @@ describe('AcademicSessionService', () => {
         name: '2024/2025', // Same name
         startDate: new Date('2026-01-01'),
         endDate: new Date('2026-12-31'),
+        status: SessionStatus.ACTIVE,
       };
 
       mockSessionModelAction.get.mockResolvedValueOnce(existingSession);
@@ -522,6 +523,7 @@ describe('AcademicSessionService', () => {
   describe('AcademicSessionService.activeSessions', () => {
     let service: AcademicSessionService;
     let modelAction: jest.Mocked<AcademicSessionModelAction>;
+    let mockLogger: jest.Mocked<Logger>;
 
     const mockMeta = { total: 1 };
 
@@ -540,6 +542,16 @@ describe('AcademicSessionService', () => {
     };
 
     beforeEach(async () => {
+      // Mock Logger
+      mockLogger = {
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        debug: jest.fn(),
+        log: jest.fn(),
+        child: jest.fn().mockReturnThis(),
+      } as unknown as jest.Mocked<Logger>;
+
       // Mock DataSource - required by AcademicSessionService constructor
       const mockDataSource: Partial<DataSource> = {
         transaction: jest.fn(),
@@ -557,6 +569,10 @@ describe('AcademicSessionService', () => {
           {
             provide: DataSource,
             useValue: mockDataSource,
+          },
+          {
+            provide: WINSTON_MODULE_PROVIDER,
+            useValue: mockLogger,
           },
         ],
       }).compile();
@@ -630,6 +646,16 @@ describe('AcademicSessionService', () => {
         list: jest.fn(),
       };
 
+      // Mock Logger
+      mockLogger = {
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        debug: jest.fn(),
+        log: jest.fn(),
+        child: jest.fn().mockReturnThis(),
+      } as unknown as jest.Mocked<Logger>;
+
       // Mock DataSource.transaction
       mockDataSource = {
         transaction: jest
@@ -655,6 +681,10 @@ describe('AcademicSessionService', () => {
             useValue: mockModelActionProvider,
           },
           { provide: DataSource, useValue: mockDataSource },
+          {
+            provide: WINSTON_MODULE_PROVIDER,
+            useValue: mockLogger,
+          },
         ],
       }).compile();
 
@@ -725,6 +755,15 @@ describe('AcademicSessionService', () => {
         update: jest.fn(), // <-- This was missing!
       } as unknown as jest.Mocked<AcademicSessionModelAction>;
 
+      mockLogger = {
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        debug: jest.fn(),
+        log: jest.fn(),
+        child: jest.fn().mockReturnThis(),
+      } as unknown as jest.Mocked<Logger>;
+
       mockDataSource = {
         transaction: jest
           .fn()
@@ -746,6 +785,10 @@ describe('AcademicSessionService', () => {
             useValue: mockSessionModelAction,
           },
           { provide: DataSource, useValue: mockDataSource },
+          {
+            provide: WINSTON_MODULE_PROVIDER,
+            useValue: mockLogger,
+          },
         ],
       }).compile();
 
