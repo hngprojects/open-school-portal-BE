@@ -32,6 +32,7 @@ export class ClassService {
   private readonly logger: Logger;
   constructor(
     private readonly classModelAction: ClassModelAction,
+    private readonly sessionModelAction: AcademicSessionModelAction,
     private readonly classTeacherModelAction: ClassTeacherModelAction,
     private readonly academicSessionModelAction: AcademicSessionModelAction,
     private readonly dataSource: DataSource,
