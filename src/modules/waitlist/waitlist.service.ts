@@ -4,14 +4,18 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Repository } from 'typeorm';
 import { Logger } from 'winston';
 
-import { EmailTemplateID } from '../../constants/email-constants';
+import {
+  EmailTemplateID,
+  EMAIL_PATTERN,
+  EMAIL_SERVICE_NAME,
+} from '../../constants/email-constants';
 import * as sysMsg from '../../constants/system.messages';
-import { EmailService } from '../email/email.service';
 import { EmailPayload } from '../email/email.types';
 
 import { CreateWaitlistDto } from './dto/create-waitlist.dto';
@@ -25,7 +29,7 @@ export class WaitlistService {
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
     @InjectRepository(Waitlist)
     private readonly waitlistRepository: Repository<Waitlist>,
-    private readonly emailService: EmailService,
+    @Inject(EMAIL_SERVICE_NAME) private readonly emailClient: ClientProxy,
   ) {
     this.logger = baseLogger.child({ context: WaitlistService.name });
   }
@@ -44,19 +48,15 @@ export class WaitlistService {
 
     const emailPayload: EmailPayload = {
       to: [{ email: savedEntry.email, name: savedEntry.firstName }],
-      subject: "You're on the Waitlist! | Open School Portal",
+      subject: "You're on the Waitlist!",
       templateNameID: EmailTemplateID.WAITLIST_WELCOME,
       templateData: {
-        greeting: `Hi ${savedEntry.firstName},`,
+        firstName: savedEntry.firstName,
+        schoolName: 'School Base',
       },
     };
 
-    this.emailService.sendMail(emailPayload).catch((err) => {
-      this.logger.error(
-        `Failed to queue welcome email for ${savedEntry.email}`,
-        err.message,
-      );
-    });
+    this.emailClient.emit(EMAIL_PATTERN, emailPayload);
 
     return savedEntry;
   }

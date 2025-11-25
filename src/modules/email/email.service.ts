@@ -84,7 +84,7 @@ export class EmailService {
         .join(', '),
       subject: subject,
       html: html,
-      text: text, // Optional plain-text version
+      text: text,
     };
 
     // Send the email
