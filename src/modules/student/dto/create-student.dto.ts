@@ -72,16 +72,14 @@ export class CreateStudentDto {
   email: string;
 
   @ApiProperty({
-    description:
-      'Password (minimum 8 characters). Auto-generated if not provided.',
-    example: 'emp1234',
-    required: false,
+    description: 'Password (minimum 8 characters)',
+    example: 'StrongPassword',
     minLength: 8,
   })
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
   @MinLength(8)
-  password?: string;
+  password: string;
 
   @ApiProperty({
     description: 'Gender',

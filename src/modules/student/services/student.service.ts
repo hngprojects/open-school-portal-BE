@@ -6,10 +6,7 @@ import { Logger } from 'winston';
 import * as sysMsg from '../../../constants/system.messages';
 import { UserRole } from '../../shared/enums';
 import { FileService } from '../../shared/file/file.service';
-import {
-  generateStrongPassword,
-  hashPassword,
-} from '../../shared/utils/password.util';
+import { hashPassword } from '../../shared/utils/password.util';
 import { UserModelAction } from '../../user/model-actions/user-actions';
 import { CreateStudentDto, UpdateStudentDto, StudentResponseDto } from '../dto';
 import { StudentModelAction } from '../model-actions';
@@ -88,8 +85,7 @@ export class StudentService {
       throw new ConflictException(sysMsg.STUDENT_REGISTRATION_NUMBER_CONFLICT);
     }
 
-    const rawPassword = createStudentDto.password || generateStrongPassword(12);
-    const hashedPassword = await hashPassword(rawPassword);
+    const hashedPassword = await hashPassword(createStudentDto.password);
 
     let photo_url: string | undefined = undefined;
     if (createStudentDto.photo_url) {
