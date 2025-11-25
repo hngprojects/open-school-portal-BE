@@ -285,6 +285,31 @@ export class AuthService {
 
     return sysMsg.USER_ACTIVATED;
   }
+  async deactivateUserAccount(id: string) {
+    const user = await this.userService.findOne(id);
+
+    if (!user) {
+      throw new NotFoundException(sysMsg.USER_NOT_FOUND);
+    }
+
+    if (!user.is_active) {
+      this.logger.warn(`Attempt to deactivate already deactivated user`, {
+        userId: id,
+        email: user.email,
+      });
+      throw new ConflictException(sysMsg.USER_IS_DEACTIVATED);
+    }
+
+    await this.userService.updateUser(
+      { is_active: false },
+      { id },
+      { useTransaction: false },
+    );
+
+    return {
+      message: sysMsg.USER_DEACTIVATED,
+    };
+  }
 
   async getProfile(accessToken: string) {
     if (!accessToken) {

@@ -1,13 +1,14 @@
 import {
   Body,
   Controller,
+  Get,
+  Headers,
   HttpCode,
   HttpStatus,
   Param,
   Patch,
   Post,
-  Get,
-  Headers,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiOperation,
@@ -17,8 +18,11 @@ import {
 } from '@nestjs/swagger';
 
 import * as sysMsg from '../../constants/system.messages';
+import { UserRole } from '../shared/enums';
 
 import { AuthService } from './auth.service';
+import { Roles } from './decorators/roles.decorator';
+import { AuthSwagger } from './docs/auth.swagger';
 import {
   LoginResponseDto,
   LogoutResponseDto,
@@ -34,6 +38,8 @@ import {
   ResetPasswordDto,
 } from './dto/auth.dto';
 import { LoginDto } from './dto/login.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -134,6 +140,14 @@ export class AuthController {
       status: HttpStatus.OK,
       message,
     };
+  }
+  @Patch('users/:user_id/deactivate')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @AuthSwagger.deactivateUser()
+  async deactivateAccount(@Param('user_id') userId: string) {
+    return this.authService.deactivateUserAccount(userId);
   }
 
   @Get('me')
