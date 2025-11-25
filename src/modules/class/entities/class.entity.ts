@@ -1,10 +1,19 @@
-import { Entity, Column, OneToMany } from 'typeorm';
+import {
+  Entity,
+  Column,
+  OneToMany,
+  ManyToOne,
+  JoinColumn,
+  Unique,
+} from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
+import { AcademicSession } from '../../academic-session/entities/academic-session.entity';
 import { Stream } from '../../stream/entities/stream.entity';
 
 import { ClassTeacher } from './class-teacher.entity';
 
+@Unique(['name', 'arm', 'academicSession'])
 @Entity()
 export class Class extends BaseEntity {
   @Column()
@@ -12,6 +21,13 @@ export class Class extends BaseEntity {
 
   @Column({ nullable: true })
   stream: string;
+
+  @Column()
+  arm: string;
+
+  @ManyToOne(() => AcademicSession, { nullable: false })
+  @JoinColumn({ name: 'academic_session_id' })
+  academicSession: AcademicSession;
 
   @OneToMany(() => ClassTeacher, (assignment) => assignment.class)
   teacher_assignment: ClassTeacher[];
