@@ -204,3 +204,9 @@ export const CONTACT_STATUS_UPDATED = 'Contact status updated successfully';
 export const STUDENT_CREATED = 'Student created successfully';
 export const STUDENT_EMAIL_CONFLICT = `Student with email already exists.`;
 export const STUDENT_REGISTRATION_NUMBER_CONFLICT = `Student with registration number already exists.`;
+// Superadmin messages
+export const SUPERADMIN_ACCOUNT_CREATED = 'superadmin account created';
+export const SUPERADMIN_PASSWORDS_REQUIRED =
+  'password and confirmation password are required';
+export const SUPERADMIN_EMAIL_EXISTS =
+  'speradmin with this email already exists';
