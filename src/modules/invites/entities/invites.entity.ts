@@ -2,16 +2,33 @@ import { Entity, Column, CreateDateColumn } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
 
+export enum InviteStatus {
+  PENDING = 'pending',
+  USED = 'used',
+  EXPIRED = 'expired',
+  FAILED = 'failed',
+}
+
 @Entity({ name: 'invites' })
 export class Invite extends BaseEntity {
-  @Column({ unique: true })
+  @Column()
   email: string;
 
-  @Column({ default: false })
-  accepted: boolean;
+  @Column({
+    type: 'enum',
+    enum: InviteStatus,
+    default: InviteStatus.PENDING,
+  })
+  status: InviteStatus;
+
+  @Column()
+  token_hash: string;
 
   @CreateDateColumn()
-  invitedAt: Date;
+  invited_at: Date;
+
+  @Column({ type: 'timestamp' })
+  expires_at: Date;
 
   @Column()
   role: string;

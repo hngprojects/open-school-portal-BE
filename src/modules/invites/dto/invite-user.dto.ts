@@ -6,6 +6,7 @@ import { PendingInviteDto } from './pending-invite.dto';
 export enum InviteRole {
   TEACHER = 'TEACHER',
   PARENT = 'PARENT',
+  STUDENT = 'STUDENT',
 }
 
 export class InviteUserDto {
@@ -23,6 +24,9 @@ export class InviteUserDto {
   @ApiPropertyOptional({ example: 'Olivia Doe' })
   @IsOptional()
   full_name?: string;
+
+  @IsOptional()
+  metadata?: Record<string, unknown>;
 }
 
 export class CreatedInviteDto extends PendingInviteDto {
@@ -31,6 +35,9 @@ export class CreatedInviteDto extends PendingInviteDto {
 
   @ApiPropertyOptional({ example: 'Olivia Doe' })
   readonly full_name?: string;
+
+  @ApiPropertyOptional({ example: 'pending' })
+  readonly status?: string;
 }
 
 export class CreatedInvitesResponseDto {

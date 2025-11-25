@@ -5,51 +5,57 @@ import {
   Body,
   HttpStatus,
   HttpCode,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { UserRole } from '../shared/enums';
 
 import {
-  InviteUserDto,
-  CreatedInvitesResponseDto,
-} from './dto/invite-user.dto';
+  ApiInvitationsTags,
+  ApiSendInvite,
+  ApiValidateInvite,
+  ApiGetPendingInvites,
+} from './docs/invitations.swagger';
+import { InviteUserDto } from './dto/invite-user.dto';
 import { PendingInvitesResponseDto } from './dto/pending-invite.dto';
+import {
+  ValidateInviteDto,
+  ValidateInviteResponseDto,
+} from './dto/validate-invite.dto';
 import { InviteService } from './invites.service';
 
-@ApiTags('Invites')
-@Controller('auth/invites')
+@Controller('invitations')
+@ApiInvitationsTags()
 export class InvitesController {
   constructor(private readonly inviteService: InviteService) {}
 
-  @Post()
+  @Post('send')
+  // @UseGuards(RolesGuard)
+  // @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Invite new teachers or parents' })
-  @ApiResponse({
-    status: HttpStatus.CREATED,
-    description: 'Invitation sent successfully',
-    type: CreatedInvitesResponseDto,
-  })
-  @ApiResponse({
-    status: HttpStatus.CONFLICT,
-    description: `Invitation already sent`,
-    type: CreatedInvitesResponseDto,
-  })
+  @ApiSendInvite()
+  @Roles(UserRole.ADMIN)
   async inviteUser(@Body() payload: InviteUserDto) {
     return this.inviteService.sendInvite(payload);
   }
 
-  @Get()
+  @Get('validate')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Retrieve all pending invites' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Returns pending invites',
-    type: PendingInvitesResponseDto,
-  })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
-    description: 'No pending invites found',
-    type: PendingInvitesResponseDto,
-  })
+  @ApiValidateInvite()
+  async validateInviteToken(
+    @Query() dto: ValidateInviteDto,
+  ): Promise<ValidateInviteResponseDto> {
+    return this.inviteService.validateInviteToken(dto);
+  }
+
+  @Get()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiGetPendingInvites()
   async getPendingInvites(): Promise<PendingInvitesResponseDto> {
     return this.inviteService.getPendingInvites();
   }

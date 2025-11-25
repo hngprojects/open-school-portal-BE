@@ -136,6 +136,32 @@ export const INVITE_SENT = 'INVITE_SENT';
 export const PENDING_INVITES_FETCHED = 'Pending invites retrieved successfully';
 export const NO_PENDING_INVITES = 'No pending invites found';
 export const INVITE_ALREADY_SENT = 'INVITE_ALREADY_SENT';
+export const INVITE_ACCEPTED = 'INVITE_ACCEPTED';
+export const INVITE_RESENT = 'INVITE_RESENT';
+export const INVITE_DELETED = 'INVITE_DELETED';
+
+// Token Validation
+export const INVALID_TOKEN = 'INVALID_TOKEN';
+export const TOKEN_ALREADY_USED = 'TOKEN_ALREADY_USED';
+export const VALID_TOKEN = 'VALID_TOKEN';
+export const INVALID_TOKEN_MESSAGE =
+  'Invitation token is invalid or does not exist.';
+export const TOKEN_ALREADY_USED_MESSAGE =
+  'This invitation token has already been used.';
+export const TOKEN_EXPIRED_MESSAGE =
+  'This invitation link has expired. Please request a new one.';
+export const VALID_TOKEN_MESSAGE = 'Invitation token is valid.';
+
+// User/Account
+export const USER_CREATED = 'USER_CREATED';
+
+// Email
+export const EMAIL_DELIVERY_FAILED = 'EMAIL_DELIVERY_FAILED';
+
+// Errors
+export const INVITE_NOT_FOUND = 'INVITE_NOT_FOUND';
+export const INVITE_ALREADY_ACCEPTED = 'INVITE_ALREADY_ACCEPTED';
+export const INVITE_ALREADY_EXPIRED = 'INVITE_ALREADY_EXPIRED';
 
 //Academic Session
 export const ACADEMIC_SESSION =
