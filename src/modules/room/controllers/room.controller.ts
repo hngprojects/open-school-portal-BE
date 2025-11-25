@@ -6,16 +6,20 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
 
-import { Roles } from '../auth/decorators/roles.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { UserRole } from '../shared/enums';
-
-import { RoomSwagger } from './docs/room-swagger';
-import { CreateRoomDTO } from './dto/create-room-dto';
-import { RoomService } from './room.service';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { UserRole } from '../../shared/enums';
+import { RoomSwagger } from '../docs/room-swagger';
+import { CreateRoomDTO } from '../dto/create-room-dto';
+import { RoomService } from '../services/room.service';
 
 @Controller('rooms')
 export class RoomController {
@@ -24,7 +28,8 @@ export class RoomController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiBearerAuth()
   @ApiOperation(RoomSwagger.decorators.create.operation)
   @ApiBody(RoomSwagger.decorators.create.body)
   @ApiResponse(RoomSwagger.decorators.create.response)

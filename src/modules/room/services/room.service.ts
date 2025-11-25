@@ -6,11 +6,10 @@ import {
 } from '@nestjs/common';
 import { DataSource, In } from 'typeorm';
 
-import * as sysMsg from '../../constants/system.messages';
-import { Stream } from '../stream/entities/stream.entity'; // Ensure this path is correct
-
-import { CreateRoomDTO } from './dto/create-room-dto';
-import { RoomModelAction } from './model-actions/room-model-actions';
+import * as sysMsg from '../../../constants/system.messages';
+import { Stream } from '../../stream/entities/stream.entity';
+import { CreateRoomDTO } from '../dto/create-room-dto';
+import { RoomModelAction } from '../model-actions/room-model-actions';
 
 @Injectable()
 export class RoomService {
