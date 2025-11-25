@@ -9,6 +9,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 
@@ -51,7 +52,10 @@ export class StudentController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @HttpCode(HttpStatus.OK)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateStudentDto: PatchStudentDto) {
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateStudentDto: PatchStudentDto,
+  ) {
     return this.studentService.update(id, updateStudentDto);
   }
 
