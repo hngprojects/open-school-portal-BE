@@ -1,3 +1,4 @@
+import { PartialType } from '@nestjs/mapped-types';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsDateString,
@@ -101,3 +102,5 @@ export class UpdateStudentDto {
   @IsString()
   photo_url?: string;
 }
+
+export class PatchStudentDto extends PartialType(UpdateStudentDto) {}

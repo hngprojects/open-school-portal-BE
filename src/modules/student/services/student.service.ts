@@ -13,7 +13,7 @@ import { UserRole } from '../../shared/enums';
 import { FileService } from '../../shared/file/file.service';
 import { hashPassword } from '../../shared/utils/password.util';
 import { UserModelAction } from '../../user/model-actions/user-actions';
-import { CreateStudentDto, UpdateStudentDto, StudentResponseDto } from '../dto';
+import { CreateStudentDto, StudentResponseDto, PatchStudentDto } from '../dto';
 import { StudentModelAction } from '../model-actions';
 
 @Injectable()
@@ -117,9 +117,12 @@ export class StudentService {
     return `This action returns a #${id} term`;
   }
 
-  async update(id: string, updateStudentDto: UpdateStudentDto) {
+  async update(id: string, updateStudentDto: PatchStudentDto) {
     const existingStudent = await this.studentModelAction.get({
       identifierOptions: { id },
+      relations: {
+        user: true,
+      },
     });
     if (!existingStudent) throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
     return this.dataSource.transaction(async (manager) => {
@@ -132,7 +135,9 @@ export class StudentService {
           email: updateStudentDto.email,
           phone: updateStudentDto.phone,
           gender: updateStudentDto.gender,
-          dob: new Date(updateStudentDto.date_of_birth),
+          dob: updateStudentDto.date_of_birth
+            ? new Date(updateStudentDto.date_of_birth)
+            : undefined,
           homeAddress: updateStudentDto.home_address,
         },
         transactionOptions: {
@@ -165,7 +170,11 @@ export class StudentService {
         email: updatedUser.email,
       });
 
-      return new StudentResponseDto(student, updatedUser);
+      return new StudentResponseDto(
+        sysMsg.STUDENT_UPDATED,
+        student,
+        updatedUser,
+      );
     });
   }
 
@@ -179,7 +188,7 @@ export class StudentService {
    */
   private async generateRegistrationNumber(): Promise<string> {
     const currentYear = new Date().getFullYear();
-    const yearPrefix = `REG-${currentYear}-`;
+    const yearPrefix = `STU-${currentYear}-`;
 
     // Query the highest existing sequential number for the current year
     const lastStudent = await this.studentModelAction.find({
