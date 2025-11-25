@@ -81,11 +81,12 @@ export class SubjectService {
       },
     });
 
-    // Fetch the created subject with relations
-    const subjectWithRelations = await this.subjectModelAction.get({
-      identifierOptions: { id: newSubject.id },
-      relations: { departments: true },
-    });
+    // Construct response directly from newSubject and departments already in memory
+    // This avoids an unnecessary database query
+    const subjectWithRelations: Subject = {
+      ...newSubject,
+      departments: departments.payload,
+    };
 
     return {
       status_code: HttpStatus.CREATED,

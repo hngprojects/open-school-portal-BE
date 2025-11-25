@@ -175,7 +175,8 @@ export const DEPARTMENT_CREATED = 'Department created successfully';
 export const DEPARTMENT_UPDATED = 'Department updated successfully';
 export const DEPARTMENT_DELETED = 'Department deleted successfully';
 export const DEPARTMENT_ALREADY_EXISTS = 'Department already exists';
-export const DEPARTMENT_LIST_SUCCESS = 'Department list retrieved successfully';
+export const DEPARTMENT_RETRIEVED_SUCCESS =
+  'Department (list) retrieved successfully';
 export const DEPARTMENT_LIST_FAILED = 'Failed to retrieve department list';
 export const DEPARTMENT_LIST_EMPTY = 'No departments found';
 export const DEPARTMENT_LIST_NOT_FOUND = 'Department list not found';
@@ -186,7 +187,8 @@ export const SUBJECT_NOT_FOUND = 'Subject not found';
 export const SUBJECT_CREATED = 'Subject created successfully';
 export const SUBJECT_UPDATED = 'Subject updated successfully';
 export const SUBJECT_DELETED = 'Subject deleted successfully';
-export const SUBJECT_ALREADY_EXISTS = 'Subject with this code already exists';
+export const SUBJECT_ALREADY_EXISTS =
+  'Subject with this name and code combination already exists';
 export const SUBJECT_LIST_SUCCESS = 'Subjects retrieved successfully';
 export const SUBJECT_RETRIEVED_SUCCESS = 'Subject retrieved successfully';
 export const SUBJECT_LIST_FAILED = 'Failed to retrieve subjects';

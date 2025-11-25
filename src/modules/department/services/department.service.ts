@@ -86,7 +86,7 @@ export class DepartmentService {
 
     return {
       status_code: HttpStatus.OK,
-      message: sysMsg.DEPARTMENT_LIST_SUCCESS,
+      message: sysMsg.DEPARTMENT_RETRIEVED_SUCCESS,
       data: payload.map((dept) => this.mapToResponseDto(dept)),
       meta: paginationMeta,
     };
@@ -106,7 +106,7 @@ export class DepartmentService {
 
     return {
       status_code: HttpStatus.OK,
-      message: sysMsg.DEPARTMENT_LIST_SUCCESS,
+      message: sysMsg.DEPARTMENT_RETRIEVED_SUCCESS,
       data: this.mapToResponseDto(department),
     };
   }
