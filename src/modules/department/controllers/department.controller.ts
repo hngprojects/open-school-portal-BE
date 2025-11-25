@@ -46,7 +46,7 @@ export class DepartmentController {
   @ApiResponse(DepartmentSwagger.decorators.create.response)
   @ApiResponse(DepartmentSwagger.decorators.create.errorResponses[0])
   @ApiResponse(DepartmentSwagger.decorators.create.errorResponses[1])
-  //CREATE
+  //CREATE department
   create(@Body() createDepartmentDto: CreateDepartmentDto) {
     return this.departmentService.create(createDepartmentDto);
   }
@@ -70,7 +70,6 @@ export class DepartmentController {
     example: 20,
   })
   @ApiResponse(DepartmentSwagger.decorators.findAll.response)
-  //FInd all departments
   findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
     const parsedPage = Number(page);
     const parsedLimit = Number(limit);
@@ -101,7 +100,6 @@ export class DepartmentController {
   @ApiResponse(DepartmentSwagger.decorators.update.response)
   @ApiResponse(DepartmentSwagger.decorators.update.errorResponses[0])
   @ApiResponse(DepartmentSwagger.decorators.update.errorResponses[1])
-  //UPDATE
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateDepartmentDto: UpdateDepartmentDto,
@@ -117,7 +115,6 @@ export class DepartmentController {
   @ApiResponse(DepartmentSwagger.decorators.remove.response)
   @ApiResponse(DepartmentSwagger.decorators.remove.errorResponses[0])
   @ApiResponse(DepartmentSwagger.decorators.remove.errorResponses[1])
-  //DELETE
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.departmentService.remove(id);
   }

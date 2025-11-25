@@ -47,7 +47,6 @@ export class SubjectController {
   @ApiResponse(SubjectSwagger.decorators.create.errorResponses[0])
   @ApiResponse(SubjectSwagger.decorators.create.errorResponses[1])
   @ApiResponse(SubjectSwagger.decorators.create.errorResponses[2])
-  //CREATE SUBJECT
   create(@Body() createSubjectDto: CreateSubjectDto) {
     return this.subjectService.create(createSubjectDto);
   }
@@ -89,7 +88,6 @@ export class SubjectController {
   @ApiParam(SubjectSwagger.decorators.findOne.parameters.id)
   @ApiResponse(SubjectSwagger.decorators.findOne.response)
   @ApiResponse(SubjectSwagger.decorators.findOne.errorResponses[0])
-  //GET SUBJECT BY ID
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.subjectService.findOne(id);
   }
@@ -104,7 +102,6 @@ export class SubjectController {
   @ApiResponse(SubjectSwagger.decorators.update.errorResponses[0])
   @ApiResponse(SubjectSwagger.decorators.update.errorResponses[1])
   @ApiResponse(SubjectSwagger.decorators.update.errorResponses[2])
-  //UPDATE SUBJECT
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateSubjectDto: UpdateSubjectDto,
@@ -119,7 +116,6 @@ export class SubjectController {
   @ApiParam(SubjectSwagger.decorators.remove.parameters.id)
   @ApiResponse(SubjectSwagger.decorators.remove.response)
   @ApiResponse(SubjectSwagger.decorators.remove.errorResponses[0])
-  //DELETE SUBJECT
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.subjectService.remove(id);
   }
