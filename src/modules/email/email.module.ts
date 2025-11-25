@@ -5,7 +5,8 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import {
   EMAIL_QUEUE,
   EMAIL_SERVICE_NAME,
-} from '../../constants/email-constants';
+  EMAIL_DLQ,
+} from '../../constants/service-constants';
 
 import { EmailController } from './email.controller';
 import { EmailService } from './email.service';
@@ -26,6 +27,12 @@ import { EmailService } from './email.service';
               configService.get<string>('RABBITMQ_EMAIL_QUEUE') || EMAIL_QUEUE,
             queueOptions: {
               durable: true,
+              arguments: {
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                'x-dead-letter-exchange': '',
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                'x-dead-letter-routing-key': EMAIL_DLQ,
+              },
             },
           },
         }),

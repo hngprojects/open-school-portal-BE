@@ -14,7 +14,7 @@ import {
   EmailTemplateID,
   EMAIL_PATTERN,
   EMAIL_SERVICE_NAME,
-} from '../../constants/email-constants';
+} from '../../constants/service-constants';
 import * as sysMsg from '../../constants/system.messages';
 import { EmailPayload } from '../email/email.types';
 

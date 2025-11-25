@@ -80,8 +80,15 @@ async function bootstrap() {
     options: {
       urls: [configService.get<string>('RABBITMQ_URI')],
       queue: configService.get<string>('RABBITMQ_EMAIL_QUEUE'),
+      noAck: false,
       queueOptions: {
         durable: true,
+        arguments: {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          'x-dead-letter-exchange': '',
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          'x-dead-letter-routing-key': 'email_dlq',
+        },
       },
     },
   });

@@ -23,6 +23,7 @@ import { TeachersModule } from './modules/teacher/teacher.module';
 import { TermModule } from './modules/term/term.module';
 import { UserModule } from './modules/user/user.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
+import { QueueModule } from './providers/queue/queue.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     SubjectModule,
     TermModule,
     StreamModule,
+    QueueModule,
   ],
   controllers: [AppController],
   providers: [

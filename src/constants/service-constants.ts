@@ -9,4 +9,5 @@ export enum EmailTemplateID {
 
 export const EMAIL_SERVICE_NAME = 'EMAIL_SERVICE';
 export const EMAIL_QUEUE = 'email_queue';
-export const EMAIL_PATTERN = 'send_email'; // The event name
+export const EMAIL_PATTERN = 'send_email';
+export const EMAIL_DLQ = 'email_dlq';

@@ -1,19 +1,25 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import * as nodemailer from 'nodemailer';
 import * as nunjucks from 'nunjucks';
+import { Logger } from 'winston';
 
 import { EmailPayload } from './email.types';
 
 @Injectable()
 export class EmailService {
-  private readonly logger = new Logger(EmailService.name);
+  private readonly logger: Logger;
   private transporter: nodemailer.Transporter;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
+  ) {
+    this.logger = baseLogger.child({ context: EmailService.name });
     // Initialize the transporter
     this.transporter = nodemailer.createTransport({
       host: this.configService.get<string>('MAIL_HOST'),
@@ -90,11 +96,14 @@ export class EmailService {
     // Send the email
     try {
       const info = await this.transporter.sendMail(mailOptions);
-      this.logger.log(
-        `Email sent successfully to ${mailOptions.to}: ${info.messageId}`,
-      );
+      this.logger.info(`Email sent successfully to ${mailOptions.to}`, {
+        messageId: info.messageId,
+      });
     } catch (error) {
-      this.logger.error(`Failed to send email to ${mailOptions.to}`, error);
+      this.logger.error('Failed to send email', {
+        to: mailOptions.to,
+        error: error.message,
+      });
       throw error;
     }
   }
