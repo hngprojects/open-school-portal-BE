@@ -4,7 +4,6 @@ import {
   Unique,
   OneToMany,
   OneToOne,
-  JoinColumn,
   ManyToOne,
 } from 'typeorm';
 
@@ -84,9 +83,7 @@ export class User extends BaseEntity {
 
   @Column({ type: 'timestamp', nullable: true, default: null })
   deleted_at: Date | null;
-  // Added for Stream Management
-  // Many students belong to one stream (e.g. 40 students in JSS1 A)
+
   @ManyToOne(() => Stream, (stream) => stream.students)
-  @JoinColumn({ name: 'stream_id' })
   stream: Stream;
 }

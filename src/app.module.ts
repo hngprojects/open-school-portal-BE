@@ -71,6 +71,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     ContactModule,
     StudentModule,
     AcademicModule,
+    StreamModule,
   ],
   controllers: [AppController],
   providers: [

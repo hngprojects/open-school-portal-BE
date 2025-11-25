@@ -4,21 +4,10 @@ import {
   HttpStatus,
   Param,
   ParseUUIDPipe,
-  UseGuards,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiParam,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import * as sysMsg from '../../../constants/system.messages';
-import { Roles } from '../../auth/decorators/roles.decorator';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../../auth/guards/roles.guard';
-import { UserRole } from '../../user/entities/user.entity';
 import { StreamResponseDto } from '../dto/stream-response.dto';
 import { StreamService } from '../services/stream.service';
 
@@ -29,14 +18,11 @@ export interface IBaseResponse<T> {
 }
 
 @ApiTags('Stream')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('stream')
 export class StreamController {
   constructor(private readonly streamService: StreamService) {}
 
   @Get('class/:classId')
-  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @ApiOperation({ summary: 'Get all streams for a specific class' })
   @ApiParam({
     name: 'classId',
@@ -52,10 +38,6 @@ export class StreamController {
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
     description: sysMsg.CLASS_NOT_FOUND,
-  })
-  @ApiResponse({
-    status: HttpStatus.UNAUTHORIZED,
-    description: 'Unauthorized',
   })
   async getStreamsByClass(
     @Param('classId', new ParseUUIDPipe()) classId: string,

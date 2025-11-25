@@ -86,6 +86,7 @@ export class ClassService {
           ? `${assignment.teacher.user.first_name} ${assignment.teacher.user.last_name}`
           : `Teacher ${assignment.teacher.employment_id}`,
         assignment_date: assignment.assignment_date,
+        stream: assignment.class.stream,
         streams: streamNames,
       };
     });
