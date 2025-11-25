@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
 
 export class CreateClassDto {
   @ApiProperty({
@@ -19,13 +19,14 @@ export class CreateClassDto {
   @ApiProperty({
     example: 'A',
     description: 'The arm of the class (e.g., A, B, C, etc.).',
+    required: false,
   })
-  @IsNotEmpty({ message: 'Arm is required' })
+  @IsOptional()
   @IsString()
   @Transform(({ value }) =>
     typeof value === 'string' ? value.trim().toUpperCase() : value,
   )
-  arm: string;
+  arm?: string;
 }
 
 export class AcademicSessionDto {
@@ -43,8 +44,8 @@ export class ClassResponseDto {
   @ApiProperty()
   name: string;
 
-  @ApiProperty()
-  arm: string;
+  @ApiProperty({ required: false })
+  arm?: string;
 
   @ApiProperty({ type: () => AcademicSessionDto, required: false })
   academicSession?: AcademicSessionDto;

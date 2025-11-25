@@ -22,8 +22,8 @@ export class Class extends BaseEntity {
   @Column({ nullable: true })
   stream?: string;
 
-  @Column()
-  arm: string;
+  @Column({ nullable: true })
+  arm?: string;
 
   @ManyToOne(() => AcademicSession, { nullable: false })
   @JoinColumn({ name: 'academic_session_id' })

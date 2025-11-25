@@ -43,7 +43,7 @@ export const ClassSwagger = {
       operation: {
         summary: 'Create a new class (Admin)',
         description:
-          'Creates a new class with a unique name and arm (A, B, C, etc.) in the current session.',
+          'Creates a new class with a unique name and arm (A, B, C, etc.) optional in the current session.',
       },
       body: {
         name: {
@@ -53,8 +53,10 @@ export const ClassSwagger = {
         },
         arm: {
           name: 'arm',
-          description: 'The arm of the class. Must be one of: A, B, C, etc.',
+          description:
+            'The arm of the class (optional). If provided, must be one of: A, B, C, etc.',
           enum: ['A', 'B', 'C'],
+          required: false,
         },
       },
       responses: {
