@@ -1,5 +1,6 @@
 import { HttpStatus } from '@nestjs/common';
 
+import * as sysMsg from '../../../constants/system.messages';
 import { CreateWaitlistDto } from '../dto/create-waitlist.dto';
 
 /**
@@ -20,14 +21,14 @@ export const WaitlistSwagger = {
         description: 'Creates a new waitlist entry',
       },
       responses: {
-        ok: {
+        created: {
           status: HttpStatus.CREATED,
-          description: 'Add user to waitlist',
+          description: sysMsg.WAITLIST_ADDED_SUCCESSFULLY,
           type: CreateWaitlistDto,
         },
-        duplicate: {
+        conflict: {
           status: HttpStatus.CONFLICT,
-          description: 'Email already exists',
+          description: sysMsg.EMAIL_ALREADY_EXISTS,
         },
       },
     },
@@ -40,7 +41,7 @@ export const WaitlistSwagger = {
       responses: {
         ok: {
           status: HttpStatus.OK,
-          description: 'Waitlist entries retrieved successfully',
+          description: sysMsg.WAITLIST_RETRIEVED_SUCCESSFULLY,
           type: CreateWaitlistDto,
           isArray: true,
         },
@@ -55,14 +56,18 @@ export const WaitlistSwagger = {
       parameters: {
         id: {
           name: 'id',
-          description: 'Waitlist Entry ID',
+          description: sysMsg.WAITLIST_ID_PARAM,
         },
       },
       responses: {
         ok: {
           status: HttpStatus.OK,
-          description: 'Waitlist entry retrieved successfully',
+          description: sysMsg.WAITLIST_RETRIEVED_SUCCESSFULLY,
           type: CreateWaitlistDto,
+        },
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          description: 'Waitlist entry not found',
         },
       },
     },
@@ -75,13 +80,17 @@ export const WaitlistSwagger = {
       parameters: {
         id: {
           name: 'id',
-          description: 'Waitlist Entry ID',
+          description: sysMsg.WAITLIST_ID_PARAM,
         },
       },
       responses: {
         ok: {
           status: HttpStatus.OK,
-          description: 'Waitlist entry removed successfully',
+          description: sysMsg.WAITLIST_REMOVED_SUCCESSFULLY,
+        },
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          description: sysMsg.NOT_FOUND,
         },
       },
     },

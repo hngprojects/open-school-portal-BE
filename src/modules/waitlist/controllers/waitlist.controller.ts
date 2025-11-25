@@ -6,27 +6,26 @@ import {
   Param,
   Delete,
   HttpStatus,
-  HttpCode,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 
 import * as sysMsg from '../../../constants/system.messages';
-import { WaitlistSwagger } from '../docs/waitlist.swagger';
+import {
+  DocsCreateWaitlistEntry,
+  DocsGetAllEntries,
+  DocsDeleteWaitlistEntry,
+  DocsGetWaitlistEntryById,
+} from '../docs/waitlist.decorator';
 import { CreateWaitlistDto } from '../dto/create-waitlist.dto';
 import { WaitlistService } from '../services/waitlist.service';
 
-@ApiTags(WaitlistSwagger.tags[0])
+@ApiTags('Waitlist')
 @Controller('waitlist')
 export class WaitlistController {
   constructor(private readonly waitlistService: WaitlistService) {}
 
   @Post()
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation(WaitlistSwagger.endpoints.createWaitlistEntry.operation)
-  @ApiResponse(WaitlistSwagger.endpoints.createWaitlistEntry.responses.ok)
-  @ApiResponse(
-    WaitlistSwagger.endpoints.createWaitlistEntry.responses.duplicate,
-  )
+  @DocsCreateWaitlistEntry()
   async create(@Body() createWaitlistDto: CreateWaitlistDto) {
     const waitlistEntry = await this.waitlistService.create(createWaitlistDto);
 
@@ -44,9 +43,7 @@ export class WaitlistController {
   }
 
   @Get()
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation(WaitlistSwagger.endpoints.getAllWaitlistEntries.operation)
-  @ApiResponse(WaitlistSwagger.endpoints.getAllWaitlistEntries.responses.ok)
+  @DocsGetAllEntries()
   async findAll() {
     const entries = await this.waitlistService.findAll();
 
@@ -64,8 +61,7 @@ export class WaitlistController {
   }
 
   @Get(':id')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation(WaitlistSwagger.endpoints.getWaitlistEntryById.operation)
+  @DocsGetWaitlistEntryById()
   async findOne(@Param('id') id: string) {
     const entry = await this.waitlistService.findOne(id);
 
@@ -83,8 +79,7 @@ export class WaitlistController {
   }
 
   @Delete(':id')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation(WaitlistSwagger.endpoints.deleteWaitlistEntry.operation)
+  @DocsDeleteWaitlistEntry()
   async remove(@Param('id') id: string) {
     await this.waitlistService.remove(id);
 
