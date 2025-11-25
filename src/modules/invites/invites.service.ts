@@ -1,7 +1,9 @@
 import { Injectable, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { S3 } from 'aws-sdk';
 import { Repository } from 'typeorm';
 
+import config from '../../config/config';
 import * as sysMsg from '../../constants/system.messages';
 
 import {
@@ -15,8 +17,16 @@ import {
 } from './dto/pending-invite.dto';
 import { Invite } from './entities/invites.entity';
 
+const { aws } = config();
+
 @Injectable()
 export class InviteService {
+  private readonly s3 = new S3({
+    region: aws.region,
+    accessKeyId: aws.accessKeyId,
+    secretAccessKey: aws.secretAccessKey,
+  });
+
   constructor(
     @InjectRepository(Invite)
     private readonly inviteRepo: Repository<Invite>,
@@ -85,5 +95,20 @@ export class InviteService {
       message: sysMsg.PENDING_INVITES_FETCHED,
       data: mappedInvites,
     };
+  }
+
+  async uploadCsvToS3(file: Express.Multer.File): Promise<string> {
+    const bucket = aws.bucketName;
+    const key = `invites/${Date.now()}-${file.originalname}`;
+
+    const params = {
+      Bucket: bucket,
+      Key: key,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+    };
+
+    const result = await this.s3.upload(params).promise();
+    return result.Key;
   }
 }
