@@ -182,13 +182,28 @@ export const ROOM_ASSIGNED_TO_STREAM = 'Room successfully assigned to stream.';
 export const ROOM_CAPACITY_EXCEEDED = 'Stream size exceeds room capacity.';
 export const ROOM_STATUS_UPDATED = 'Room status updated successfully.';
 
+// Classes
+export const CLASS_OR_TEACHER_OR_SESSION_NOT_FOUND =
+  'class, teacher, or session not found';
+export const CLASS_ALREADY_HAS_TEACHER =
+  'class already has a teacher assigned for this session';
+export const TEACHER_ASSIGNED = 'teacher successfully assigned to the class';
+export const CLASS_CREATED = 'Class successfully created.';
+export const CLASS_OR_CLASS_STREAM_ALREADY_EXIST =
+  'A class with the same name/stream already exists in this session.';
 // Parent messages
 export const PARENT_CREATED = 'Parent created successfully';
 export const PARENT_UPDATED = 'Parent updated successfully';
 export const PARENT_NOT_FOUND = 'Parent not found';
+export const PARENTS_FETCHED = 'Parents fetched successfully';
 // Contact messages
 export const CONTACT_MESSAGE_SENT = 'Contact message sent successfully';
 export const CONTACT_MESSAGE_FAILED = 'Failed to send contact message';
 export const CONTACT_NOT_FOUND = 'Contact inquiry not found';
 export const CONTACT_ALREADY_RESOLVED = 'Contact inquiry already resolved';
 export const CONTACT_STATUS_UPDATED = 'Contact status updated successfully';
+
+// Student messages
+export const STUDENT_CREATED = 'Student created successfully';
+export const STUDENT_EMAIL_CONFLICT = `Student with email already exists.`;
+export const STUDENT_REGISTRATION_NUMBER_CONFLICT = `Student with registration number already exists.`;
