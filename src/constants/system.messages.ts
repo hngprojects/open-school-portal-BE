@@ -176,6 +176,7 @@ export const CLASS_OR_CLASS_STREAM_ALREADY_EXIST =
 export const PARENT_CREATED = 'Parent created successfully';
 export const PARENT_UPDATED = 'Parent updated successfully';
 export const PARENT_NOT_FOUND = 'Parent not found';
+export const PARENTS_FETCHED = 'Parents fetched successfully';
 // Contact messages
 export const CONTACT_MESSAGE_SENT = 'Contact message sent successfully';
 export const CONTACT_MESSAGE_FAILED = 'Failed to send contact message';
