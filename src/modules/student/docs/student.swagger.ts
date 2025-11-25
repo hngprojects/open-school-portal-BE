@@ -15,7 +15,7 @@ export const StudentSwagger = {
   endpoints: {
     create: {
       operation: {
-        summary: 'Create a student',
+        summary: 'Create a new student (ADMIN only)',
         description: 'Creates a Student with the provided data.',
       },
       parameters: {

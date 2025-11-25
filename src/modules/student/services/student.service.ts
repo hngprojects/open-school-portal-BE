@@ -5,16 +5,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { DataSource } from 'typeorm';
+import { DataSource, Like } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { UserRole } from '../../shared/enums';
 import { FileService } from '../../shared/file/file.service';
-import {
-  generateStrongPassword,
-  hashPassword,
-} from '../../shared/utils/password.util';
+import { hashPassword } from '../../shared/utils/password.util';
 import { UserModelAction } from '../../user/model-actions/user-actions';
 import { CreateStudentDto, UpdateStudentDto, StudentResponseDto } from '../dto';
 import { StudentModelAction } from '../model-actions';
@@ -45,7 +42,7 @@ export class StudentService {
     }
     const registration_number =
       createStudentDto.registration_number ||
-      (await this.studentModelAction.generateRegistrationNumber());
+      (await this.generateRegistrationNumber());
 
     const existingStudent = await this.studentModelAction.get({
       identifierOptions: { registration_number },
@@ -58,8 +55,7 @@ export class StudentService {
       throw new ConflictException(sysMsg.STUDENT_REGISTRATION_NUMBER_CONFLICT);
     }
 
-    const rawPassword = createStudentDto.password || generateStrongPassword(12);
-    const hashedPassword = await hashPassword(rawPassword);
+    const hashedPassword = await hashPassword(createStudentDto.password);
 
     let photo_url: string | undefined = undefined;
     if (createStudentDto.photo_url) {
@@ -100,12 +96,16 @@ export class StudentService {
       });
 
       this.logger.info(sysMsg.RESOURCE_CREATED, {
-        teacherId: savedStudent.id,
+        studentId: savedStudent.id,
         registration_number: savedStudent.registration_number,
         email: savedUser.email,
       });
 
-      return new StudentResponseDto(savedStudent, savedUser);
+      return new StudentResponseDto(
+        sysMsg.STUDENT_CREATED,
+        savedStudent,
+        savedUser,
+      );
     });
   }
 
@@ -171,5 +171,40 @@ export class StudentService {
 
   remove(id: string) {
     return `This action removes a #${id} term`;
+  }
+
+  /**
+   * Generate a unique Registration Number in the format REG-YYYY-XXX
+   * where YYYY is the current year and XXX is a sequential number (001, 002, etc.)
+   */
+  private async generateRegistrationNumber(): Promise<string> {
+    const currentYear = new Date().getFullYear();
+    const yearPrefix = `REG-${currentYear}-`;
+
+    // Query the highest existing sequential number for the current year
+    const lastStudent = await this.studentModelAction.find({
+      findOptions: {
+        registration_number: Like(`${yearPrefix}%`),
+      },
+      transactionOptions: {
+        useTransaction: false,
+      },
+      paginationPayload: { limit: 1, page: 1 },
+      order: { registration_number: 'DESC' },
+    });
+
+    let nextSequence = 1;
+    if (lastStudent) {
+      // Extract the numeric part (e.g., '014' from 'REG-2025-014')
+      const parts = lastStudent.payload[0].registration_number.split('-');
+      if (parts.length === 3) {
+        const lastId = parts[2];
+        nextSequence = parseInt(lastId, 10) + 1;
+      }
+    }
+
+    // Format the sequence number to be 3 digits (e.g., 1 -> 001, 14 -> 014)
+    const sequenceStr = nextSequence.toString().padStart(3, '0');
+    return `${yearPrefix}${sequenceStr}`;
   }
 }
