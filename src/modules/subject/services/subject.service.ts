@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   ConflictException,
-  HttpStatus,
   Inject,
   Injectable,
   NotFoundException,
@@ -25,7 +24,6 @@ export interface IListSubjectsOptions {
 }
 
 export interface IBaseResponse<T> {
-  status_code: number;
   message: string;
   data: T;
 }
@@ -89,7 +87,6 @@ export class SubjectService {
     };
 
     return {
-      status_code: HttpStatus.CREATED,
       message: sysMsg.SUBJECT_CREATED,
       data: this.mapToResponseDto(subjectWithRelations),
     };
@@ -112,7 +109,6 @@ export class SubjectService {
     });
 
     return {
-      status_code: HttpStatus.OK,
       message: sysMsg.SUBJECT_LIST_SUCCESS,
       data: payload.map((subject) => this.mapToResponseDto(subject)),
       meta: paginationMeta,
@@ -131,7 +127,6 @@ export class SubjectService {
     }
 
     return {
-      status_code: HttpStatus.OK,
       message: sysMsg.SUBJECT_RETRIEVED_SUCCESS,
       data: this.mapToResponseDto(subject),
     };
@@ -202,7 +197,6 @@ export class SubjectService {
     });
 
     return {
-      status_code: HttpStatus.OK,
       message: sysMsg.SUBJECT_UPDATED,
       data: this.mapToResponseDto(subjectAfterUpdate),
     };
@@ -226,7 +220,6 @@ export class SubjectService {
     });
 
     return {
-      status_code: HttpStatus.OK,
       message: sysMsg.SUBJECT_DELETED,
       data: undefined,
     };

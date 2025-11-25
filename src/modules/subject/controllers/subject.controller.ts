@@ -12,41 +12,35 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiBody,
-  ApiOperation,
-  ApiParam,
-  ApiQuery,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
 
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { UserRole } from '../../shared/enums';
-import { SubjectSwagger } from '../docs/subject.swagger';
+import {
+  ApiSubjectTags,
+  ApiSubjectBearerAuth,
+  ApiCreateSubject,
+  ApiFindAllSubjects,
+  ApiFindOneSubject,
+  ApiUpdateSubject,
+  ApiRemoveSubject,
+} from '../docs/subject.swagger';
 import { CreateSubjectDto } from '../dto/create-subject.dto';
 import { UpdateSubjectDto } from '../dto/update-subject.dto';
 import { SubjectService } from '../services/subject.service';
 
-@ApiTags('Subject')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('subjects')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@ApiSubjectTags()
+@ApiSubjectBearerAuth()
 export class SubjectController {
   constructor(private readonly subjectService: SubjectService) {}
 
   @Post()
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation(SubjectSwagger.decorators.create.operation)
-  @ApiBody(SubjectSwagger.decorators.create.body)
-  @ApiResponse(SubjectSwagger.decorators.create.response)
-  @ApiResponse(SubjectSwagger.decorators.create.errorResponses[0])
-  @ApiResponse(SubjectSwagger.decorators.create.errorResponses[1])
-  @ApiResponse(SubjectSwagger.decorators.create.errorResponses[2])
+  @ApiCreateSubject()
   create(@Body() createSubjectDto: CreateSubjectDto) {
     return this.subjectService.create(createSubjectDto);
   }
@@ -54,23 +48,7 @@ export class SubjectController {
   @Get()
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation(SubjectSwagger.decorators.findAll.operation)
-  @ApiQuery({
-    name: 'page',
-    required: false,
-    type: Number,
-    description: 'Page number (defaults to 1)',
-    example: 1,
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    type: Number,
-    description: 'Number of items per page (defaults to 20)',
-    example: 20,
-  })
-  @ApiResponse(SubjectSwagger.decorators.findAll.response)
-  //LIST SUBJECTS
+  @ApiFindAllSubjects()
   findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
     const parsedPage = Number(page);
     const parsedLimit = Number(limit);
@@ -84,10 +62,7 @@ export class SubjectController {
   @Get(':id')
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation(SubjectSwagger.decorators.findOne.operation)
-  @ApiParam(SubjectSwagger.decorators.findOne.parameters.id)
-  @ApiResponse(SubjectSwagger.decorators.findOne.response)
-  @ApiResponse(SubjectSwagger.decorators.findOne.errorResponses[0])
+  @ApiFindOneSubject()
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.subjectService.findOne(id);
   }
@@ -95,13 +70,7 @@ export class SubjectController {
   @Patch(':id')
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation(SubjectSwagger.decorators.update.operation)
-  @ApiParam(SubjectSwagger.decorators.update.parameters.id)
-  @ApiBody(SubjectSwagger.decorators.update.body)
-  @ApiResponse(SubjectSwagger.decorators.update.response)
-  @ApiResponse(SubjectSwagger.decorators.update.errorResponses[0])
-  @ApiResponse(SubjectSwagger.decorators.update.errorResponses[1])
-  @ApiResponse(SubjectSwagger.decorators.update.errorResponses[2])
+  @ApiUpdateSubject()
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateSubjectDto: UpdateSubjectDto,
@@ -112,10 +81,7 @@ export class SubjectController {
   @Delete(':id')
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation(SubjectSwagger.decorators.remove.operation)
-  @ApiParam(SubjectSwagger.decorators.remove.parameters.id)
-  @ApiResponse(SubjectSwagger.decorators.remove.response)
-  @ApiResponse(SubjectSwagger.decorators.remove.errorResponses[0])
+  @ApiRemoveSubject()
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.subjectService.remove(id);
   }
