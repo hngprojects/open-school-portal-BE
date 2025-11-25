@@ -29,4 +29,10 @@ export class SuperAdmin extends BaseEntity {
 
   @Column({ type: 'boolean', default: false })
   isActive: boolean;
+
+  @Column({ nullable: true, type: 'varchar' })
+  resetToken: string;
+
+  @Column({ nullable: true, type: 'date' })
+  resetTokenExpiration: Date;
 }

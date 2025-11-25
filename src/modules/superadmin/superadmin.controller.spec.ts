@@ -4,6 +4,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import * as sysMsg from '../../constants/system.messages';
 
 import { CreateSuperadminDto } from './dto/create-superadmin.dto';
+import { LoginSuperadminDto } from './dto/login-superadmin.dto';
 import { SuperadminController } from './superadmin.controller';
 import { SuperadminService } from './superadmin.service';
 
@@ -13,6 +14,7 @@ describe('SuperadminController', () => {
 
   const mockService = {
     createSuperAdmin: jest.fn(),
+    login: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -68,6 +70,64 @@ describe('SuperadminController', () => {
       );
 
       await expect(controller.create(dto)).rejects.toThrow(ConflictException);
+    });
+  });
+
+  describe('login', () => {
+    const loginDto: LoginSuperadminDto = {
+      email: 'admin@example.com',
+      password: 'password123',
+    };
+
+    it('should call service.login and return its result', async () => {
+      const serviceResult = {
+        message: sysMsg.LOGIN_SUCCESS,
+        status_code: 200,
+        data: {
+          id: 'uuid-1',
+          email: loginDto.email,
+          access_token: 'access_token_xyz',
+          refresh_token: 'refresh_token_xyz',
+          session_id: 'session-uuid',
+        },
+      };
+
+      mockService.login.mockResolvedValue(serviceResult);
+
+      const result = await controller.login(loginDto);
+
+      expect(service.login).toHaveBeenCalledWith(loginDto);
+      expect(result).toEqual(serviceResult);
+    });
+
+    it('should propagate ConflictException when email does not exist', async () => {
+      mockService.login.mockRejectedValue(
+        new ConflictException('Superadmin not found'),
+      );
+
+      await expect(controller.login(loginDto)).rejects.toThrow(
+        ConflictException,
+      );
+    });
+
+    it('should propagate ConflictException when password is invalid', async () => {
+      mockService.login.mockRejectedValue(
+        new ConflictException('Invalid password'),
+      );
+
+      await expect(controller.login(loginDto)).rejects.toThrow(
+        ConflictException,
+      );
+    });
+
+    it('should propagate ConflictException when superadmin is inactive', async () => {
+      mockService.login.mockRejectedValue(
+        new ConflictException('Superadmin account is inactive'),
+      );
+
+      await expect(controller.login(loginDto)).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 });
