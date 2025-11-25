@@ -1,4 +1,4 @@
-import { EmailTemplateID } from '../../constants/service-constants';
+import { EmailTemplateID } from '../../constants/email-constants';
 
 /**
  * The standard payload for sending an email via the EmailService.

@@ -22,13 +22,15 @@ export class EmailService {
     this.logger = baseLogger.child({ context: EmailService.name });
     // Initialize the transporter
     this.transporter = nodemailer.createTransport({
-      host: this.configService.get<string>('MAIL_HOST'),
-      port: this.configService.get<number>('MAIL_PORT'),
-      secure: this.configService.get<number>('MAIL_PORT') === 465,
+      host: this.configService.get<string>('mail.host'),
+      port: this.configService.get<number>('mail.port'),
+      secure: this.configService.get<number>('mail.port') === 465,
       auth: {
-        user: this.configService.get<string>('MAIL_USER'),
-        pass: this.configService.get<string>('MAIL_PASS'),
+        user: this.configService.get<string>('mail.username'),
+        pass: this.configService.get<string>('mail.password'),
       },
+      pool: true,
+      maxConnections: 5,
     });
   }
   /**
@@ -77,10 +79,10 @@ export class EmailService {
     const html = await this.compileTemplate(templateNameID, templateData);
 
     const fromAddress =
-      from?.email ?? this.configService.get<string>('MAIL_FROM_ADDRESS');
+      from?.email ?? this.configService.get<string>('mail.from.address');
     const fromName =
       from?.name ??
-      this.configService.get<string>('MAIL_FROM_NAME') ??
+      this.configService.get<string>('mail.from.name') ??
       'Open School Portal';
 
     const mailOptions: nodemailer.SendMailOptions = {

@@ -4,7 +4,7 @@ import { connect } from 'amqplib';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
-import { EMAIL_DLQ } from '../../constants/service-constants';
+import { EMAIL_DLQ } from '../../constants/email-constants';
 @Injectable()
 export class RabbitMqSetupService implements OnModuleInit {
   private readonly logger: Logger;

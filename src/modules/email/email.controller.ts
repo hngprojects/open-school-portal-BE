@@ -3,7 +3,7 @@ import { Ctx, EventPattern, Payload, RmqContext } from '@nestjs/microservices';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
-import { EMAIL_PATTERN } from '../../constants/service-constants';
+import { EMAIL_PATTERN } from '../../constants/email-constants';
 
 import { EmailService } from './email.service';
 import { EmailPayload } from './email.types';

@@ -6,7 +6,7 @@ import {
   EMAIL_QUEUE,
   EMAIL_SERVICE_NAME,
   EMAIL_DLQ,
-} from '../../constants/service-constants';
+} from '../../constants/email-constants';
 
 import { EmailController } from './email.controller';
 import { EmailService } from './email.service';
