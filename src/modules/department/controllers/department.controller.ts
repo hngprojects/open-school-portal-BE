@@ -46,7 +46,6 @@ export class DepartmentController {
   @ApiResponse(DepartmentSwagger.decorators.create.response)
   @ApiResponse(DepartmentSwagger.decorators.create.errorResponses[0])
   @ApiResponse(DepartmentSwagger.decorators.create.errorResponses[1])
-  //CREATE department
   create(@Body() createDepartmentDto: CreateDepartmentDto) {
     return this.departmentService.create(createDepartmentDto);
   }
