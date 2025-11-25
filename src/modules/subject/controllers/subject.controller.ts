@@ -53,7 +53,7 @@ export class SubjectController {
   }
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation(SubjectSwagger.decorators.findAll.operation)
   @ApiQuery({
@@ -83,7 +83,7 @@ export class SubjectController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation(SubjectSwagger.decorators.findOne.operation)
   @ApiParam(SubjectSwagger.decorators.findOne.parameters.id)
