@@ -4,12 +4,14 @@ import {
   Unique,
   OneToMany,
   OneToOne,
+  JoinColumn,
   ManyToOne,
 } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
+import { Stream } from '../../academic/entities/stream.entity';
 import { Session } from '../../session/entities/session.entity';
-import { Stream } from '../../stream/entities/stream.entity';
+// import { Stream } from '../../stream/entities/stream.entity';
 
 export enum UserRole {
   ADMIN = 'ADMIN',
@@ -82,7 +84,9 @@ export class User extends BaseEntity {
 
   @Column({ type: 'timestamp', nullable: true, default: null })
   deleted_at: Date | null;
-
+  // Added for Stream Management
+  // Many students belong to one stream (e.g. 40 students in JSS1 A)
   @ManyToOne(() => Stream, (stream) => stream.students)
+  @JoinColumn({ name: 'stream_id' })
   stream: Stream;
 }
