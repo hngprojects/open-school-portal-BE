@@ -193,3 +193,8 @@ export const CONTACT_NOT_FOUND = 'Contact inquiry not found';
 export const CONTACT_ALREADY_RESOLVED = 'Contact inquiry already resolved';
 export const CONTACT_STATUS_UPDATED = 'Contact status updated successfully';
 
+
+// Student messages
+export const STUDENT_CREATED = 'Student created successfully';
+export const STUDENT_EMAIL_CONFLICT = `Student with email already exists.`;
+export const STUDENT_REGISTRATION_NUMBER_CONFLICT = `Student with registration number already exists.`;
