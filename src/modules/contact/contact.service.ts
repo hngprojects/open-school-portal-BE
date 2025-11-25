@@ -41,7 +41,7 @@ export class ContactService {
         },
       });
 
-      // Send both emails in parallel with error handling
+      // ✅ Send both emails in parallel with error handling
       const emailResults = await Promise.allSettled([
         this.sendAdminNotification(savedContact),
         this.sendUserConfirmation(createContactDto),

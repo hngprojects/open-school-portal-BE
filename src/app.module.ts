@@ -14,6 +14,7 @@ import { LoggingInterceptor } from './middleware/logging.interceptor';
 import { AcademicSessionModule } from './modules/academic-session/academic-session.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ClassModule } from './modules/class/class.module';
+import { ContactModule } from './modules/contact/contact.module';
 import { EmailModule } from './modules/email/email.module';
 import { InviteModule } from './modules/invites/invites.module';
 import { ParentModule } from './modules/parent/parent.module';
@@ -67,6 +68,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     TermModule,
     // AcademicModule,
     StreamModule,
+    ContactModule,
   ],
   controllers: [AppController],
   providers: [
