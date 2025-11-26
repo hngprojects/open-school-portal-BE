@@ -1,6 +1,5 @@
 import {
   ConflictException,
-  HttpStatus,
   Inject,
   Injectable,
   NotFoundException,
@@ -17,7 +16,6 @@ import { Subject } from '../entities/subject.entity';
 import { SubjectModelAction } from '../model-actions/subject.actions';
 
 export interface IBaseResponse<T> {
-  status_code: number;
   message: string;
   data: T;
 }
@@ -77,7 +75,6 @@ export class SubjectService {
     };
 
     return {
-      status_code: HttpStatus.CREATED,
       message: sysMsg.SUBJECT_CREATED,
       data: this.mapToResponseDto(subjectWithRelations),
     };
