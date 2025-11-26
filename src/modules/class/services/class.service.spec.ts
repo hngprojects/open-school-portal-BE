@@ -1,6 +1,5 @@
 import {
   ConflictException,
-  HttpStatus,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
@@ -264,9 +263,8 @@ describe('ClassService', () => {
         },
       });
 
-      expect(result.status_code).toBe(HttpStatus.CREATED);
-      expect(result.data.name).toBe(createClassDto.name);
-      expect(result.data.academicSession.id).toBe(MOCK_ACTIVE_SESSION);
+      expect(result.name).toBe(createClassDto.name);
+      expect(result.academicSession.id).toBe(MOCK_ACTIVE_SESSION);
     });
 
     it('should throw ConflictException if the class already exists in the active session', async () => {
@@ -446,6 +444,42 @@ describe('ClassService', () => {
       expect(result.items).toEqual([]);
       expect(result.pagination).toBeDefined();
       expect(mockClassModelAction.list).toHaveBeenCalled();
+    });
+  });
+
+  describe('getClassById', () => {
+    const classId = 'class-uuid-1';
+    const mockAcademicSession = {
+      id: 'session-uuid-1',
+      name: '2026/2027',
+    };
+    const existingClass = {
+      id: classId,
+      name: 'JSS1',
+      arm: 'A',
+      academicSession: mockAcademicSession,
+    } as unknown as Class;
+
+    it('should return the correct flattened response for getClassById', async () => {
+      classModelAction.get.mockResolvedValue(existingClass);
+      const result = await service.getClassById(classId);
+      expect(result).toEqual({
+        message: sysMsg.CLASS_FETCHED,
+        id: classId,
+        name: 'JSS1',
+        arm: 'A',
+        academicSession: {
+          id: 'session-uuid-1',
+          name: '2026/2027',
+        },
+      });
+    });
+
+    it('should throw NotFoundException if class does not exist', async () => {
+      classModelAction.get.mockResolvedValue(null);
+      await expect(service.getClassById('wrong-id')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

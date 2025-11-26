@@ -59,3 +59,14 @@ export const DocsGetGroupedClasses = () => {
     ApiOkResponse(responses.ok),
   );
 };
+
+export const DocsGetClassById = () => {
+  const { operation, parameters, responses } =
+    ClassSwagger.endpoints.getClassById;
+  return applyDecorators(
+    ApiOperation(operation),
+    ApiParam(parameters.id),
+    ApiResponse(responses.ok),
+    ApiNotFoundResponse(responses.notFound),
+  );
+};

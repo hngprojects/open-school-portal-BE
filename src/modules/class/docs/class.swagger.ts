@@ -179,5 +179,28 @@ export const ClassSwagger = {
         },
       },
     },
+    getClassById: {
+      operation: {
+        summary: 'Get class by ID',
+        description: 'Returns details of a class by its unique ID.',
+      },
+      parameters: {
+        id: {
+          name: 'id',
+          description: 'The Class ID',
+        },
+      },
+      responses: {
+        ok: {
+          status: HttpStatus.OK,
+          description: 'Class found',
+          type: ClassResponseDto,
+        },
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          description: 'Class not found',
+        },
+      },
+    },
   },
 };

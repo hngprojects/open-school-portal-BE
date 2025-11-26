@@ -20,12 +20,14 @@ import {
   DocsGetClassTeachers,
   DocsGetGroupedClasses,
   DocsUpdateClass,
+  DocsGetClassById,
 } from '../docs/class.decorator';
 import {
   CreateClassDto,
   ListGroupedClassesDto,
   GroupedClassDto,
   UpdateClassDto,
+  ClassResponseDto,
 } from '../dto';
 import { GetTeachersQueryDto } from '../dto/get-teachers-query.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
@@ -71,5 +73,14 @@ export class ClassController {
     @Query() query: GetTeachersQueryDto,
   ): Promise<TeacherAssignmentResponseDto[]> {
     return this.classService.getTeachersByClass(classId, query.session_id);
+  }
+
+  // --- GET: GET CLASS BY ID (ADMIN ONLY) ---
+  @Get(':id')
+  @DocsGetClassById()
+  async getClassById(
+    @Param('id', ParseUUIDPipe) classId: string,
+  ): Promise<ClassResponseDto> {
+    return this.classService.getClassById(classId);
   }
 }
