@@ -8,7 +8,6 @@ import { SessionModule } from '../session/session.module';
 import { UserModule } from '../user/user.module';
 import { UserService } from '../user/user.service';
 
-import { AuthRolesModule } from './auth-roles/auth-roles.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -18,7 +17,6 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 @Module({
   imports: [
     UserModule,
-    AuthRolesModule,
     EmailModule,
     SessionModule,
     PassportModule,
