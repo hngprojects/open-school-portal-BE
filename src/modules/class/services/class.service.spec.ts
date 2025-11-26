@@ -9,8 +9,8 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
-import { SessionStatus } from '../../academic-session/entities/academic-session.entity';
 import * as sysMsg from '../../../constants/system.messages';
+import { SessionStatus } from '../../academic-session/entities/academic-session.entity';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { ClassTeacher } from '../entities/class-teacher.entity';
 import { Class } from '../entities/class.entity';
@@ -208,7 +208,7 @@ describe('ClassService', () => {
       expect(result).toEqual(emptyPayload.payload);
     });
   });
-  
+
   describe('create', () => {
     const createClassDto = {
       name: 'Grade 10',

@@ -18,14 +18,17 @@ import { UserRole } from '../../shared/enums';
 import {
   DocsCreateClass,
   DocsGetClassTeachers,
+  DocsGetGroupedClasses,
   DocsUpdateClass,
 } from '../docs/class.decorator';
 import {
   CreateClassDto,
-  GetTeachersQueryDto,
-  TeacherAssignmentResponseDto,
+  ListGroupedClassesDto,
+  GroupedClassDto,
   UpdateClassDto,
 } from '../dto';
+import { GetTeachersQueryDto } from '../dto/get-teachers-query.dto';
+import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
 import { ClassService } from '../services/class.service';
 
 @ApiTags('Classes')
@@ -44,6 +47,13 @@ export class ClassController {
     return this.classService.create(createClassDto);
   }
 
+  // --- GET: GROUPED CLASSES ---
+  @Get('')
+  @DocsGetGroupedClasses()
+  async getGroupedClasses(@Query() query: ListGroupedClassesDto) {
+    return this.classService.getGroupedClasses(query.page, query.limit);
+  }
+
   // --- PATCH: UPDATE CLASS (ADMIN ONLY) ---
   @Patch(':id')
   @DocsUpdateClass()
@@ -52,11 +62,6 @@ export class ClassController {
     @Body() updateClassDto: UpdateClassDto,
   ) {
     return this.classService.updateClass(classId, updateClassDto);
-  // --- GET: GROUPED CLASSES ---
-  @Get('')
-  @DocsGetGroupedClasses()
-  async getGroupedClasses(@Query() query: ListGroupedClassesDto) {
-    return this.classService.getGroupedClasses(query.page, query.limit);
   }
 
   @Get(':id/teachers')

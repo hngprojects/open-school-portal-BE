@@ -222,7 +222,7 @@ export class ClassService {
       },
     };
   }
-  
+
   /**
    * Fetches all classes grouped by name and academic session, including arm.
    */
