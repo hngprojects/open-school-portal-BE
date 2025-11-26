@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 import { UserRole } from '../../../shared/enums';
-import { ModuleDescriptor } from '../interface/module-descriptor-interface';
+import { IModuleDescriptor } from '../interface/module-descriptor-interface';
 
 export class StudentChildDto {
   @ApiProperty()
@@ -51,7 +51,7 @@ export class DashboardResolvedDataDto {
   dashboard: UserRole;
 
   @ApiProperty({ type: [Object] })
-  modules: ModuleDescriptor[];
+  modules: IModuleDescriptor[];
 
   @ApiProperty({ type: Object })
   metadata:
