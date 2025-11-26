@@ -12,24 +12,15 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { Repository, FindOptionsWhere } from 'typeorm';
+import { FindOptionsWhere } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../constants/system.messages';
-import { School } from '../school/entities/school.entity';
+import { SchoolModelAction } from '../school/model-actions/school.action';
 import { UserRole } from '../user/entities/user.entity';
 import { UserModelAction } from '../user/model-actions/user-actions';
 
 import { AcceptInviteDto } from './dto/accept-invite.dto';
-import {
-  InviteUserDto,
-  CreatedInviteDto,
-  InviteRole,
-} from './dto/invite-user.dto';
-import {
-  PendingInviteDto,
-  PendingInvitesResponseDto,
-} from './dto/pending-invite.dto';
 import { Invite, InviteStatus } from './entities/invites.entity';
 import { InviteModelAction } from './invite.model-action';
 
@@ -39,84 +30,15 @@ export class InviteService {
 
   constructor(
     @InjectRepository(Invite)
-    private readonly inviteRepo: Repository<Invite>,
-
-    @InjectRepository(School)
-    private readonly schoolRepo: Repository<School>,
-
     private readonly configService: ConfigService,
 
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
 
     private readonly userModelAction: UserModelAction,
     private readonly inviteModelAction: InviteModelAction,
+    private readonly schoolModelAction: SchoolModelAction,
   ) {
     this.logger = baseLogger.child({ context: InviteService.name });
-  }
-
-  async sendInvite(payload: InviteUserDto): Promise<PendingInvitesResponseDto> {
-    const exists = await this.inviteRepo.findOne({
-      where: { email: payload.email },
-    });
-
-    if (exists) {
-      return {
-        status_code: HttpStatus.CONFLICT,
-        message: sysMsg.INVITE_ALREADY_SENT,
-        data: [],
-      };
-    }
-
-    const invite = this.inviteRepo.create({
-      email: payload.email,
-      role: payload.role,
-      full_name: payload.full_name,
-    });
-
-    await this.inviteRepo.save(invite);
-
-    const createdInvite: CreatedInviteDto = {
-      id: invite.id,
-      email: invite.email,
-      invited_at: invite.invited_at,
-      role: invite.role as InviteRole,
-      full_name: invite.full_name,
-    };
-
-    {
-      return {
-        status_code: HttpStatus.OK,
-        message: sysMsg.INVITE_SENT,
-        data: [createdInvite],
-      };
-    }
-  }
-
-  async getPendingInvites(): Promise<PendingInvitesResponseDto> {
-    const invites = await this.inviteRepo.find({
-      where: { accepted: false },
-      order: { createdAt: 'DESC' },
-    });
-
-    if (invites.length === 0) {
-      return {
-        status_code: HttpStatus.NOT_FOUND,
-        message: sysMsg.NO_PENDING_INVITES,
-        data: [],
-      };
-    }
-
-    const mappedInvites: PendingInviteDto[] = invites.map((invite) => ({
-      id: invite.id,
-      email: invite.email,
-      invited_at: invite.invited_at,
-    }));
-
-    return {
-      status_code: HttpStatus.OK,
-      message: sysMsg.PENDING_INVITES_FETCHED,
-      data: mappedInvites,
-    };
   }
 
   async acceptInvite(acceptInviteDto: AcceptInviteDto) {

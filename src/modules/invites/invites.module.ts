@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { School } from '../school/entities/school.entity';
+import { EmailModule } from '../email/email.module';
+import { SchoolModule } from '../school/school.module';
 import { UserModule } from '../user/user.module';
 
 import { Invite } from './entities/invites.entity';
@@ -10,7 +11,12 @@ import { InvitesController } from './invites.controller';
 import { InviteService } from './invites.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Invite, School]), UserModule],
+  imports: [
+    TypeOrmModule.forFeature([Invite]),
+    SchoolModule,
+    UserModule,
+    EmailModule,
+  ],
   controllers: [InvitesController],
   providers: [InviteService, InviteModelAction],
   exports: [InviteService],
