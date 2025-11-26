@@ -59,4 +59,13 @@ export class InvitesController {
   async getPendingInvites(): Promise<PendingInvitesResponseDto> {
     return this.inviteService.getPendingInvites();
   }
+
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiGetPendingInvites()
+  async getAcceptedInvites(): Promise<PendingInvitesResponseDto> {
+    return this.inviteService.getAcceptedInvites();
+  }
 }

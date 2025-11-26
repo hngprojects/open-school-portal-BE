@@ -50,6 +50,10 @@ export default () => ({
     apiSecret: process.env.CLOUDINARY_API_SECRET,
   },
 
+  frontend: {
+    url: process.env.FRONTEND_URL,
+  },
+
   isTest(): boolean {
     return process.env.NODE_ENV === 'test';
   },

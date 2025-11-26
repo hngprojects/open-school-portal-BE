@@ -1,6 +1,13 @@
-import { Entity, Column, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
+import { School } from '../../school/entities/school.entity';
 
 export enum InviteStatus {
   PENDING = 'pending',
@@ -38,4 +45,11 @@ export class Invite extends BaseEntity {
 
   @Column()
   last_name: string;
+
+  @Column({ nullable: true })
+  school_id: string;
+
+  @ManyToOne(() => School, { nullable: true })
+  @JoinColumn({ name: 'school_id' })
+  school: School;
 }

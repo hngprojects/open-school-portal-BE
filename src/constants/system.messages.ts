@@ -138,11 +138,14 @@ export const CLASS_NOT_FOUND = 'Class with the provided ID does not exist';
 // Invites
 export const INVITE_SENT = 'INVITE_SENT';
 export const PENDING_INVITES_FETCHED = 'Pending invites retrieved successfully';
+export const ACCEPTED_INVITES_FETCHED =
+  'Accepted invites retrieved successfully';
 export const NO_PENDING_INVITES = 'No pending invites found';
 export const INVITE_ALREADY_SENT = 'INVITE_ALREADY_SENT';
 export const INVITE_ACCEPTED = 'INVITE_ACCEPTED';
 export const INVITE_RESENT = 'INVITE_RESENT';
 export const INVITE_DELETED = 'INVITE_DELETED';
+export const NO_ACCEPTED_INVITES = 'No accepted invites found';
 
 // Token Validation
 export const INVALID_TOKEN = 'INVALID_TOKEN';

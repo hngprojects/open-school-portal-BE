@@ -1,6 +1,11 @@
 import { createHash, randomBytes } from 'crypto';
 
-import { Injectable, HttpStatus } from '@nestjs/common';
+import {
+  Injectable,
+  HttpStatus,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 
@@ -8,6 +13,7 @@ import { EmailTemplateID } from '../../constants/email-constants';
 import * as sysMsg from '../../constants/system.messages';
 import { EmailService } from '../email/email.service';
 import { EmailPayload } from '../email/email.types';
+import { School } from '../school/entities/school.entity';
 import { User } from '../user/entities/user.entity';
 
 import {
@@ -34,12 +40,14 @@ export class InviteService {
 
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectRepository(School)
+    private readonly schoolRepo: Repository<School>,
 
+    private readonly configService: ConfigService,
     private readonly emailService: EmailService,
   ) {}
   async sendInvite(payload: InviteUserDto): Promise<PendingInvitesResponseDto> {
-    const frontendUrl = 'https://staging.borjigin.emerj.net/';
-
+    const frontendUrl = this.configService.get<string>('frontend.url');
     // Check if user exists
     const exists = await this.userRepo.findOne({
       where: { email: payload.email },
@@ -68,10 +76,33 @@ export class InviteService {
       };
     }
 
+    // Get school information
+    let school: School;
+
+    // If school_id is provided in payload, use that school
+    if (payload.school_id) {
+      school = await this.schoolRepo.findOne({
+        where: { id: payload.school_id },
+      });
+    } else {
+      // Otherwise, get the first school from database
+      school = await this.schoolRepo.findOne({
+        order: { createdAt: 'ASC' },
+      });
+    }
+
+    if (!school) {
+      return {
+        status_code: HttpStatus.BAD_REQUEST,
+        message: 'No school found',
+        data: [],
+      };
+    }
+
     // Generate secure token
     const { rawToken, hashedToken } = await this.generateUniqueToken();
 
-    // Create invitation record with separate first_name and last_name
+    // Create invitation record with school reference
     const invite = this.inviteRepo.create({
       email: payload.email,
       role: payload.role,
@@ -81,6 +112,7 @@ export class InviteService {
       status: InviteStatus.PENDING,
       invited_at: new Date(),
       expires_at: new Date(Date.now() + 30 * 60 * 1000),
+      school_id: school.id,
     });
 
     await this.inviteRepo.save(invite);
@@ -114,29 +146,19 @@ export class InviteService {
           name: `${invite.first_name} ${invite.last_name}`,
         },
       ],
-      subject: `You are invited to Open School Portal`,
+      subject: `You are invited to join ${school.name}`,
       templateNameID: EmailTemplateID.INVITE,
       templateData: {
         firstName: invite.first_name,
         role: invite.role,
         inviteLink: inviteLink,
-        schoolName: 'Open School Portal',
-        logoUrl: 'https://your-school-logo-url.com/logo.png',
+        schoolName: school.name,
+        logoUrl: school.logo_url,
+        schoolEmail: school.email,
       },
     };
 
-    // Implement email sending
-    try {
-      await this.emailService.sendMail(emailPayload);
-    } catch {
-      // Update invite status to failed if email fails
-      await this.inviteRepo.update(invite.id, { status: InviteStatus.FAILED });
-      return {
-        status_code: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: sysMsg.EMAIL_DELIVERY_FAILED,
-        data: [],
-      };
-    }
+    await this.emailService.sendMail(emailPayload);
 
     const createdInvite: CreatedInviteDto = {
       id: invite.id,
@@ -146,6 +168,7 @@ export class InviteService {
       first_name: invite.first_name,
       last_name: invite.last_name,
       status: InviteStatus.PENDING,
+      school_id: school.id,
     };
 
     return {
@@ -154,6 +177,7 @@ export class InviteService {
       data: [createdInvite],
     };
   }
+
   async validateInviteToken(
     dto: ValidateInviteDto,
   ): Promise<ValidateInviteResponseDto> {
@@ -237,7 +261,35 @@ export class InviteService {
     };
   }
 
-  async generateUniqueToken() {
+  async getAcceptedInvites(): Promise<PendingInvitesResponseDto> {
+    const invites = await this.inviteRepo.find({
+      where: { status: InviteStatus.USED },
+      order: { invited_at: 'DESC' },
+    });
+
+    if (invites.length === 0) {
+      return {
+        status_code: HttpStatus.NOT_FOUND,
+        message: sysMsg.NO_ACCEPTED_INVITES,
+        data: [],
+      };
+    }
+
+    const mappedInvites: PendingInviteDto[] = invites.map((invite) => ({
+      id: invite.id,
+      email: invite.email,
+      invited_at: invite.invited_at,
+      status: invite.status,
+    }));
+
+    return {
+      status_code: HttpStatus.OK,
+      message: sysMsg.ACCEPTED_INVITES_FETCHED,
+      data: mappedInvites,
+    };
+  }
+
+  private async generateUniqueToken() {
     for (let i = 0; i < 3; i++) {
       const rawToken = randomBytes(32).toString('hex');
       const hashedToken = createHash('sha256').update(rawToken).digest('hex');
@@ -251,6 +303,8 @@ export class InviteService {
       }
     }
 
-    throw new Error('Token generation collision');
+    throw new ServiceUnavailableException(
+      'Could not process invitation at this time. Please try again later',
+    );
   }
 }

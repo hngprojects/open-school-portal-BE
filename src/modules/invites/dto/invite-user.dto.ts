@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsString, Matches } from 'class-validator';
+import { IsEmail, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 
 import { PendingInviteDto } from './pending-invite.dto';
 
@@ -13,9 +13,6 @@ export enum InviteRole {
 export class InviteUserDto {
   @ApiProperty({ example: 'parent@example.com' })
   @IsEmail()
-  @Matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, {
-    message: 'Please provide a valid email address',
-  })
   email: string;
 
   @ApiProperty({
@@ -32,6 +29,10 @@ export class InviteUserDto {
   @ApiProperty({ example: 'Doe' })
   @IsString()
   last_name: string;
+
+  @IsOptional()
+  @IsUUID()
+  school_id?: string;
 }
 
 export class CreatedInviteDto extends PendingInviteDto {
@@ -46,6 +47,8 @@ export class CreatedInviteDto extends PendingInviteDto {
 
   @ApiPropertyOptional({ example: 'pending' })
   readonly status?: string;
+
+  school_id?: string;
 }
 
 export class CreatedInvitesResponseDto {
