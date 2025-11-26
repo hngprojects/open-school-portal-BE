@@ -35,8 +35,7 @@ export class RoomsService {
    * Creates a new room after checking for duplicates.
    */
   async create(createRoomDto: CreateRoomDto): Promise<ICreateRoomResponse> {
-    const { name, capacity, location, floor, room_type, description } =
-      createRoomDto;
+    const { name, capacity, location, floor, room_type } = createRoomDto;
 
     // 1. Check for existing room with the same name
     const existingRoom = await this.roomModelAction.get({
@@ -56,7 +55,6 @@ export class RoomsService {
           location,
           floor,
           room_type,
-          description,
         },
         transactionOptions: {
           useTransaction: true,

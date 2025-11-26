@@ -19,7 +19,4 @@ export class Room extends BaseEntity {
 
   @Column({ nullable: false })
   room_type?: string;
-
-  @Column()
-  description?: string;
 }

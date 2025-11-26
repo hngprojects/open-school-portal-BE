@@ -37,13 +37,6 @@ export class RoomResponseDto {
   @Expose({ name: 'room_type' })
   roomType?: string;
 
-  @ApiPropertyOptional({
-    example: 'A spacious classroom with projector and whiteboard.',
-    description: 'Description of the room',
-  })
-  @Expose()
-  description?: string;
-
   @ApiProperty({
     example: '2023-10-01T12:00:00Z',
     description: 'Date and time when the room was created',

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsInt, Min } from 'class-validator';
+import { IsNotEmpty, IsInt, Min, IsString } from 'class-validator';
 
 export class CreateRoomDto {
   @ApiProperty({
@@ -24,6 +24,8 @@ export class CreateRoomDto {
     example: 'Main Building',
     required: true,
   })
+  @IsNotEmpty()
+  @IsString()
   location?: string;
 
   @ApiProperty({
@@ -31,6 +33,8 @@ export class CreateRoomDto {
     example: '2nd Floor',
     required: true,
   })
+  @IsNotEmpty()
+  @IsString()
   floor?: string;
 
   @ApiProperty({
@@ -38,12 +42,7 @@ export class CreateRoomDto {
     example: 'Classroom',
     required: true,
   })
+  @IsNotEmpty()
+  @IsString()
   room_type?: string;
-
-  @ApiProperty({
-    description: 'A brief description of the room',
-    example: 'A spacious classroom with projector and whiteboard.',
-    required: true,
-  })
-  description?: string;
 }
