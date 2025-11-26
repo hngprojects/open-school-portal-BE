@@ -4,8 +4,9 @@ import {
   Injectable,
   HttpStatus,
 } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { DataSource } from 'typeorm';
+import { DataSource, ILike } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
@@ -34,11 +35,12 @@ export class RoomsService {
    * Creates a new room after checking for duplicates.
    */
   async create(createRoomDto: CreateRoomDto): Promise<ICreateRoomResponse> {
-    const { name, capacity } = createRoomDto;
+    const { name, capacity, location, floor, room_type, description } =
+      createRoomDto;
 
     // 1. Check for existing room with the same name
     const existingRoom = await this.roomModelAction.get({
-      identifierOptions: { name },
+      identifierOptions: { name: ILike(name) },
     });
 
     if (existingRoom) {
@@ -51,6 +53,10 @@ export class RoomsService {
         createPayload: {
           name,
           capacity,
+          location,
+          floor,
+          room_type,
+          description,
         },
         transactionOptions: {
           useTransaction: true,
@@ -64,12 +70,9 @@ export class RoomsService {
     return {
       status_code: HttpStatus.CREATED,
       message: sysMsg.ROOM_CREATED,
-      data: {
-        name: createRoom.name,
-        capacity: createRoom.capacity,
-        createdAt: createRoom.createdAt,
-        updatedAt: createRoom.updatedAt,
-      },
+      data: plainToInstance(RoomResponseDto, createRoom, {
+        excludeExtraneousValues: true,
+      }),
     };
   }
 }

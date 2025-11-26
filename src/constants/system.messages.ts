@@ -201,6 +201,6 @@ export const STUDENT_EMAIL_CONFLICT = `Student with email already exists.`;
 export const STUDENT_REGISTRATION_NUMBER_CONFLICT = `Student with registration number already exists.`;
 
 export const ROOM_CREATED = 'Room created successfully';
-export const ROOM_ALREADY_EXISTS = 'Room with the given name already exists';
+export const ROOM_ALREADY_EXISTS = 'Room with this given name already exists';
 export const STUDENT_NOT_FOUND = 'Student not found';
 export const STUDENT_UPDATED = 'Student updated successfully';

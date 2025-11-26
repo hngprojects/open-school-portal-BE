@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { DataSource } from 'typeorm';
+import { DataSource, ILike } from 'typeorm';
 
+import * as sysMsg from '../../../constants/system.messages';
 import { RoomModelAction } from '../model-actions/room.actions';
 
 import { RoomsService } from './rooms.service';
@@ -17,6 +18,9 @@ describe('RoomsService', () => {
           useValue: {
             get: jest.fn(),
             create: jest.fn(),
+            repository: {
+              createQueryBuilder: jest.fn(),
+            },
           },
         },
         {
@@ -33,7 +37,11 @@ describe('RoomsService', () => {
           provide: 'winston',
           useValue: {
             log: jest.fn(),
-            child: jest.fn().mockReturnThis(), // Mock the child method to return a logger-like object
+            child: jest.fn().mockReturnValue({
+              info: jest.fn(),
+              error: jest.fn(),
+              warn: jest.fn(),
+            }),
           },
         },
       ],
@@ -44,5 +52,78 @@ describe('RoomsService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('create', () => {
+    const createRoomDto = {
+      name: 'Test Room',
+      capacity: 10,
+      location: 'Building A',
+      floor: '1st Floor',
+      room_type: 'Classroom',
+      description: 'A room for testing purposes',
+    };
+
+    const newRoom = {
+      id: '1',
+      ...createRoomDto,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    it('should successfully create a new room', async () => {
+      jest.spyOn(service['roomModelAction'], 'get').mockResolvedValue(null);
+      jest
+        .spyOn(service['roomModelAction'], 'create')
+        .mockResolvedValue(newRoom);
+
+      const result = await service.create(createRoomDto);
+
+      expect(service['roomModelAction']['get']).toHaveBeenCalledWith({
+        identifierOptions: { name: ILike(createRoomDto.name) },
+      });
+      expect(service['roomModelAction']['create']).toHaveBeenCalledWith({
+        createPayload: {
+          name: createRoomDto.name,
+          capacity: createRoomDto.capacity,
+          location: createRoomDto.location,
+          floor: createRoomDto.floor,
+          room_type: createRoomDto.room_type,
+          description: createRoomDto.description,
+          createdAt: Date(),
+          updatedAt: Date(),
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: expect.any(Object),
+        },
+      });
+
+      expect(result.status_code).toBe(201);
+      expect(result.message).toBe(sysMsg.ROOM_CREATED);
+      expect(result.data).toEqual(
+        expect.objectContaining({
+          name: createRoomDto.name,
+          capacity: createRoomDto.capacity,
+          location: createRoomDto.location,
+          floor: createRoomDto.floor,
+          roomType: createRoomDto.room_type,
+          description: createRoomDto.description,
+          createdAt: Date(),
+          updatedAt: Date(),
+        }),
+      );
+    });
+
+    it('should throw ConflictException if room with same name already exists', async () => {
+      jest.spyOn(service['roomModelAction'], 'get').mockResolvedValue(newRoom);
+
+      await expect(service.create(createRoomDto)).rejects.toThrow(
+        sysMsg.ROOM_ALREADY_EXISTS,
+      );
+
+      // The create method should not have been called
+      expect(service['roomModelAction']['create']).not.toHaveBeenCalled();
+    });
   });
 });

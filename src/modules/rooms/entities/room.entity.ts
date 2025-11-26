@@ -8,6 +8,18 @@ export class Room extends BaseEntity {
   @Column({ unique: true })
   name: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: false })
   capacity?: number;
+
+  @Column({ nullable: false })
+  location?: string;
+
+  @Column({ nullable: false })
+  floor?: string;
+
+  @Column({ nullable: false })
+  room_type?: string;
+
+  @Column()
+  description?: string;
 }

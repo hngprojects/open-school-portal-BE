@@ -7,7 +7,7 @@ import { RolesGuard } from '../../auth/guards/roles.guard';
 import { UserRole } from '../../shared/enums';
 import { DocsCreateRoom } from '../docs/room.decorator';
 import { CreateRoomDto } from '../dto/create-room.dto';
-import { RoomsService } from '../services/rooms.service';
+import { ICreateRoomResponse, RoomsService } from '../services/rooms.service';
 
 @ApiTags('Rooms')
 @Controller('rooms')
@@ -20,7 +20,9 @@ export class RoomsController {
   // --- POST: CREATE ROOM (ADMIN ONLY) ---
   @Post('')
   @DocsCreateRoom()
-  async create(@Body() createRoomDto: CreateRoomDto) {
+  async create(
+    @Body() createRoomDto: CreateRoomDto,
+  ): Promise<ICreateRoomResponse> {
     return this.roomsService.create(createRoomDto);
   }
 }
