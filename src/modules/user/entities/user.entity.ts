@@ -12,6 +12,7 @@ import { Session } from '../../session/entities/session.entity';
 import { Stream } from '../../stream/entities/stream.entity';
 
 export enum UserRole {
+  SUPERADMIN = 'SUPERADMIN',
   ADMIN = 'ADMIN',
   TEACHER = 'TEACHER',
   STUDENT = 'STUDENT',

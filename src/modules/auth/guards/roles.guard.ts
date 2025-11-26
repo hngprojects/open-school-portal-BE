@@ -23,6 +23,11 @@ export class RolesGuard implements CanActivate {
       return false;
     }
 
+    // SUPERADMIN has all permissions
+    if (user.roles.includes(UserRole.SUPERADMIN)) {
+      return true;
+    }
+
     // Check if user has at least one of the required roles
     return requiredRoles.some((role) => user.roles.includes(role));
   }
