@@ -61,7 +61,6 @@ describe('RoomsService', () => {
       location: 'Building A',
       floor: '1st Floor',
       room_type: 'Classroom',
-      description: 'A room for testing purposes',
     };
 
     const newRoom = {
@@ -90,7 +89,6 @@ describe('RoomsService', () => {
           location: createRoomDto.location,
           floor: createRoomDto.floor,
           room_type: createRoomDto.room_type,
-          description: createRoomDto.description,
           // ⛔ timestamps NOT expected here
         },
         transactionOptions: {
@@ -109,7 +107,6 @@ describe('RoomsService', () => {
           location: createRoomDto.location,
           floor: createRoomDto.floor,
           roomType: createRoomDto.room_type,
-          description: createRoomDto.description,
           createdAt: expect.any(Date),
           updatedAt: expect.any(Date),
         }),
