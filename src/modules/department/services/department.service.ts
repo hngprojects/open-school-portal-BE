@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
@@ -59,6 +60,10 @@ export class DepartmentService {
     const department = await this.departmentModelAction.get({
       identifierOptions: { id },
     });
+
+    if (id === null || id === undefined) {
+      throw new BadRequestException(sysMsg.INVALID_DEPARTMENT_ID);
+    }
 
     if (!department) {
       throw new NotFoundException(sysMsg.DEPARTMENT_NOT_FOUND);
