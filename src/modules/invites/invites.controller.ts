@@ -5,7 +5,6 @@ import {
   Body,
   HttpStatus,
   HttpCode,
-  Query,
   UseGuards,
 } from '@nestjs/common';
 
@@ -17,15 +16,10 @@ import { UserRole } from '../shared/enums';
 import {
   ApiInvitationsTags,
   ApiSendInvite,
-  ApiValidateInvite,
   ApiGetPendingInvites,
 } from './docs/invitations.swagger';
 import { InviteUserDto } from './dto/invite-user.dto';
 import { PendingInvitesResponseDto } from './dto/pending-invite.dto';
-import {
-  ValidateInviteDto,
-  ValidateInviteResponseDto,
-} from './dto/validate-invite.dto';
 import { InviteService } from './invites.service';
 
 @Controller('invitations')
@@ -40,15 +34,6 @@ export class InvitesController {
   @ApiSendInvite()
   async inviteUser(@Body() payload: InviteUserDto) {
     return this.inviteService.sendInvite(payload);
-  }
-
-  @Get('validate')
-  @HttpCode(HttpStatus.OK)
-  @ApiValidateInvite()
-  async validateInviteToken(
-    @Query() dto: ValidateInviteDto,
-  ): Promise<ValidateInviteResponseDto> {
-    return this.inviteService.validateInviteToken(dto);
   }
 
   @Get()

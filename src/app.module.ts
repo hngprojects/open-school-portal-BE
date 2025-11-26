@@ -18,7 +18,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { DatabaseModule } from './modules/database-setup/database.module';
 import { DepartmentModule } from './modules/department/department.module';
 import { EmailModule } from './modules/email/email.module';
-import { InviteModule } from './modules/invites/invites.module';
+import { InvitesModule } from './modules/invites/invites.module';
 import { ParentModule } from './modules/parent/parent.module';
 import { RoomModule } from './modules/room/room.module';
 import { SchoolModule } from './modules/school/school.module';
@@ -65,7 +65,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     TeachersModule,
     ParentModule,
     ClassModule,
-    InviteModule,
+    InvitesModule,
     AcademicSessionModule,
     DepartmentModule,
     SubjectModule,

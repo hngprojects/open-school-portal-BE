@@ -10,7 +10,7 @@ import { EmailTemplateID } from '../../constants/email-constants';
 import * as sysMsg from '../../constants/system.messages';
 import { EmailService } from '../email/email.service';
 import { EmailPayload } from '../email/email.types';
-import { SchoolService } from '../school/school.service';
+// import { SchoolService } from '../school/school.service';
 import { generateUniqueToken } from '../shared/utils/password.util';
 import { UserService } from '../user/user.service';
 
@@ -28,7 +28,7 @@ export class InviteService {
   constructor(
     private readonly inviteModelAction: InviteModelAction,
     private readonly userService: UserService,
-    private readonly schoolService: SchoolService,
+    // private readonly schoolService: SchoolService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
   ) {}

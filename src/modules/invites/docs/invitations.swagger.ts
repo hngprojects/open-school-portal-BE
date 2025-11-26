@@ -22,7 +22,7 @@ export const ApiSendInvite = () =>
     ApiResponse({
       status: 201,
       description: 'Invitation sent successfully',
-      type: CreatedInvitesResponseDto,
+      type: PendingInvitesResponseDto, // <-- FIXED
     }),
     ApiResponse({
       status: 409,
