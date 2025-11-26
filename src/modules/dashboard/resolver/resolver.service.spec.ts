@@ -62,7 +62,7 @@ describe('ResolverService', () => {
       .mockResolvedValueOnce({ payload: [{}] })
       .mockResolvedValueOnce({ payload: [{}] });
 
-    const result = await service.resolveDashboard('1', UserRole.ADMIN);
+    const result = await service.resolveDashboard('1', [UserRole.ADMIN]);
 
     expect(result.dashboard).toBe(UserRole.ADMIN);
     expect(result.modules).toEqual(DASHBOARD_MODULES[UserRole.ADMIN]);
@@ -76,9 +76,9 @@ describe('ResolverService', () => {
   it('should throw ForbiddenException if user has no role', async () => {
     (userService.findOne as jest.Mock).mockResolvedValue({ id: '1', role: [] });
 
-    await expect(service.resolveDashboard('1', UserRole.ADMIN)).rejects.toThrow(
-      ForbiddenException,
-    );
+    await expect(
+      service.resolveDashboard('1', [UserRole.ADMIN]),
+    ).rejects.toThrow(ForbiddenException);
   });
 
   it('should throw ForbiddenException if token role does not match DB role', async () => {
@@ -87,8 +87,8 @@ describe('ResolverService', () => {
       role: [UserRole.TEACHER],
     });
 
-    await expect(service.resolveDashboard('1', UserRole.ADMIN)).rejects.toThrow(
-      ForbiddenException,
-    );
+    await expect(
+      service.resolveDashboard('1', [UserRole.ADMIN]),
+    ).rejects.toThrow(ForbiddenException);
   });
 });

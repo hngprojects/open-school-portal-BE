@@ -39,7 +39,7 @@ export class ResolverService {
 
   async resolveDashboard(
     userId: string,
-    tokenRole: string,
+    tokenRole: UserRole[],
   ): Promise<DashboardResolvedDataDto> {
     const user = await this.userService.findOne(userId);
 

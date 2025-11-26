@@ -9,6 +9,7 @@ import {
 import * as sysMsg from '../../../constants/system.messages';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
+import { UserRole } from '../../shared/enums';
 
 import {
   ApiDashboardTags,
@@ -33,7 +34,7 @@ export class ResolverController {
     data: DashboardResolvedDataDto;
   }> {
     const userId: string = req.user?.id || req.user?.userId;
-    const tokenRole: string = req.user?.roles;
+    const tokenRole: UserRole[] = req.user?.roles;
 
     const data = await this.resolverService.resolveDashboard(userId, tokenRole);
 
