@@ -208,7 +208,7 @@ export const STUDENT_UPDATED = 'Student updated successfully';
 
 //bulk upload message
 export const BULK_UPLOAD_NO_NEW_EMAILS =
-  'No new emails were found in the uploaded file.';
+  'The Users with this email has receievd invite before.';
 export const BULK_UPLOAD_NOT_ALLOWED =
   'You are not permitted to perform a bulk upload.';
 export const NO_BULK_UPLOAD_DATA = 'No data was provided for bulk upload.';

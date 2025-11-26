@@ -8,6 +8,7 @@ import {
   UseInterceptors,
   UploadedFile,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -27,6 +28,7 @@ import { csvUploadDocs } from './docs/csv-swagger-doc';
 import {
   InviteUserDto,
   CreatedInvitesResponseDto,
+  InviteRole,
 } from './dto/invite-user.dto';
 import { PendingInvitesResponseDto } from './dto/pending-invite.dto';
 import { InviteService } from './invites.service';
@@ -77,8 +79,11 @@ export class InvitesController {
   @UseInterceptors(FileInterceptor('file'))
   @HttpCode(HttpStatus.OK)
   @csvUploadDocs()
-  async uploadCsv(@UploadedFile() file: Express.Multer.File) {
-    const key = await this.inviteService.uploadCsvToS3(file);
+  async uploadCsv(
+    @UploadedFile() file: Express.Multer.File,
+    @Query('type') selectedType: InviteRole,
+  ) {
+    const key = await this.inviteService.uploadCsvToS3(file, selectedType);
     return {
       status_code: HttpStatus.OK,
       message: sysMsg.OPERATION_SUCCESSFUL,

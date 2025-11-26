@@ -107,10 +107,10 @@ describe('InviteService', () => {
   // // ✅ START: Test for CSV bulk upload
   describe('uploadCsvToS3', () => {
     it('should create invites for valid new emails and skip duplicates', async () => {
-      const csvContent = `email,role,full_name
-        existing@example.com,TEACHER,Alice
-        new1@example.com,PARENT,Bob
-        new2@example.com,PARENT,Charlie`;
+      const csvContent = `email,full_name
+existing@example.com,Alice
+new1@example.com,Bob
+new2@example.com,Charlie`;
 
       const mockFile: Express.Multer.File = {
         fieldname: 'file',
@@ -140,20 +140,26 @@ describe('InviteService', () => {
         Promise.resolve(invite),
       );
 
-      const result = await service.uploadCsvToS3(mockFile);
+      const selectedType = InviteRole.PARENT;
+
+      const result = await service.uploadCsvToS3(mockFile, selectedType);
 
       expect(result.status_code).toBe(HttpStatus.OK);
-      expect(result.message).toContain('invites sent');
+      expect(result.message).toContain('success');
       expect(result.data).toHaveLength(2); // new1 and new2
+      expect(result.data.every((invite) => invite.role === selectedType)).toBe(
+        true,
+      );
       expect(result.skipped_already_exist_emil_on_csv).toContain(
         'existing@example.com',
       );
+      expect(result.document_type).toBe(selectedType);
     });
 
     it('should return conflict if all emails already exist', async () => {
-      const csvContent = `email,role,full_name
-        existing1@example.com,TEACHER,Alice
-        existing2@example.com,PARENT,Bob`;
+      const csvContent = `email,full_name
+    existing1@example.com,Alice
+    existing2@example.com,Bob`;
 
       const mockFile: Express.Multer.File = {
         fieldname: 'file',
@@ -173,11 +179,11 @@ describe('InviteService', () => {
         { id: '2', email: 'existing2@example.com' },
       ]);
 
-      const result = await service.uploadCsvToS3(mockFile);
+      const selectedType = InviteRole.TEACHER;
 
-      expect(result.status_code).toBe(HttpStatus.BAD_REQUEST);
-      expect(result.message).toBe(sysMsg.BULK_UPLOAD_NO_NEW_EMAILS);
-      expect(result.data).toHaveLength(0);
+      await expect(
+        service.uploadCsvToS3(mockFile, selectedType),
+      ).rejects.toThrow(sysMsg.BULK_UPLOAD_NO_NEW_EMAILS);
     });
   });
 });

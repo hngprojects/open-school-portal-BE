@@ -11,6 +11,7 @@ import {
   InviteUserDto,
   CreatedInviteDto,
   InviteRole,
+  BulkInvitesResponseDto,
 } from './dto/invite-user.dto';
 import {
   PendingInviteDto,
@@ -143,20 +144,24 @@ export class InviteService {
 
   async uploadCsvToS3(
     file: Express.Multer.File,
-  ): Promise<PendingInvitesResponseDto> {
-    if (file.mimetype !== 'text/csv') {
-      throw new BadRequestException(sysMsg.BULK_UPLOAD_NOT_ALLOWED);
-    }
-
+    selectedType: InviteRole, // admin’s selection
+  ): Promise<BulkInvitesResponseDto> {
     if (!file) {
       throw new BadRequestException(sysMsg.NO_BULK_UPLOAD_DATA);
+    }
+
+    if (file.mimetype !== 'text/csv') {
+      throw new BadRequestException(sysMsg.BULK_UPLOAD_NOT_ALLOWED);
     }
 
     if (!file.originalname.endsWith('.csv')) {
       throw new BadRequestException(sysMsg.INVALID_BULK_UPLOAD_FILE);
     }
-    // Parse CSV into rows
-    const rows = await parseCsv<InviteUserDto>(file.buffer);
+
+    // Parse CSV into rows (only email + full_name)
+    const rows = await parseCsv<{ email: string; full_name: string }>(
+      file.buffer,
+    );
 
     // Filter out rows with missing or empty email
     const filteredRows = rows.filter((row) => row.email?.trim());
@@ -186,22 +191,20 @@ export class InviteService {
       existingEmails.has(row.email.trim().toLowerCase()),
     );
 
-    const createdInvites: CreatedInviteDto[] = [];
+    const createdInvites: InviteUserDto[] = [];
 
     for (const row of validRows) {
       const invite = this.inviteRepo.create({
         email: row.email.trim().toLowerCase(),
-        role: row.role?.trim(),
         full_name: row.full_name?.trim(),
+        role: selectedType, // one role applied to all rows
       });
 
       await this.inviteRepo.save(invite);
 
       createdInvites.push({
-        id: invite.id,
         email: invite.email,
-        invited_at: invite.invitedAt,
-        role: invite.role as InviteRole,
+        role: selectedType, // same role for all
         full_name: invite.full_name,
       });
     }
@@ -212,6 +215,7 @@ export class InviteService {
       total_bulk_invites_sent: createdInvites.length,
       data: createdInvites,
       skipped_already_exist_emil_on_csv: skippedRows.map((row) => row.email),
+      document_type: selectedType, //include the type of document selected
     };
   }
 }

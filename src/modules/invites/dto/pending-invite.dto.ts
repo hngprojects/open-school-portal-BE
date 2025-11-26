@@ -20,6 +20,4 @@ export class PendingInvitesResponseDto {
 
   @ApiProperty({ type: [PendingInviteDto] })
   data: PendingInviteDto[];
-  skipped_already_exist_emil_on_csv?: string[];
-  total_bulk_invites_sent?: number;
 }
