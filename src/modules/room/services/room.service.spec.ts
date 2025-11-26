@@ -169,6 +169,23 @@ describe('RoomService', () => {
     });
   });
 
+  describe('findAll', () => {
+    it('returns a list of rooms', async () => {
+      const rooms: Room[] = [{ id: 'r1', name: 'Room 1' } as Room];
+      modelAction.list.mockResolvedValue({ payload: rooms });
+
+      const result = await service.findAll();
+
+      expect(modelAction.list).toHaveBeenCalledWith({
+        relations: { streams: true },
+      });
+      expect(result).toEqual({
+        message: sysMsg.ROOM_LIST_RETRIEVED_SUCCESSFULLY,
+        rooms,
+      });
+    });
+  });
+
   describe('findOne', () => {
     it('returns a room when found', async () => {
       const room: Room = { id: 'r1', name: 'Room 1', streams: [] } as Room;
