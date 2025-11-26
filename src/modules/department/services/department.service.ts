@@ -1,4 +1,9 @@
-import { ConflictException, Inject, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
@@ -45,6 +50,23 @@ export class DepartmentService {
     return {
       message: sysMsg.DEPARTMENT_CREATED,
       data: this.mapToResponseDto(newDepartment),
+    };
+  }
+
+  //FIND ONE DEPARTMENT
+  //
+  async findOne(id: string): Promise<IBaseResponse<DepartmentResponseDto>> {
+    const department = await this.departmentModelAction.get({
+      identifierOptions: { id },
+    });
+
+    if (!department) {
+      throw new NotFoundException(sysMsg.DEPARTMENT_NOT_FOUND);
+    }
+
+    return {
+      message: sysMsg.DEPARTMENT_RETRIEVED_SUCCESS,
+      data: this.mapToResponseDto(department),
     };
   }
 
