@@ -304,7 +304,8 @@ export class StudentService {
       .createQueryBuilder('student')
       .leftJoinAndSelect('student.user', 'user')
       .leftJoinAndSelect('student.stream', 'stream')
-      .orderBy('student.createdAt', 'DESC');
+      .orderBy('student.createdAt', 'DESC')
+      .where('student.deleted_at IS NULL');
 
     if (search) {
       queryBuilder.where(
