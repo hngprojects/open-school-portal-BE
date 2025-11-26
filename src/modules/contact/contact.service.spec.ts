@@ -337,7 +337,7 @@ describe('ContactService', () => {
       // If emails were sent in parallel, total time should be ~100ms
       // If sequential, it would be ~200ms
       // Allow some buffer for execution overhead
-      expect(totalTime).toBeLessThan(emailDelay * 2.0);
+      expect(totalTime).toBeLessThan(emailDelay * 1.5);
     });
 
     it('should log individual email successes', async () => {
