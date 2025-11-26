@@ -199,8 +199,8 @@ export const CONTACT_STATUS_UPDATED = 'Contact status updated successfully';
 export const STUDENT_CREATED = 'Student created successfully';
 export const STUDENT_EMAIL_CONFLICT = `Student with email already exists.`;
 export const STUDENT_REGISTRATION_NUMBER_CONFLICT = `Student with registration number already exists.`;
+export const STUDENT_NOT_FOUND = 'Student not found';
+export const STUDENT_UPDATED = 'Student updated successfully';
 
 export const ROOM_CREATED = 'Room created successfully';
 export const ROOM_ALREADY_EXISTS = 'Room with this given name already exists';
-export const STUDENT_NOT_FOUND = 'Student not found';
-export const STUDENT_UPDATED = 'Student updated successfully';
