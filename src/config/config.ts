@@ -53,10 +53,6 @@ export default () => ({
     url: process.env.FRONTEND_URL,
   },
 
-  frontend: {
-    url: process.env.FRONTEND_URL,
-  },
-
   isTest(): boolean {
     return process.env.NODE_ENV === 'test';
   },
