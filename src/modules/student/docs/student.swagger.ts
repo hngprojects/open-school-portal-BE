@@ -99,13 +99,12 @@ export const StudentSwagger = {
       responses: {
         ok: {
           description: sysMsg.STUDENT_DELETED,
-
-          notFound: {
-            description: sysMsg.STUDENT_NOT_FOUND,
-          },
-          badRequest: {
-            description: sysMsg.BAD_REQUEST,
-          },
+        },
+        notFound: {
+          description: sysMsg.STUDENT_NOT_FOUND,
+        },
+        badRequest: {
+          description: sysMsg.BAD_REQUEST,
         },
       },
     },
