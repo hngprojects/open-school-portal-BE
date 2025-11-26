@@ -5,8 +5,9 @@ import { DataSource, In } from 'typeorm';
 import * as sysMsg from '../../../constants/system.messages';
 import { Stream } from '../../stream/entities/stream.entity';
 import { CreateRoomDTO } from '../dto/create-room-dto';
+import { UpdateRoomDTO } from '../dto/update-room-dto';
 import { Room } from '../entities/room.entity';
-import { RoomType } from '../enums/room-enum';
+import { RoomStatus, RoomType } from '../enums/room-enum';
 import { RoomModelAction } from '../model-actions/room-model-actions';
 
 import { RoomService } from './room.service';
@@ -183,6 +184,134 @@ describe('RoomService', () => {
         message: sysMsg.ROOM_LIST_RETRIEVED_SUCCESSFULLY,
         rooms,
       });
+    });
+  });
+
+  describe('update', () => {
+    const existingRoom: Room = {
+      id: 'r1',
+      name: 'room 1',
+      streams: [],
+      type: RoomType.PHYSICAL,
+      status: RoomStatus.AVAILABLE,
+      capacity: 10,
+      location: 'loc',
+      building: 'b',
+      floor: '1',
+      description: 'desc',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Room;
+
+    type FindOneResponse = Awaited<ReturnType<RoomService['findOne']>>;
+
+    it('updates a room with valid data', async () => {
+      const updateDto: UpdateRoomDTO = {
+        name: ' Updated Room ',
+        streams: ['s1'],
+      };
+
+      const findOneResponse: FindOneResponse = {
+        message: '',
+        ...existingRoom,
+      };
+
+      jest.spyOn(service, 'findOne').mockResolvedValue(findOneResponse);
+      modelAction.get.mockResolvedValue(null);
+
+      const mockStream = { id: 's1' } as Stream;
+      streamRepo.findBy.mockResolvedValue([mockStream]);
+
+      const updatedEntity = {
+        ...existingRoom,
+        name: 'updated room',
+        streams: [mockStream],
+      };
+
+      const mockManager = {
+        save: jest.fn().mockResolvedValue(updatedEntity),
+      };
+
+      dataSource.transaction.mockImplementation(async (cb) => {
+        return cb(mockManager);
+      });
+
+      const result = await service.update('r1', updateDto);
+
+      expect(dataSource.transaction).toHaveBeenCalled();
+      expect(service.findOne).toHaveBeenCalledWith('r1');
+
+      expect(modelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { name: 'updated room' },
+      });
+
+      expect(streamRepo.findBy).toHaveBeenCalledWith({ id: In(['s1']) });
+
+      expect(modelAction.update).not.toHaveBeenCalled();
+
+      // 👇 FIX: Update expectation to include the 'Room' class argument
+      expect(mockManager.save).toHaveBeenCalledWith(
+        Room, // First arg: The Entity Class
+        expect.objectContaining({
+          // Second arg: The data object
+          name: 'updated room',
+          streams: [mockStream],
+        }),
+      );
+
+      expect(result).toEqual({
+        message: sysMsg.ROOM_UPDATED_SUCCESSFULLY,
+        ...updatedEntity,
+      });
+    });
+
+    it('throws NotFoundException if room does not exist', async () => {
+      jest
+        .spyOn(service, 'findOne')
+        .mockRejectedValue(new NotFoundException(sysMsg.ROOM_NOT_FOUND));
+
+      await expect(service.update('r1', { name: 'X' })).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('throws ConflictException if updated name already exists on DIFFERENT room', async () => {
+      const updateDto: UpdateRoomDTO = { name: 'Duplicate Room' };
+      const duplicateRoom = { id: 'r2', name: 'duplicate room' } as Room;
+
+      const findOneResponse: FindOneResponse = {
+        message: '',
+        ...existingRoom,
+      };
+      jest.spyOn(service, 'findOne').mockResolvedValue(findOneResponse);
+
+      modelAction.get.mockResolvedValue(duplicateRoom);
+
+      await expect(service.update('r1', updateDto)).rejects.toThrow(
+        ConflictException,
+      );
+    });
+
+    it('allows update if name exists but belongs to SAME room', async () => {
+      const updateDto: UpdateRoomDTO = { name: 'Same Name' };
+      const sameRoom = { id: 'r1', name: 'same name' } as Room;
+
+      const findOneResponse: FindOneResponse = {
+        message: '',
+        ...existingRoom,
+      };
+      jest.spyOn(service, 'findOne').mockResolvedValue(findOneResponse);
+
+      modelAction.get.mockResolvedValue(sameRoom);
+
+      const mockManager = {
+        save: jest.fn().mockResolvedValue(sameRoom),
+      };
+      dataSource.transaction.mockImplementation(async (cb) => {
+        return cb(mockManager);
+      });
+
+      await expect(service.update('r1', updateDto)).resolves.not.toThrow();
     });
   });
 

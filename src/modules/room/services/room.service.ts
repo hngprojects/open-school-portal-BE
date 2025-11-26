@@ -8,6 +8,8 @@ import { DataSource, In } from 'typeorm';
 import * as sysMsg from '../../../constants/system.messages';
 import { Stream } from '../../stream/entities/stream.entity';
 import { CreateRoomDTO } from '../dto/create-room-dto';
+import { UpdateRoomDTO } from '../dto/update-room-dto';
+import { Room } from '../entities/room.entity';
 import { RoomModelAction } from '../model-actions/room-model-actions';
 
 @Injectable()
@@ -50,7 +52,7 @@ export class RoomService {
         },
       });
 
-      return { message: sysMsg.ROOM_CREATED_SUCCESSFULLY, ...newRoom };
+      return { ...newRoom, message: sysMsg.ROOM_CREATED_SUCCESSFULLY };
     });
 
     return data;
@@ -67,6 +69,46 @@ export class RoomService {
     };
   }
 
+  async update(id: string, updateRoomDto: UpdateRoomDTO) {
+    const data = await this.datasource.transaction(async (manager) => {
+      const existingRoom = await this.findOne(id);
+
+      if (!existingRoom) {
+        throw new NotFoundException(sysMsg.ROOM_NOT_FOUND);
+      }
+
+      if (updateRoomDto.name) {
+        const duplicate = await this.findByName(
+          this.sanitizedName(updateRoomDto.name),
+        );
+
+        if (duplicate && duplicate.id !== id) {
+          throw new ConflictException(sysMsg.DUPLICATE_ROOM_NAME);
+        }
+
+        updateRoomDto.name = this.sanitizedName(updateRoomDto.name);
+      }
+
+      let streamEntities: Stream[] = undefined;
+
+      if (updateRoomDto.streams) {
+        streamEntities = await this.validateStreams(updateRoomDto.streams);
+      }
+
+      Object.assign(existingRoom, updateRoomDto);
+
+      if (streamEntities) {
+        existingRoom.streams = streamEntities;
+      }
+
+      const updatedRoom = await manager.save(Room, existingRoom);
+
+      return updatedRoom;
+    });
+
+    return { ...data, message: sysMsg.ROOM_UPDATED_SUCCESSFULLY };
+  }
+
   async findOne(id: string) {
     const room = await this.roomModelAction.get({
       identifierOptions: { id },
@@ -77,7 +119,7 @@ export class RoomService {
       throw new NotFoundException(sysMsg.ROOM_NOT_FOUND);
     }
 
-    return { message: sysMsg.ROOM_RETRIEVED_SUCCESSFULLY, ...room };
+    return { ...room, message: sysMsg.ROOM_RETRIEVED_SUCCESSFULLY };
   }
 
   private async validateStreams(streams: string[]) {
