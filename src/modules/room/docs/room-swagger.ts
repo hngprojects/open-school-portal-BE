@@ -1,11 +1,12 @@
 import { applyDecorators } from '@nestjs/common';
 import {
-  ApiBearerAuth,
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiNotFoundResponse,
+  ApiOkResponse,
   ApiOperation,
+  ApiParam,
 } from '@nestjs/swagger';
 
 import * as sysMsg from '../../../constants/system.messages';
@@ -13,7 +14,6 @@ import { CreateRoomDTO } from '../dto/create-room-dto';
 
 export const ApiCreateRoom = () =>
   applyDecorators(
-    ApiBearerAuth(),
     ApiOperation({
       summary: 'Create Room',
       description: 'Creates a new room. Room name must be unique.',
@@ -42,4 +42,28 @@ export const ApiCreateRoom = () =>
     }),
     ApiConflictResponse({ description: sysMsg.DUPLICATE_ROOM_NAME }),
     ApiNotFoundResponse({ description: sysMsg.INVALID_STREAM_IDS }),
+  );
+
+export const ApiFindAllRooms = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Get All Rooms',
+      description: 'Retrieves the list of all rooms.',
+    }),
+    ApiOkResponse({
+      description: sysMsg.ROOM_LIST_RETRIEVED_SUCCESSFULLY,
+    }),
+  );
+
+export const ApiFindOneRoom = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Get Room by ID',
+      description: 'Retrieves a single room by its ID.',
+    }),
+    ApiParam({ name: 'id', description: 'Room ID' }),
+    ApiOkResponse({
+      description: sysMsg.ROOM_RETRIEVED_SUCCESSFULLY,
+    }),
+    ApiNotFoundResponse({ description: sysMsg.ROOM_NOT_FOUND }),
   );

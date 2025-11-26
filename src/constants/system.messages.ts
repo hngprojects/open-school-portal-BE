@@ -166,6 +166,14 @@ export const SESSION_ACTIVATION_FAILED =
   'Failed to activate academic session. Please try again.';
 export const ACADEMY_SESSION_ACTIVATED =
   'Academic session activated successfully.';
+export const ACADEMIC_SESSION_RETRIEVED =
+  'Academic session retrieved successfully.';
+export const ACADEMIC_SESSION_UPDATED =
+  'Academic session updated successfully.';
+export const ACADEMIC_SESSION_DELETED =
+  'Academic session deleted successfully.';
+export const INACTIVE_SESSION_LOCKED =
+  'Cannot modify an inactive academic session. Previous sessions are locked to preserve historical data integrity.';
 // Session management messages
 export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
@@ -191,12 +199,17 @@ export const ROOM_STATUS_UPDATED = 'Room status updated successfully.';
 export const DEPARTMENT_NOT_FOUND = 'Department not found';
 export const DEPARTMENT_CREATED = 'Department created successfully';
 export const DEPARTMENT_ALREADY_EXISTS = 'Department already exists';
+export const DEPARTMENT_UPDATED = 'Department updated successfully';
+export const DEPARTMENT_DELETED = 'Department deleted successfully';
+export const DEPARTMENT_HAS_ASSOCIATED_SUBJECTS =
+  'Cannot delete department with associated subjects';
 
 // School Installation messages
 export const INSTALLATION_COMPLETED =
   'school installation completed successfully';
 export const INSTALLATION_ALREADY_COMPLETED =
   'school installation already completed';
+export const SCHOOL_NOT_FOUND = 'School not found';
 
 // Classes
 export const CLASS_OR_TEACHER_OR_SESSION_NOT_FOUND =
@@ -207,6 +220,8 @@ export const TEACHER_ASSIGNED = 'teacher successfully assigned to the class';
 export const CLASS_CREATED = 'Class successfully created.';
 export const CLASS_ALREADY_EXIST =
   'A class with the same name and arm already exists in this session.';
+export const CLASS_NAME_EMPTY = 'class name cannot be empty';
+export const CLASS_UPDATED = 'class updated successfully';
 export const CLASS_FETCHED = 'classes fetched successfully';
 export const NO_CLASS_FOUND = 'no classes found.';
 
@@ -237,5 +252,8 @@ export const STUDENT_REGISTRATION_NUMBER_CONFLICT = `Student with registration n
 export const STUDENT_FETCHED = 'Student fetched successfully';
 export const STUDENTS_FETCHED = 'Students fetched successfully';
 export const STUDENT_NOT_FOUND = 'Student not found';
-
 export const STUDENT_UPDATED = 'Student updated successfully';
+export const STUDENT_DELETED = 'Student deleted successfully';
+
+// Dashboard messages
+export const DASHBOARD_RESOLVED = 'Dashboard resolved successfully';
