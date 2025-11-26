@@ -8,12 +8,12 @@ export class SuperAdmin extends BaseEntity {
   @Column({ type: 'varchar', length: 50 })
   @IsString()
   @Length(2, 50)
-  firstName: string;
+  first_name: string;
 
   @Column({ type: 'varchar', length: 50 })
   @IsString()
   @Length(2, 50)
-  lastName: string;
+  last_name: string;
 
   @Column({ unique: true })
   @IsEmail()
@@ -22,17 +22,17 @@ export class SuperAdmin extends BaseEntity {
   @Column({ type: 'varchar', length: 255 })
   @IsString()
   @IsNotEmpty()
-  schoolName: string;
+  school_name: string;
 
   @Column({ nullable: true })
   password: string;
 
   @Column({ type: 'boolean', default: false })
-  isActive: boolean;
+  is_active: boolean;
 
   @Column({ nullable: true, type: 'varchar' })
-  resetToken: string;
+  reset_token: string;
 
   @Column({ nullable: true, type: 'date' })
-  resetTokenExpiration: Date;
+  reset_token_expiration: Date;
 }

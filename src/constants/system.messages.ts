@@ -380,7 +380,10 @@ export const INVALID_SCORE_RANGE = 'Score must be within the allowed range';
 export const SUPERADMIN_ACCOUNT_CREATED = 'superadmin account created';
 export const SUPERADMIN_PASSWORDS_REQUIRED =
   'password and confirmation password are required';
+export const SUPERADMIN_INVALID_PASSWORD = 'invalid password';
 export const SUPERADMIN_EMAIL_EXISTS =
   'speradmin with this email already exists';
 export const SUPERADMIN_PASSWORD_MUST_MATCH =
   'password and confirmation password must match';
+export const SUPERADMIN_CONFLICT_GENERAL_MSG =
+  'Conflict - request cannot be processed. See examples for possible causes.';

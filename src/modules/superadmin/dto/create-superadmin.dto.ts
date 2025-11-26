@@ -20,7 +20,7 @@ export class CreateSuperadminDto {
   })
   @IsString()
   @IsNotEmpty()
-  firstName: string;
+  first_name: string;
 
   @ApiProperty({
     example: 'Doe',
@@ -28,7 +28,7 @@ export class CreateSuperadminDto {
   })
   @IsString()
   @IsNotEmpty()
-  lastName: string;
+  last_name: string;
 
   @ApiProperty({
     example: 'The Bells University',
@@ -36,7 +36,7 @@ export class CreateSuperadminDto {
   })
   @IsString()
   @IsNotEmpty()
-  schoolName: string;
+  school_name: string;
 
   @ApiProperty({
     example: 'SecuredPassword!',

@@ -1,9 +1,13 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 
-import { ApiSuccessResponseDto } from '../../common/dto/response.dto';
-import * as sysMsg from '../../constants/system.messages';
+import { RateLimit } from '../../common/decorators/rate-limit.decorator';
+import { RateLimitGuard } from '../../common/guards/rate-limit.guard';
 
+import {
+  ApiCreateSuperadmin,
+  ApiLoginSuperadmin,
+  ApiLogoutSuperadmin,
+} from './docs/superadmin.swagger';
 import { CreateSuperadminDto } from './dto/create-superadmin.dto';
 import { LoginSuperadminDto } from './dto/login-superadmin.dto';
 import { LogoutDto } from './dto/superadmin-logout.dto';
@@ -14,37 +18,25 @@ export class SuperadminController {
   constructor(private readonly superadminService: SuperadminService) {}
 
   @Post()
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new superadmin' })
-  @ApiResponse({
-    status: 201,
-    description: sysMsg.SUPERADMIN_ACCOUNT_CREATED,
-    type: ApiSuccessResponseDto,
-  })
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ maxRequests: 3, windowMs: 15 * 60 * 1000 })
+  @ApiCreateSuperadmin()
   async create(@Body() createSuperadminDto: CreateSuperadminDto) {
     return this.superadminService.createSuperAdmin(createSuperadminDto);
   }
 
   @Post('login')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: sysMsg.LOGIN_SUCCESS })
-  @ApiResponse({
-    status: 200,
-    description: sysMsg.LOGIN_SUCCESS,
-    type: ApiSuccessResponseDto,
-  })
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ maxRequests: 3, windowMs: 15 * 60 * 1000 })
+  @ApiLoginSuperadmin()
   async login(@Body() loginSuperadminDto: LoginSuperadminDto) {
     return this.superadminService.login(loginSuperadminDto);
   }
 
   @Post('logout')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: sysMsg.LOGOUT_SUCCESS })
-  @ApiResponse({
-    status: 200,
-    description: sysMsg.LOGOUT_SUCCESS,
-    type: ApiSuccessResponseDto,
-  })
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ maxRequests: 3, windowMs: 15 * 60 * 1000 })
+  @ApiLogoutSuperadmin()
   async logout(@Body() logoutDto: LogoutDto) {
     return this.superadminService.logout(logoutDto);
   }

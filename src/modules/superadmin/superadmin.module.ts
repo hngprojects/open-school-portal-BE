@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { RateLimitGuard } from '../../common/guards/rate-limit.guard';
 import { SessionModule } from '../session/session.module';
 
 import { SuperAdmin } from './entities/superadmin.entity';
@@ -24,7 +25,7 @@ import { SuperadminService } from './superadmin.service';
     SessionModule,
   ],
   controllers: [SuperadminController],
-  providers: [SuperadminService, SuperadminModelAction],
+  providers: [SuperadminService, SuperadminModelAction, RateLimitGuard],
   exports: [SuperadminModelAction],
 })
 export class SuperadminModule {}
