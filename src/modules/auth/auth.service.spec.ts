@@ -140,6 +140,10 @@ describe('AuthService', () => {
               provide: SessionService,
               useValue: null,
             },
+            {
+              provide: ConfigService,
+              useValue: mockConfigService,
+            },
           ],
         }).compile();
 
