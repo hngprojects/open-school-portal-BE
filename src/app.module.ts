@@ -17,6 +17,7 @@ import { ContactModule } from './modules/contact/contact.module';
 import { EmailModule } from './modules/email/email.module';
 import { InviteModule } from './modules/invites/invites.module';
 import { ParentModule } from './modules/parent/parent.module';
+import { RoomsModule } from './modules/rooms/rooms.module';
 import { SchoolModule } from './modules/school/school.module';
 import { SessionModule } from './modules/session/session.module';
 import { StreamModule } from './modules/stream/stream.module';
@@ -69,6 +70,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     StreamModule,
     ContactModule,
     StudentModule,
+    RoomsModule,
   ],
   controllers: [AppController],
   providers: [
