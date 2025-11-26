@@ -39,13 +39,13 @@ export class ClassModelAction extends AbstractModelAction<Class> {
       }
     > = {};
     for (const cls of classes) {
-      const key = `${cls.name}_${cls.academicSession?.id}`;
+      const key = `${cls.name}_${cls.academicSession.id}`;
       if (!grouped[key]) {
         grouped[key] = {
           name: cls.name,
           academicSession: {
-            id: cls.academicSession?.id,
-            name: cls.academicSession?.name,
+            id: cls.academicSession.id,
+            name: cls.academicSession.name,
           },
           classes: [],
         };

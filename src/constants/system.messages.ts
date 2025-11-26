@@ -199,5 +199,5 @@ export const CONTACT_STATUS_UPDATED = 'Contact status updated successfully';
 export const STUDENT_CREATED = 'Student created successfully';
 export const STUDENT_EMAIL_CONFLICT = `Student with email already exists.`;
 export const STUDENT_REGISTRATION_NUMBER_CONFLICT = `Student with registration number already exists.`;
-export const CLASS_FETCHED = 'Class fetched successfully';
-export const NO_CLASS_FOUND = 'No class found.';
+export const CLASS_FETCHED = 'classes fetched successfully';
+export const NO_CLASS_FOUND = 'no classes found.';
