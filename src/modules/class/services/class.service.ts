@@ -193,14 +193,11 @@ export class ClassService {
     }
 
     return {
-      status_code: HttpStatus.OK,
       message: Object.values(grouped).length
         ? sysMsg.CLASS_FETCHED
         : sysMsg.NO_CLASS_FOUND,
-      data: {
-        items: Object.values(grouped),
-        pagination: paginationMeta,
-      },
+      items: Object.values(grouped),
+      pagination: paginationMeta,
     };
   }
 }

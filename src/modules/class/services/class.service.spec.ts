@@ -326,10 +326,9 @@ describe('ClassService', () => {
       ];
 
       const result = await service.getGroupedClasses();
-      expect(result.status_code).toBe(200);
       expect(result.message).toBe(sysMsg.CLASS_FETCHED);
-      expect(result.data.items).toEqual(expectedGrouped);
-      expect(result.data.pagination).toBeDefined();
+      expect(result.items).toEqual(expectedGrouped);
+      expect(result.pagination).toBeDefined();
       expect(mockClassModelAction.list).toHaveBeenCalled();
     });
 
@@ -341,10 +340,9 @@ describe('ClassService', () => {
 
       const result = await service.getGroupedClasses();
 
-      expect(result.status_code).toBe(200);
       expect(result.message).toBe(sysMsg.NO_CLASS_FOUND);
-      expect(result.data.items).toEqual([]);
-      expect(result.data.pagination).toBeDefined();
+      expect(result.items).toEqual([]);
+      expect(result.pagination).toBeDefined();
       expect(mockClassModelAction.list).toHaveBeenCalled();
     });
   });
