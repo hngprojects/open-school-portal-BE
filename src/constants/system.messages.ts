@@ -199,6 +199,7 @@ export const ROOM_STATUS_UPDATED = 'Room status updated successfully.';
 export const DEPARTMENT_NOT_FOUND = 'Department not found';
 export const DEPARTMENT_CREATED = 'Department created successfully';
 export const DEPARTMENT_ALREADY_EXISTS = 'Department already exists';
+export const INVALID_DEPARTMENT_ID = 'The provided department ID is invalid';
 export const DEPARTMENT_RETRIEVED_SUCCESS =
   'Departments retrieved successfully';
 export const DEPARTMENT_UPDATED = 'Department updated successfully';

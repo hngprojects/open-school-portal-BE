@@ -6,8 +6,10 @@ import {
   ApiBody,
   ApiResponse,
   ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
 
+import * as sysMsg from '../../../constants/system.messages';
 import { CreateDepartmentDto } from '../dto/create-department.dto';
 import { DepartmentResponseDto } from '../dto/department-response.dto';
 import { UpdateDepartmentDto } from '../dto/update-department.dto';
@@ -61,6 +63,29 @@ export const ApiCreateDepartment = () =>
     }),
   );
 
+/** * Swagger decorators for Find One Department endpoint
+ */
+export const ApiFindOneDepartment = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Get Department by ID',
+      description: 'Retrieves a department by its unique ID.',
+    }),
+    ApiResponse({
+      status: HttpStatus.OK,
+      description: sysMsg.DEPARTMENT_RETRIEVED_SUCCESS,
+      type: DepartmentResponseDto,
+    }),
+    ApiResponse({
+      status: HttpStatus.NOT_FOUND,
+      description: sysMsg.DEPARTMENT_NOT_FOUND,
+    }),
+    ApiResponse({
+      status: HttpStatus.BAD_REQUEST,
+      description: sysMsg.INVALID_DEPARTMENT_ID,
+    }),
+  );
+
 /** * Swagger decorators for Find All Departments endpoint
  */
 export const ApiFindAllDepartments = () =>
@@ -68,6 +93,18 @@ export const ApiFindAllDepartments = () =>
     ApiOperation({
       summary: 'Get All Departments',
       description: 'Retrieves a list of all departments.',
+    }),
+    ApiQuery({
+      name: 'page',
+      required: false,
+      type: Number,
+      description: 'Page number for pagination',
+    }),
+    ApiQuery({
+      name: 'limit',
+      required: false,
+      type: Number,
+      description: 'Number of items per page',
     }),
     ApiResponse({
       status: HttpStatus.OK,
@@ -77,6 +114,8 @@ export const ApiFindAllDepartments = () =>
     ApiResponse({
       status: HttpStatus.BAD_REQUEST,
       description: 'Invalid query parameters.',
+    }),
+  );
 /**
  * Swagger decorators for Update Department endpoint
  */

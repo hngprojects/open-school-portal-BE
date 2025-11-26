@@ -21,6 +21,7 @@ import {
   ApiDepartmentTags,
   ApiDepartmentBearerAuth,
   ApiCreateDepartment,
+  ApiFindOneDepartment,
   ApiFindAllDepartments,
   ApiUpdateDepartment,
   ApiRemoveDepartment,
@@ -44,6 +45,14 @@ export class DepartmentController {
     return this.departmentService.create(createDepartmentDto);
   }
 
+  @Get(':id')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiFindOneDepartment()
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.departmentService.findOne(id);
+  }
+
   @Get()
   @Roles(UserRole.ADMIN)
   @ApiFindAllDepartments()
@@ -55,12 +64,14 @@ export class DepartmentController {
       page: Number.isNaN(parsedPage) ? undefined : parsedPage,
       limit: Number.isNaN(parsedLimit) ? undefined : parsedLimit,
     });
+  }
+
   @Patch(':id')
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiUpdateDepartment()
   update(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() updateDepartmentDto: UpdateDepartmentDto,
   ) {
     return this.departmentService.update(id, updateDepartmentDto);
