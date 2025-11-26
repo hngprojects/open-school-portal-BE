@@ -167,6 +167,11 @@ export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
 export const SESSION_NOT_FOUND = 'session not found';
 export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
 
+//department
+export const DEPARTMENT_NOT_FOUND = 'Department not found';
+export const DEPARTMENT_CREATED = 'Department created successfully';
+export const DEPARTMENT_ALREADY_EXISTS = 'Department already exists';
+
 // School Installation messages
 export const INSTALLATION_COMPLETED =
   'school installation completed successfully';
@@ -182,6 +187,8 @@ export const TEACHER_ASSIGNED = 'teacher successfully assigned to the class';
 export const CLASS_CREATED = 'Class successfully created.';
 export const CLASS_ALREADY_EXIST =
   'A class with the same name and arm already exists in this session.';
+export const CLASS_FETCHED = 'classes fetched successfully';
+export const NO_CLASS_FOUND = 'no classes found.';
 
 // Parent messages
 export const PARENT_CREATED = 'Parent created successfully';
@@ -199,5 +206,5 @@ export const CONTACT_STATUS_UPDATED = 'Contact status updated successfully';
 export const STUDENT_CREATED = 'Student created successfully';
 export const STUDENT_EMAIL_CONFLICT = `Student with email already exists.`;
 export const STUDENT_REGISTRATION_NUMBER_CONFLICT = `Student with registration number already exists.`;
-export const CLASS_FETCHED = 'classes fetched successfully';
-export const NO_CLASS_FOUND = 'no classes found.';
+export const STUDENT_NOT_FOUND = 'Student not found';
+export const STUDENT_UPDATED = 'Student updated successfully';
