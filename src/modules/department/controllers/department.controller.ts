@@ -1,8 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   HttpCode,
   HttpStatus,
+  Param,
+  ParseUUIDPipe,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -15,6 +18,7 @@ import {
   ApiDepartmentTags,
   ApiDepartmentBearerAuth,
   ApiCreateDepartment,
+  ApiRemoveDepartment,
 } from '../docs/department.swagger';
 import { CreateDepartmentDto } from '../dto/create-department.dto';
 import { DepartmentService } from '../services/department.service';
@@ -32,5 +36,13 @@ export class DepartmentController {
   @ApiCreateDepartment()
   create(@Body() createDepartmentDto: CreateDepartmentDto) {
     return this.departmentService.create(createDepartmentDto);
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiRemoveDepartment()
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.departmentService.remove(id);
   }
 }

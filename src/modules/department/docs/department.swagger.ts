@@ -58,3 +58,27 @@ export const ApiCreateDepartment = () =>
       description: 'Invalid input data.',
     }),
   );
+
+/**
+ * Swagger decorators for Remove Department endpoint
+ */
+export const ApiRemoveDepartment = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Delete Department',
+      description:
+        'Deletes a department by ID. Department must not have associated subjects.',
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Department deleted successfully.',
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Department not found.',
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'Department has associated subjects and cannot be deleted.',
+    }),
+  );
