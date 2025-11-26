@@ -205,6 +205,7 @@ export const DEPARTMENTS_NOT_FOUND = 'One or more departments not found';
 // Subject messages
 export const SUBJECT_CREATED = 'Subject created successfully';
 export const SUBJECT_ALREADY_EXISTS = 'Subject already exists';
+export const DEPARTMENT_UPDATED = 'Department updated successfully';
 
 // School Installation messages
 export const INSTALLATION_COMPLETED =
@@ -221,6 +222,8 @@ export const TEACHER_ASSIGNED = 'teacher successfully assigned to the class';
 export const CLASS_CREATED = 'Class successfully created.';
 export const CLASS_ALREADY_EXIST =
   'A class with the same name and arm already exists in this session.';
+export const CLASS_NAME_EMPTY = 'class name cannot be empty';
+export const CLASS_UPDATED = 'class updated successfully';
 export const CLASS_FETCHED = 'classes fetched successfully';
 export const NO_CLASS_FOUND = 'no classes found.';
 
