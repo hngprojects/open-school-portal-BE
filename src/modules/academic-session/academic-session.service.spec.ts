@@ -537,7 +537,7 @@ describe('AcademicSessionService', () => {
       // Verify first update deactivated all sessions
       expect(mockSessionModelAction.update).toHaveBeenNthCalledWith(1, {
         updatePayload: { status: SessionStatus.INACTIVE },
-        identifierOptions: {},
+        identifierOptions: { status: SessionStatus.ACTIVE },
         transactionOptions: {
           useTransaction: true,
           transaction: expect.any(Object),
