@@ -124,7 +124,7 @@ export class AcademicSessionService {
       async (manager) => {
         await this.sessionModelAction.update({
           updatePayload: { status: SessionStatus.INACTIVE },
-          identifierOptions: {},
+          identifierOptions: { status: SessionStatus.ACTIVE },
           transactionOptions: {
             useTransaction: true,
             transaction: manager,
