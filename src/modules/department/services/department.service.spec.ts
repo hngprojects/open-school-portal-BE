@@ -8,10 +8,9 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
-import { Department } from '../entities/department.entity';
-import * as sysMsg from '../../../constants/system.messages';
 import { CreateDepartmentDto } from '../dto/create-department.dto';
 import { UpdateDepartmentDto } from '../dto/update-department.dto';
+import { Department } from '../entities/department.entity';
 import { DepartmentModelAction } from '../model-actions/department.actions';
 
 import { DepartmentService } from './department.service';
@@ -21,6 +20,7 @@ const mockDepartment: Department = {
   name: 'Science',
   createdAt: new Date(),
   updatedAt: new Date(),
+  subjects: [],
 };
 
 const departmentResponse = {
