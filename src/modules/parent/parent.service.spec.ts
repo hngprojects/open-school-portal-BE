@@ -1,0 +1,480 @@
+import { ConflictException, NotFoundException } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import {
+  DataSource,
+  QueryRunner,
+  Repository,
+  SelectQueryBuilder,
+} from 'typeorm';
+import { Logger } from 'winston';
+
+import { UserRole } from '../shared/enums';
+import { FileService } from '../shared/file/file.service';
+import * as passwordUtil from '../shared/utils/password.util';
+import { User } from '../user/entities/user.entity';
+import { UserModelAction } from '../user/model-actions/user-actions';
+
+import { CreateParentDto } from './dto';
+import { Parent } from './entities/parent.entity';
+import { ParentModelAction } from './model-actions/parent-actions';
+import { ParentService } from './parent.service';
+
+// Mock the password utilities
+jest.mock('../shared/utils/password.util', () => ({
+  hashPassword: jest.fn().mockResolvedValue('hashed_password'),
+  generateStrongPassword: jest.fn().mockReturnValue('GeneratedPass123'),
+}));
+
+// Create a type for our mock query builder
+type MockQueryBuilder = {
+  leftJoinAndSelect: jest.Mock;
+  orderBy: jest.Mock;
+  where: jest.Mock;
+  getCount: jest.Mock;
+  skip: jest.Mock;
+  take: jest.Mock;
+  getMany: jest.Mock;
+};
+
+describe('ParentService', () => {
+  let service: ParentService;
+  let parentRepository: jest.Mocked<Repository<Parent>>;
+  let dataSource: jest.Mocked<DataSource>;
+  let fileService: jest.Mocked<FileService>;
+  let parentModelAction: jest.Mocked<ParentModelAction>;
+  let userModelAction: jest.Mocked<UserModelAction>;
+  let queryRunner: jest.Mocked<QueryRunner>;
+  let mockLogger: jest.Mocked<Logger>;
+
+  const mockUser: Partial<User> = {
+    id: 'user-uuid-123',
+    first_name: 'John',
+    last_name: 'Doe',
+    middle_name: 'Michael',
+    email: 'john.doe@example.com',
+    phone: '+234 810 942 3124',
+    gender: 'Male',
+    dob: new Date('1985-05-15'),
+    homeAddress: '123 Main Street',
+    role: [UserRole.PARENT],
+    is_active: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const mockParentId = 'parent-uuid-123';
+  const mockParent: Partial<Parent> = {
+    id: mockParentId,
+    user_id: 'user-uuid-123',
+    photo_url: 'https://example.com/photos/parent123.jpg',
+    is_active: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    user: mockUser as User,
+  };
+
+  beforeEach(async () => {
+    // Mock QueryRunner
+    const mockSave = jest.fn();
+    queryRunner = {
+      connect: jest.fn().mockResolvedValue(undefined),
+      startTransaction: jest.fn().mockResolvedValue(undefined),
+      commitTransaction: jest.fn().mockResolvedValue(undefined),
+      rollbackTransaction: jest.fn().mockResolvedValue(undefined),
+      release: jest.fn().mockResolvedValue(undefined),
+      manager: {
+        save: mockSave,
+      },
+    } as unknown as jest.Mocked<QueryRunner>;
+
+    // Create a simple mock query builder with only the methods we need
+    const mockQueryBuilder: MockQueryBuilder = {
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      getCount: jest.fn(),
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      getMany: jest.fn(),
+    };
+
+    // Mock repositories
+    parentRepository = {
+      create: jest.fn(),
+      save: jest.fn(),
+      findOne: jest.fn(),
+      createQueryBuilder: jest.fn(
+        () => mockQueryBuilder as unknown as SelectQueryBuilder<Parent>,
+      ),
+    } as unknown as jest.Mocked<Repository<Parent>>;
+
+    // Mock DataSource
+    dataSource = {
+      createQueryRunner: jest.fn().mockReturnValue(queryRunner),
+      transaction: jest.fn().mockImplementation(async (callback) => {
+        // Simulate transaction by calling callback with queryRunner.manager
+        return callback(queryRunner.manager);
+      }),
+    } as unknown as jest.Mocked<DataSource>;
+
+    // Mock FileService
+    fileService = {
+      validatePhotoUrl: jest.fn().mockImplementation((url: string) => url),
+    } as unknown as jest.Mocked<FileService>;
+
+    // Mock Model Actions
+    parentModelAction = {
+      get: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      list: jest.fn(),
+      repository: parentRepository,
+    } as unknown as jest.Mocked<ParentModelAction>;
+
+    userModelAction = {
+      get: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    } as unknown as jest.Mocked<UserModelAction>;
+
+    // Mock Logger
+    mockLogger = {
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      debug: jest.fn(),
+      log: jest.fn(),
+      child: jest.fn().mockReturnThis(),
+    } as unknown as jest.Mocked<Logger>;
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ParentService,
+        {
+          provide: ParentModelAction,
+          useValue: parentModelAction,
+        },
+        {
+          provide: UserModelAction,
+          useValue: userModelAction,
+        },
+        {
+          provide: getRepositoryToken(Parent),
+          useValue: parentRepository,
+        },
+        {
+          provide: DataSource,
+          useValue: dataSource,
+        },
+        {
+          provide: FileService,
+          useValue: fileService,
+        },
+        {
+          provide: WINSTON_MODULE_PROVIDER,
+          useValue: mockLogger,
+        },
+      ],
+    }).compile();
+
+    service = module.get<ParentService>(ParentService);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('create', () => {
+    const createDto: CreateParentDto = {
+      first_name: 'John',
+      last_name: 'Doe',
+      middle_name: 'Michael',
+      email: 'john.doe@example.com',
+      gender: 'Male',
+      date_of_birth: '1985-05-15',
+      phone: '+234 810 942 3124',
+      home_address: '123 Main Street',
+      password: 'TestPassword123',
+      is_active: true,
+    };
+
+    beforeEach(() => {
+      userModelAction.get.mockResolvedValue(null);
+      userModelAction.create.mockResolvedValue(mockUser as User);
+      parentModelAction.create.mockResolvedValue(mockParent as Parent);
+    });
+
+    it('should create a parent successfully', async () => {
+      const result = await service.create(createDto);
+
+      expect(result).toBeDefined();
+      expect(result).toHaveProperty('id');
+      expect(result).toHaveProperty('first_name', 'John');
+      expect(result).toHaveProperty('last_name', 'Doe');
+      expect(result).toHaveProperty('email', 'john.doe@example.com');
+      expect(dataSource.transaction).toHaveBeenCalled();
+    });
+
+    it('should hash the password before creating user', async () => {
+      await service.create(createDto);
+
+      expect(passwordUtil.hashPassword).toHaveBeenCalledWith('TestPassword123');
+      expect(userModelAction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          createPayload: expect.objectContaining({
+            password: 'hashed_password',
+          }),
+        }),
+      );
+    });
+
+    it('should create user with PARENT role', async () => {
+      await service.create(createDto);
+
+      expect(userModelAction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          createPayload: expect.objectContaining({
+            role: [UserRole.PARENT],
+          }),
+        }),
+      );
+    });
+
+    it('should create user with is_active set to true by default', async () => {
+      // Use object destructuring with eslint disable for unused variables
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { is_active, ...dtoWithoutActive } = createDto;
+
+      await service.create(dtoWithoutActive);
+
+      expect(userModelAction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          createPayload: expect.objectContaining({
+            is_active: true,
+          }),
+        }),
+      );
+    });
+
+    it('should auto-generate password if not provided', async () => {
+      // Use object destructuring with eslint disable for unused variables
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password, ...dtoWithoutPassword } = createDto;
+
+      await service.create(dtoWithoutPassword);
+
+      expect(passwordUtil.hashPassword).toHaveBeenCalledWith(
+        'GeneratedPass123',
+      );
+    });
+
+    it('should validate photo URL if provided', async () => {
+      const dtoWithPhoto = {
+        ...createDto,
+        photo_url: 'https://example.com/photos/parent123.jpg',
+      };
+
+      await service.create(dtoWithPhoto);
+
+      expect(fileService.validatePhotoUrl).toHaveBeenCalledWith(
+        'https://example.com/photos/parent123.jpg',
+      );
+      expect(parentModelAction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          createPayload: expect.objectContaining({
+            photo_url: 'https://example.com/photos/parent123.jpg',
+          }),
+        }),
+      );
+    });
+
+    it('should throw ConflictException if email already exists', async () => {
+      userModelAction.get.mockResolvedValue(mockUser as User);
+
+      await expect(service.create(createDto)).rejects.toThrow(
+        ConflictException,
+      );
+      await expect(service.create(createDto)).rejects.toThrow(
+        'User with email john.doe@example.com already exists.',
+      );
+      expect(dataSource.transaction).not.toHaveBeenCalled();
+    });
+
+    it('should create both user and parent in a transaction', async () => {
+      await service.create(createDto);
+
+      expect(dataSource.transaction).toHaveBeenCalledTimes(1);
+      expect(userModelAction.create).toHaveBeenCalled();
+      expect(parentModelAction.create).toHaveBeenCalled();
+    });
+
+    it('should link parent to created user', async () => {
+      await service.create(createDto);
+
+      expect(parentModelAction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          createPayload: expect.objectContaining({
+            user_id: 'user-uuid-123',
+          }),
+        }),
+      );
+    });
+
+    it('should set parent is_active from DTO', async () => {
+      const dtoWithInactive = { ...createDto, is_active: false };
+
+      await service.create(dtoWithInactive);
+
+      expect(parentModelAction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          createPayload: expect.objectContaining({
+            is_active: false,
+          }),
+        }),
+      );
+    });
+
+    it('should log successful creation', async () => {
+      await service.create(createDto);
+
+      expect(mockLogger.info).toHaveBeenCalled();
+    });
+  });
+
+  describe('findOne', () => {
+    it('should return a parent by id', async () => {
+      parentModelAction.get.mockResolvedValue(mockParent as Parent);
+
+      const result = await service.findOne(mockParentId);
+
+      expect(result).toBeDefined();
+      expect(result.id).toBe(mockParentId);
+      expect(parentModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: mockParentId },
+        relations: { user: true },
+      });
+    });
+
+    it('should throw NotFoundException if parent not found', async () => {
+      parentModelAction.get.mockResolvedValue(null);
+
+      await expect(service.findOne('non-existent-id')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('findAll', () => {
+    it('should return paginated parents without search', async () => {
+      const mockParents = [mockParent as Parent];
+      const mockPaginationMeta = {
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+      };
+
+      parentModelAction.list.mockResolvedValue({
+        payload: mockParents,
+        paginationMeta: mockPaginationMeta,
+      });
+
+      const result = await service.findAll({ page: 1, limit: 10 });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.paginationMeta).toEqual(mockPaginationMeta);
+      expect(parentModelAction.list).toHaveBeenCalledWith({
+        relations: { user: true },
+        paginationPayload: { page: 1, limit: 10 },
+        order: { createdAt: 'DESC' },
+      });
+    });
+
+    it('should use query builder for search when search term is provided', async () => {
+      const mockParents = [mockParent as Parent];
+
+      // Get the mock query builder instance and cast to our mock type
+      const mockQueryBuilder =
+        parentRepository.createQueryBuilder() as unknown as MockQueryBuilder;
+      mockQueryBuilder.getCount = jest.fn().mockResolvedValue(1);
+      mockQueryBuilder.getMany = jest.fn().mockResolvedValue(mockParents);
+
+      const result = await service.findAll({
+        page: 1,
+        limit: 10,
+        search: 'John',
+      });
+
+      expect(result.data).toHaveLength(1);
+
+      // Verify query builder was used for search
+      expect(parentRepository.createQueryBuilder).toHaveBeenCalled();
+      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
+        'parent.user',
+        'user',
+      );
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'parent.createdAt',
+        'DESC',
+      );
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        '(user.first_name ILIKE :search OR user.last_name ILIKE :search OR user.email ILIKE :search)',
+        { search: '%John%' },
+      );
+
+      // Regular list should not be called when search is provided
+      expect(parentModelAction.list).not.toHaveBeenCalled();
+    });
+
+    it('should log search information without search term', async () => {
+      const mockParents = [mockParent as Parent];
+      const mockPaginationMeta = {
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+      };
+
+      parentModelAction.list.mockResolvedValue({
+        payload: mockParents,
+        paginationMeta: mockPaginationMeta,
+      });
+
+      await service.findAll({ page: 1, limit: 10 });
+
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        `Fetched ${mockParents.length} parents`,
+        {
+          searchTerm: undefined,
+          page: 1,
+          limit: 10,
+          total: mockPaginationMeta.total,
+        },
+      );
+    });
+
+    it('should log search information with search term', async () => {
+      const mockParents = [mockParent as Parent];
+
+      // Get the mock query builder instance and cast to our mock type
+      const mockQueryBuilder =
+        parentRepository.createQueryBuilder() as unknown as MockQueryBuilder;
+      mockQueryBuilder.getCount = jest.fn().mockResolvedValue(1);
+      mockQueryBuilder.getMany = jest.fn().mockResolvedValue(mockParents);
+
+      await service.findAll({ page: 1, limit: 10, search: 'test' });
+
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        `Fetched ${mockParents.length} parents`,
+        {
+          searchTerm: 'test',
+          page: 1,
+          limit: 10,
+          total: 1, // From getCount mock
+        },
+      );
+    });
+  });
+});
