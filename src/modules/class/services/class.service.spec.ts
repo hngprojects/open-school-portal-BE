@@ -67,6 +67,7 @@ describe('ClassService', () => {
     create: jest.fn(),
     findAllWithSession: jest.fn(),
     findAllWithSessionRaw: jest.fn(),
+    list: jest.fn(),
   };
 
   const mockClassTeacherModelAction = {
@@ -308,9 +309,7 @@ describe('ClassService', () => {
         },
       ];
 
-      (
-        mockClassModelAction.findAllWithSessionRaw as jest.Mock
-      ).mockResolvedValue({
+      mockClassModelAction.list.mockResolvedValue({
         payload: mockRawClasses,
         paginationMeta: { total: 1, page: 1, limit: 20 },
       });
@@ -331,13 +330,11 @@ describe('ClassService', () => {
       expect(result.message).toBe(sysMsg.CLASS_FETCHED);
       expect(result.data.items).toEqual(expectedGrouped);
       expect(result.data.pagination).toBeDefined();
-      expect(mockClassModelAction.findAllWithSessionRaw).toHaveBeenCalled();
+      expect(mockClassModelAction.list).toHaveBeenCalled();
     });
 
     it('should return status_code 200 and message for empty grouped classes', async () => {
-      (
-        mockClassModelAction.findAllWithSessionRaw as jest.Mock
-      ).mockResolvedValue({
+      mockClassModelAction.list.mockResolvedValue({
         payload: [],
         paginationMeta: { total: 0, page: 1, limit: 20 },
       });
@@ -348,7 +345,7 @@ describe('ClassService', () => {
       expect(result.message).toBe(sysMsg.NO_CLASS_FOUND);
       expect(result.data.items).toEqual([]);
       expect(result.data.pagination).toBeDefined();
-      expect(mockClassModelAction.findAllWithSessionRaw).toHaveBeenCalled();
+      expect(mockClassModelAction.list).toHaveBeenCalled();
     });
   });
 });

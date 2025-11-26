@@ -158,8 +158,14 @@ export class ClassService {
    * Fetches all classes grouped by name and academic session, including arm.
    */
   async getGroupedClasses(page = 1, limit = 20) {
+    // Use generic list method from AbstractModelAction
     const { payload: classesRaw, paginationMeta } =
-      await this.classModelAction.findAllWithSessionRaw(page, limit);
+      await this.classModelAction.list({
+        relations: { academicSession: true },
+        order: { name: 'ASC', arm: 'ASC' },
+        paginationPayload: { page, limit },
+      });
+
     const classes = Array.isArray(classesRaw) ? classesRaw : [];
 
     const grouped: Record<
