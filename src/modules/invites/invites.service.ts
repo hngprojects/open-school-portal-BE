@@ -1,9 +1,7 @@
 import { Injectable, HttpStatus, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { S3 } from 'aws-sdk';
 import { Repository } from 'typeorm';
 
-import config from '../../config/config';
 import * as sysMsg from '../../constants/system.messages';
 import { parseCsv } from '../invites/csv-parser';
 
@@ -19,16 +17,8 @@ import {
 } from './dto/pending-invite.dto';
 import { Invite } from './entities/invites.entity';
 
-const { aws } = config();
-
 @Injectable()
 export class InviteService {
-  private readonly s3 = new S3({
-    region: aws.region,
-    accessKeyId: aws.accessKeyId,
-    secretAccessKey: aws.secretAccessKey,
-  });
-
   constructor(
     @InjectRepository(Invite)
     private readonly inviteRepo: Repository<Invite>,
