@@ -365,7 +365,10 @@ describe('InviteService', () => {
       inviteModelAction.list.mockResolvedValue({
         payload: mockInvites,
         count: 2,
-      } as any);
+      } as unknown as {
+        payload: Invite[];
+        paginationMeta: Partial<PaginationMeta>;
+      });
 
       const result = await service.getAcceptedInvites();
 
