@@ -13,10 +13,16 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { FindOptionsWhere, In } from 'typeorm';
 import { Logger } from 'winston';
 
+import config from 'src/config/config';
+import { EmailTemplateID } from 'src/constants/email-constants';
+
 import * as sysMsg from '../../constants/system.messages';
+import { EmailService } from '../email/email.service';
 import { parseCsv } from '../invites/csv-parser';
 import { UserRole } from '../user/entities/user.entity';
 import { UserModelAction } from '../user/model-actions/user-actions';
+
+const { mail, frontend } = config();
 
 import { AcceptInviteDto } from './dto/accept-invite.dto';
 import {
@@ -36,6 +42,7 @@ export class InviteService {
 
     private readonly userModelAction: UserModelAction,
     private readonly inviteModelAction: InviteModelAction,
+    private readonly emailService: EmailService,
   ) {
     this.logger = baseLogger.child({ context: InviteService.name });
   }
@@ -104,7 +111,7 @@ export class InviteService {
     };
   }
 
-  async uploadCsvToS3(
+  async uploadCsv(
     file: Express.Multer.File,
     selectedType: InviteRole, // admin’s selection
   ): Promise<BulkInvitesResponseDto> {
@@ -125,13 +132,9 @@ export class InviteService {
       file.buffer,
     );
 
-    // Filter out rows with missing or empty email
     const filteredRows = rows.filter((row) => row.email?.trim());
-
-    // Normalize emails
     const emails = filteredRows.map((row) => row.email.trim().toLowerCase());
 
-    // Find existing invites in DB
     const existing = await this.inviteModelAction.get({
       identifierOptions: { email: In(emails) } as FindOptionsWhere<Invite>,
     });
@@ -142,7 +145,6 @@ export class InviteService {
         : [existing?.email?.toLowerCase()],
     );
 
-    // Keep only rows with unique emails
     const validRows = filteredRows.filter(
       (row) => !existingEmails.has(row.email.trim().toLowerCase()),
     );
@@ -158,11 +160,20 @@ export class InviteService {
     const createdInvites: InviteUserDto[] = [];
 
     for (const row of validRows) {
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      const hashedToken = crypto
+        .createHash('sha256')
+        .update(rawToken)
+        .digest('hex');
+
       const invite = await this.inviteModelAction.create({
         createPayload: {
           email: row.email.trim().toLowerCase(),
           full_name: row.full_name?.trim(),
-          role: selectedType, // one role applied to all rows
+          role: selectedType,
+          token_hash: hashedToken,
+          status: InviteStatus.PENDING,
+          accepted: false,
         },
         transactionOptions: { useTransaction: false },
       });
@@ -172,9 +183,24 @@ export class InviteService {
         transactionOptions: { useTransaction: false },
       });
 
+      const inviteLink = `${frontend.url}/accept-invite?token=${rawToken}`;
+
+      // SEND EMAIL using your existing EmailService
+      await this.emailService.sendMail({
+        from: { email: mail.from.address, name: mail.from.name },
+        to: [{ email: invite.email, name: invite.full_name }],
+        subject: `You are invited! as ${selectedType}`,
+        templateNameID: EmailTemplateID.INVITE,
+        templateData: {
+          firstName: invite.full_name?.split(' ')[0] || 'User',
+          inviteLink,
+          role: invite.role,
+        },
+      });
+
       createdInvites.push({
         email: invite.email,
-        role: selectedType, // same role for all
+        role: selectedType,
         full_name: invite.full_name,
       });
     }
@@ -184,8 +210,8 @@ export class InviteService {
       message: sysMsg.BULK_UPLOAD_SUCCESS,
       total_bulk_invites_sent: createdInvites.length,
       data: createdInvites,
-      skipped_already_exist_emil_on_csv: skippedRows.map((row) => row.email),
-      document_type: selectedType, //include the type of document selected
+      skipped_already_exist_emil_on_csv: skippedRows.map((r) => r.email),
+      document_type: selectedType,
     };
   }
 }

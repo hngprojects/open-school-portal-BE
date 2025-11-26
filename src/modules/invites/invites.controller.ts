@@ -68,7 +68,7 @@ export class InvitesController {
     @UploadedFile() file: Express.Multer.File,
     @Query('type') selectedType: InviteRole,
   ) {
-    const key = await this.inviteService.uploadCsvToS3(file, selectedType);
+    const key = await this.inviteService.uploadCsv(file, selectedType);
     return {
       status_code: HttpStatus.OK,
       message: sysMsg.OPERATION_SUCCESSFUL,
