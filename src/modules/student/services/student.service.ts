@@ -36,7 +36,9 @@ export class StudentService {
     this.logger = baseLogger.child({ context: StudentService.name });
   }
 
-  async create(createStudentDto: CreateStudentDto) {
+  async create(
+    createStudentDto: CreateStudentDto,
+  ): Promise<StudentResponseDto> {
     const existingUser = await this.userModelAction.get({
       identifierOptions: { email: createStudentDto.email },
     });
@@ -109,9 +111,9 @@ export class StudentService {
       });
 
       return new StudentResponseDto(
-        sysMsg.STUDENT_CREATED,
         savedStudent,
         savedUser,
+        sysMsg.STUDENT_CREATED,
       );
     });
   }
@@ -135,7 +137,7 @@ export class StudentService {
         });
 
     const data = students.map(
-      (student) => new StudentResponseDto('', student, student.user),
+      (student) => new StudentResponseDto(student, student.user),
     );
 
     this.logger.info(`Fetched ${data.length} students`, {
@@ -154,11 +156,7 @@ export class StudentService {
   }
 
   // --- FIND ONE ---
-  async findOne(id: string): Promise<{
-    message: string;
-    status_code: number;
-    data: StudentResponseDto;
-  }> {
+  async findOne(id: string): Promise<StudentResponseDto> {
     const student = await this.studentModelAction.get({
       identifierOptions: { id },
       relations: { user: true, stream: true },
@@ -169,16 +167,17 @@ export class StudentService {
       throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
     }
 
-    const data = new StudentResponseDto('', student, student.user);
-
-    return {
-      message: sysMsg.STUDENT_FETCHED,
-      status_code: 200,
-      data,
-    };
+    return new StudentResponseDto(
+      student,
+      student.user,
+      sysMsg.STUDENT_FETCHED,
+    );
   }
 
-  async update(id: string, updateStudentDto: PatchStudentDto) {
+  async update(
+    id: string,
+    updateStudentDto: PatchStudentDto,
+  ): Promise<StudentResponseDto> {
     const existingStudent = await this.studentModelAction.get({
       identifierOptions: { id },
       relations: {
@@ -242,9 +241,9 @@ export class StudentService {
       });
 
       return new StudentResponseDto(
-        sysMsg.STUDENT_UPDATED,
         student,
         updatedUser,
+        sysMsg.STUDENT_UPDATED,
       );
     });
   }
