@@ -167,6 +167,7 @@ export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
 export const SESSION_NOT_FOUND = 'session not found';
 export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
+
 //department
 export const DEPARTMENT_NOT_FOUND = 'Department not found';
 export const DEPARTMENT_CREATED = 'Department created successfully';
@@ -189,12 +190,15 @@ export const CLASS_ALREADY_EXIST =
   'A class with the same name and arm already exists in this session.';
 export const CLASS_NAME_EMPTY = 'class name cannot be empty';
 export const CLASS_UPDATED = 'class updated successfully';
+export const CLASS_FETCHED = 'classes fetched successfully';
+export const NO_CLASS_FOUND = 'no classes found.';
 
 // Parent messages
 export const PARENT_CREATED = 'Parent created successfully';
 export const PARENT_UPDATED = 'Parent updated successfully';
 export const PARENT_NOT_FOUND = 'Parent not found';
 export const PARENTS_FETCHED = 'Parents fetched successfully';
+export const PARENT_DELETED = 'Parent deleted successfully';
 // Contact messages
 export const CONTACT_MESSAGE_SENT = 'Contact message sent successfully';
 export const CONTACT_MESSAGE_FAILED = 'Failed to send contact message';

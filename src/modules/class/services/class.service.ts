@@ -222,4 +222,51 @@ export class ClassService {
       },
     };
   }
+  
+  /**
+   * Fetches all classes grouped by name and academic session, including arm.
+   */
+  async getGroupedClasses(page = 1, limit = 20) {
+    // Use generic list method from AbstractModelAction
+    const { payload: classesRaw, paginationMeta } =
+      await this.classModelAction.list({
+        relations: { academicSession: true },
+        order: { name: 'ASC', arm: 'ASC' },
+        paginationPayload: { page, limit },
+      });
+
+    const classes = Array.isArray(classesRaw) ? classesRaw : [];
+
+    const grouped: Record<
+      string,
+      {
+        name: string;
+        academicSession: { id: string; name: string };
+        classes: { id: string; arm?: string }[];
+      }
+    > = {};
+
+    for (const cls of classes) {
+      const key = `${cls.name}_${cls.academicSession.id}`;
+      if (!grouped[key]) {
+        grouped[key] = {
+          name: cls.name,
+          academicSession: {
+            id: cls.academicSession.id,
+            name: cls.academicSession.name,
+          },
+          classes: [],
+        };
+      }
+      grouped[key].classes.push({ id: cls.id, arm: cls.arm });
+    }
+
+    return {
+      message: Object.values(grouped).length
+        ? sysMsg.CLASS_FETCHED
+        : sysMsg.NO_CLASS_FOUND,
+      items: Object.values(grouped),
+      pagination: paginationMeta,
+    };
+  }
 }
