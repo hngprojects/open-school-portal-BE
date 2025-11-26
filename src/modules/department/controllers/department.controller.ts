@@ -1,8 +1,12 @@
 import {
   Body,
   Controller,
+  Delete,
   HttpCode,
   HttpStatus,
+  Param,
+  Patch,
+  ParseUUIDPipe,
   Post,
   Get,
   Query,
@@ -18,8 +22,11 @@ import {
   ApiDepartmentBearerAuth,
   ApiCreateDepartment,
   ApiFindAllDepartments,
+  ApiUpdateDepartment,
+  ApiRemoveDepartment,
 } from '../docs/department.swagger';
 import { CreateDepartmentDto } from '../dto/create-department.dto';
+import { UpdateDepartmentDto } from '../dto/update-department.dto';
 import { DepartmentService } from '../services/department.service';
 
 @Controller('departments')
@@ -48,5 +55,22 @@ export class DepartmentController {
       page: Number.isNaN(parsedPage) ? undefined : parsedPage,
       limit: Number.isNaN(parsedLimit) ? undefined : parsedLimit,
     });
+  @Patch(':id')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiUpdateDepartment()
+  update(
+    @Param('id') id: string,
+    @Body() updateDepartmentDto: UpdateDepartmentDto,
+  ) {
+    return this.departmentService.update(id, updateDepartmentDto);
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiRemoveDepartment()
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.departmentService.remove(id);
   }
 }
