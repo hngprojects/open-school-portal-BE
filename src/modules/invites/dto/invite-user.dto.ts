@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsOptional } from 'class-validator';
+import { IsEmail, IsEnum, IsString, Matches } from 'class-validator';
 
 import { PendingInviteDto } from './pending-invite.dto';
 
@@ -7,11 +7,15 @@ export enum InviteRole {
   TEACHER = 'TEACHER',
   PARENT = 'PARENT',
   STUDENT = 'STUDENT',
+  ADMIN = 'ADMIN',
 }
 
 export class InviteUserDto {
   @ApiProperty({ example: 'parent@example.com' })
   @IsEmail()
+  @Matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, {
+    message: 'Please provide a valid email address',
+  })
   email: string;
 
   @ApiProperty({
@@ -21,20 +25,24 @@ export class InviteUserDto {
   @IsEnum(InviteRole)
   role: InviteRole;
 
-  @ApiPropertyOptional({ example: 'Olivia Doe' })
-  @IsOptional()
-  full_name?: string;
+  @ApiProperty({ example: 'Olivia' })
+  @IsString()
+  first_name: string;
 
-  @IsOptional()
-  metadata?: Record<string, unknown>;
+  @ApiProperty({ example: 'Doe' })
+  @IsString()
+  last_name: string;
 }
 
 export class CreatedInviteDto extends PendingInviteDto {
   @ApiProperty({ enum: InviteRole, example: InviteRole.TEACHER })
   readonly role: InviteRole;
 
-  @ApiPropertyOptional({ example: 'Olivia Doe' })
-  readonly full_name?: string;
+  @ApiProperty({ example: 'Olivia' })
+  readonly first_name: string;
+
+  @ApiProperty({ example: 'Doe' })
+  readonly last_name: string;
 
   @ApiPropertyOptional({ example: 'pending' })
   readonly status?: string;

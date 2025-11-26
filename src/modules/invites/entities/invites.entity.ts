@@ -33,6 +33,9 @@ export class Invite extends BaseEntity {
   @Column()
   role: string;
 
-  @Column({ nullable: true })
-  full_name: string;
+  @Column()
+  first_name: string;
+
+  @Column()
+  last_name: string;
 }

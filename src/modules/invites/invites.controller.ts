@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 
 import { Roles } from '../auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserRole } from '../shared/enums';
 
@@ -33,11 +34,10 @@ export class InvitesController {
   constructor(private readonly inviteService: InviteService) {}
 
   @Post('send')
-  // @UseGuards(RolesGuard)
-  // @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @ApiSendInvite()
-  @Roles(UserRole.ADMIN)
   async inviteUser(@Body() payload: InviteUserDto) {
     return this.inviteService.sendInvite(payload);
   }
@@ -52,7 +52,7 @@ export class InvitesController {
   }
 
   @Get()
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiGetPendingInvites()

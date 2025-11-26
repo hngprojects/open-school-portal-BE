@@ -3,7 +3,6 @@ import { createHash, randomBytes } from 'crypto';
 import { Injectable, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { Logger } from 'winston';
 
 import { EmailTemplateID } from '../../constants/email-constants';
 import * as sysMsg from '../../constants/system.messages';
@@ -28,7 +27,7 @@ import { Invite, InviteStatus } from './entities/invites.entity';
 
 @Injectable()
 export class InviteService {
-  private readonly logger: Logger;
+  // private readonly logger: Logger;
   constructor(
     @InjectRepository(Invite)
     private readonly inviteRepo: Repository<Invite>,
@@ -39,6 +38,8 @@ export class InviteService {
     private readonly emailService: EmailService,
   ) {}
   async sendInvite(payload: InviteUserDto): Promise<PendingInvitesResponseDto> {
+    const frontendUrl = 'https://staging.borjigin.emerj.net/';
+
     // Check if user exists
     const exists = await this.userRepo.findOne({
       where: { email: payload.email },
@@ -67,30 +68,15 @@ export class InviteService {
       };
     }
 
-    // // Extra check (parent invite → child must exist)
-    // if (payload.role === InviteRole.PARENT) {
-    //   const childId = String(payload.metadata?.childId);
-    //   const childExists = await this.userRepo.findOne({
-    //     where: { id: childId, role: In([UserRole.STUDENT]) },
-    //   });
-
-    //   if (!childExists) {
-    //     return {
-    //       status_code: HttpStatus.BAD_REQUEST,
-    //       message: sysMsg.CHILD_NOT_FOUND,
-    //       data: [],
-    //     };
-    //   }
-    // }
-
     // Generate secure token
     const { rawToken, hashedToken } = await this.generateUniqueToken();
 
-    // Create invitation record
+    // Create invitation record with separate first_name and last_name
     const invite = this.inviteRepo.create({
       email: payload.email,
       role: payload.role,
-      full_name: payload.full_name,
+      first_name: payload.first_name,
+      last_name: payload.last_name,
       token_hash: hashedToken,
       status: InviteStatus.PENDING,
       invited_at: new Date(),
@@ -99,23 +85,50 @@ export class InviteService {
 
     await this.inviteRepo.save(invite);
 
+    let route = 'accept-invite';
+
+    switch (payload.role) {
+      case InviteRole.TEACHER:
+        route = 'invited-teacher';
+        break;
+      case InviteRole.PARENT:
+        route = 'invited-parent';
+        break;
+      case InviteRole.ADMIN:
+        route = 'invited-admin';
+        break;
+      case InviteRole.STUDENT:
+        route = 'invited-student';
+        break;
+      default:
+        route = 'accept-invite';
+    }
+
+    // Use the dynamic route in the link
+    const inviteLink = `${frontendUrl}/${route}?token=${rawToken}`;
+
     const emailPayload: EmailPayload = {
-      to: [{ email: invite.email, name: invite.full_name }],
-      subject: 'Your Invitation to Join SchoolBase Portal',
-      templateNameID: EmailTemplateID.INVITE_USER,
+      to: [
+        {
+          email: invite.email,
+          name: `${invite.first_name} ${invite.last_name}`,
+        },
+      ],
+      subject: `You are invited to Open School Portal`,
+      templateNameID: EmailTemplateID.INVITE,
       templateData: {
-        name: invite.full_name,
+        firstName: invite.first_name,
         role: invite.role,
-        inviteLink: `https://staging.borjigin.emerj.net/invite/validate?token=${rawToken}`,
+        inviteLink: inviteLink,
+        schoolName: 'Open School Portal',
+        logoUrl: 'https://your-school-logo-url.com/logo.png',
       },
     };
 
-    //  Implement email sending
+    // Implement email sending
     try {
       await this.emailService.sendMail(emailPayload);
-      this.logger.info(`Invitation email sent to ${invite.email}`);
-    } catch (error) {
-      console.log(error);
+    } catch {
       // Update invite status to failed if email fails
       await this.inviteRepo.update(invite.id, { status: InviteStatus.FAILED });
       return {
@@ -130,7 +143,8 @@ export class InviteService {
       email: invite.email,
       invited_at: invite.invited_at,
       role: invite.role as InviteRole,
-      full_name: invite.full_name,
+      first_name: invite.first_name,
+      last_name: invite.last_name,
       status: InviteStatus.PENDING,
     };
 
@@ -140,7 +154,6 @@ export class InviteService {
       data: [createdInvite],
     };
   }
-
   async validateInviteToken(
     dto: ValidateInviteDto,
   ): Promise<ValidateInviteResponseDto> {
@@ -191,14 +204,14 @@ export class InviteService {
         email: invite.email,
         role: invite.role,
         expires_at: invite.expires_at,
-        full_name: invite.full_name,
+        full_name: `${invite.first_name} ${invite.last_name}`,
       },
     };
   }
 
   async getPendingInvites(): Promise<PendingInvitesResponseDto> {
     const invites = await this.inviteRepo.find({
-      where: { status: InviteStatus.FAILED },
+      where: { status: InviteStatus.PENDING },
       order: { invited_at: 'DESC' },
     });
 
@@ -214,6 +227,7 @@ export class InviteService {
       id: invite.id,
       email: invite.email,
       invited_at: invite.invited_at,
+      status: invite.status,
     }));
 
     return {
