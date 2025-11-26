@@ -49,6 +49,9 @@ export default () => ({
     apiKey: process.env.CLOUDINARY_API_KEY,
     apiSecret: process.env.CLOUDINARY_API_SECRET,
   },
+  frontend: {
+    url: process.env.FRONTEND_URL,
+  },
 
   frontend: {
     url: process.env.FRONTEND_URL,
