@@ -173,3 +173,11 @@ export const CONTACT_MESSAGE_FAILED = 'Failed to send contact message';
 export const CONTACT_NOT_FOUND = 'Contact inquiry not found';
 export const CONTACT_ALREADY_RESOLVED = 'Contact inquiry already resolved';
 export const CONTACT_STATUS_UPDATED = 'Contact status updated successfully';
+
+// Database messages
+export const DATABASE_CREATED = 'Database stored successfully';
+export const DATABASE_ALREADY_CONFIGURED =
+  'Database already configured for this school';
+export const DATABASE_CONFIGURATION_FAILED = 'Database configuration failed';
+export const DATABASE_CONFIGURATION_SUCCESS =
+  'Database configuration successful';
