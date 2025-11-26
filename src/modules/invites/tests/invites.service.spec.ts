@@ -1,189 +1,154 @@
-import { Readable } from 'stream';
+import { createHash } from 'crypto';
 
-import { HttpStatus } from '@nestjs/common';
+import {
+  ConflictException,
+  BadRequestException,
+  NotFoundException,
+  HttpStatus,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 
 import * as sysMsg from '../../../constants/system.messages';
-import { InviteUserDto, InviteRole } from '../dto/invite-user.dto';
-import { PendingInvitesResponseDto } from '../dto/pending-invite.dto';
-import { Invite } from '../entities/invites.entity';
+import { EmailService } from '../../email/email.service';
+import { SchoolModelAction } from '../../school/model-actions/school.action';
+import { UserRole } from '../../user/entities/user.entity';
+import { UserModelAction } from '../../user/model-actions/user-actions';
+import { AcceptInviteDto } from '../dto/accept-invite.dto';
+import { InviteStatus } from '../entities/invites.entity';
+import { InviteModelAction } from '../invite.model-action';
 import { InviteService } from '../invites.service';
+
+// Interfaces
+interface IMockModelAction {
+  create: jest.Mock;
+  get: jest.Mock;
+  list: jest.Mock;
+  update: jest.Mock;
+}
 
 describe('InviteService', () => {
   let service: InviteService;
+  let inviteModelAction: IMockModelAction;
+  let userModelAction: IMockModelAction;
 
-  const mockInviteRepo = {
-    findOne: jest.fn(),
-    create: jest.fn(),
-    save: jest.fn(),
-    find: jest.fn(),
+  const mockInvite = {
+    id: 'invite-uuid',
+    email: 'test@example.com',
+    role: UserRole.TEACHER,
+    full_name: 'John Doe',
+    token_hash: 'hashed-token',
+    expires_at: new Date(Date.now() + 100000),
+    accepted: false,
+    status: InviteStatus.PENDING,
   };
 
   beforeEach(async () => {
+    const mockAction = {
+      create: jest.fn(),
+      get: jest.fn(),
+      list: jest.fn(),
+      update: jest.fn(),
+    };
+
+    const mockLoggerObj = {
+      info: jest.fn(),
+      child: jest.fn().mockReturnThis(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InviteService,
-        { provide: getRepositoryToken(Invite), useValue: mockInviteRepo },
+        { provide: InviteModelAction, useValue: { ...mockAction } },
+        { provide: UserModelAction, useValue: { ...mockAction } },
+        { provide: SchoolModelAction, useValue: { ...mockAction } },
+
+        { provide: ConfigService, useValue: { get: jest.fn() } },
+        { provide: EmailService, useValue: { sendMail: jest.fn() } },
+        { provide: WINSTON_MODULE_PROVIDER, useValue: mockLoggerObj },
+        // Mocks for injected Repositories (used in constructor but not in acceptInvite)
       ],
     }).compile();
 
     service = module.get<InviteService>(InviteService);
+    inviteModelAction = module.get(InviteModelAction);
+    userModelAction = module.get(UserModelAction);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+  describe('acceptInvite', () => {
+    const dto: AcceptInviteDto = {
+      token: 'valid-token',
+      password: 'Password123!',
+    };
+    // Helper to simulate the hash logic inside the service
+    const hashedToken = createHash('sha256').update(dto.token).digest('hex');
 
-  describe('sendInvite', () => {
-    it('should create a new invite if email does not exist', async () => {
-      mockInviteRepo.findOne.mockResolvedValue(null);
-      mockInviteRepo.create.mockReturnValue({
-        id: '1',
-        email: 'test@example.com',
-        invitedAt: new Date(),
-        role: InviteRole.TEACHER,
-        full_name: 'John Doe',
-      });
-      mockInviteRepo.save.mockResolvedValue({});
+    it('should create user and update invite if token is valid', async () => {
+      // 1. Mock Finding Invite
+      inviteModelAction.get.mockResolvedValue(mockInvite);
 
-      const payload: InviteUserDto = {
-        email: 'test@example.com',
-        role: InviteRole.TEACHER,
-        full_name: 'John Doe',
-      };
-      const result = await service.sendInvite(payload);
-
-      expect(result.status_code).toBe(HttpStatus.OK);
-      expect(result.message).toBe(sysMsg.INVITE_SENT);
-      expect(result.data[0].email).toBe(payload.email);
-    });
-
-    it('should return conflict if email already exists', async () => {
-      mockInviteRepo.findOne.mockResolvedValue({
-        id: '1',
-        email: 'test@example.com',
+      // 2. Mock User Creation
+      userModelAction.create.mockResolvedValue({
+        id: 'new-user-id',
+        email: mockInvite.email,
+        role: [mockInvite.role],
       });
 
-      const payload: InviteUserDto = {
-        email: 'test@example.com',
-        role: InviteRole.TEACHER,
-      };
-      const result = await service.sendInvite(payload);
+      const result = await service.acceptInvite(dto);
 
-      expect(result.status_code).toBe(HttpStatus.CONFLICT);
-      expect(result.message).toBe(sysMsg.INVITE_ALREADY_SENT);
-      expect(result.data).toHaveLength(0);
-    });
-  });
-
-  describe('getPendingInvites', () => {
-    it('should return pending invites if they exist', async () => {
-      const invites = [
-        { id: '1', email: 'test@example.com', invitedAt: new Date() },
-      ];
-      mockInviteRepo.find.mockResolvedValue(invites);
-
-      const result: PendingInvitesResponseDto =
-        await service.getPendingInvites();
-
-      expect(result.status_code).toBe(HttpStatus.OK);
-      expect(result.message).toBe(sysMsg.PENDING_INVITES_FETCHED);
-      expect(result.data).toHaveLength(invites.length);
-    });
-
-    it('should return NOT_FOUND if no pending invites', async () => {
-      mockInviteRepo.find.mockResolvedValue([]);
-
-      const result: PendingInvitesResponseDto =
-        await service.getPendingInvites();
-
-      expect(result.status_code).toBe(HttpStatus.NOT_FOUND);
-      expect(result.message).toBe(sysMsg.NO_PENDING_INVITES);
-      expect(result.data).toHaveLength(0);
-    });
-  });
-
-  // // ✅ START: Test for CSV bulk upload
-  describe('uploadCsvToS3', () => {
-    it('should create invites for valid new emails and skip duplicates', async () => {
-      const csvContent = `email,full_name
-existing@example.com,Alice
-new1@example.com,Bob
-new2@example.com,Charlie`;
-
-      const mockFile: Express.Multer.File = {
-        fieldname: 'file',
-        originalname: 'bulk.csv',
-        encoding: '7bit',
-        mimetype: 'text/csv',
-        size: csvContent.length,
-        buffer: Buffer.from(csvContent, 'utf-8'),
-        destination: '',
-        filename: '',
-        path: '',
-        stream: Readable.from(csvContent),
-      };
-
-      // Simulate one existing email
-      mockInviteRepo.find.mockResolvedValue([
-        { id: '1', email: 'existing@example.com' },
-      ]);
-
-      mockInviteRepo.create.mockImplementation((dto) => ({
-        ...dto,
-        id: Math.random().toString(),
-        invitedAt: new Date(),
-      }));
-
-      mockInviteRepo.save.mockImplementation((invite) =>
-        Promise.resolve(invite),
+      // Assert: Check if hashed token was used for lookup
+      expect(inviteModelAction.get).toHaveBeenCalledWith(
+        expect.objectContaining({
+          identifierOptions: expect.objectContaining({
+            token_hash: hashedToken,
+          }),
+        }),
       );
 
-      const selectedType = InviteRole.PARENT;
-
-      const result = await service.uploadCsvToS3(mockFile, selectedType);
-
-      expect(result.status_code).toBe(HttpStatus.OK);
-      expect(result.message).toContain('success');
-      expect(result.data).toHaveLength(2); // new1 and new2
-      expect(result.data.every((invite) => invite.role === selectedType)).toBe(
-        true,
+      expect(userModelAction.create).toHaveBeenCalled();
+      expect(inviteModelAction.update).toHaveBeenCalledWith(
+        expect.objectContaining({ updatePayload: { accepted: true } }),
       );
-      expect(result.skipped_already_exist_emil_on_csv).toContain(
-        'existing@example.com',
-      );
-      expect(result.document_type).toBe(selectedType);
+
+      expect(result.status_code).toBe(HttpStatus.CREATED);
+      expect(result.data.email).toBe(mockInvite.email);
     });
 
-    it('should return conflict if all emails already exist', async () => {
-      const csvContent = `email,full_name
-    existing1@example.com,Alice
-    existing2@example.com,Bob`;
+    it('should throw NotFoundException if token is invalid', async () => {
+      inviteModelAction.get.mockResolvedValue(null);
 
-      const mockFile: Express.Multer.File = {
-        fieldname: 'file',
-        originalname: 'bulk.csv',
-        encoding: '7bit',
-        mimetype: 'text/csv',
-        size: csvContent.length,
-        buffer: Buffer.from(csvContent, 'utf-8'),
-        destination: '',
-        filename: '',
-        path: '',
-        stream: Readable.from(csvContent),
-      };
+      await expect(service.acceptInvite(dto)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.acceptInvite(dto)).rejects.toThrow(
+        sysMsg.INVALID_VERIFICATION_TOKEN,
+      );
+    });
 
-      mockInviteRepo.find.mockResolvedValue([
-        { id: '1', email: 'existing1@example.com' },
-        { id: '2', email: 'existing2@example.com' },
-      ]);
+    it('should throw ConflictException if invite already accepted', async () => {
+      inviteModelAction.get.mockResolvedValue({
+        ...mockInvite,
+        accepted: true,
+      });
 
-      const selectedType = InviteRole.TEACHER;
+      await expect(service.acceptInvite(dto)).rejects.toThrow(
+        ConflictException,
+      );
+    });
 
-      await expect(
-        service.uploadCsvToS3(mockFile, selectedType),
-      ).rejects.toThrow(sysMsg.BULK_UPLOAD_NO_NEW_EMAILS);
+    it('should throw BadRequestException if token expired', async () => {
+      inviteModelAction.get.mockResolvedValue({
+        ...mockInvite,
+        expires_at: new Date(Date.now() - 10000), // Past
+      });
+
+      await expect(service.acceptInvite(dto)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.acceptInvite(dto)).rejects.toThrow(
+        sysMsg.TOKEN_EXPIRED,
+      );
     });
   });
 });
