@@ -33,3 +33,17 @@ export const DocsCreateClass = () => {
     ApiResponse(responses.conflict),
   );
 };
+
+export const DocsUpdateClass = () => {
+  const { operation, parameters, responses } =
+    ClassSwagger.endpoints.updateClass;
+
+  return applyDecorators(
+    ApiOperation(operation),
+    ApiParam(parameters.id),
+    ApiResponse(responses.ok),
+    ApiResponse(responses.badRequest),
+    ApiNotFoundResponse(responses.notFound),
+    ApiResponse(responses.conflict),
+  );
+};

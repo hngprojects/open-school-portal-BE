@@ -2,12 +2,14 @@ import {
   ConflictException,
   HttpStatus,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
+import { SessionStatus } from '../../academic-session/entities/academic-session.entity';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { ClassTeacher } from '../entities/class-teacher.entity';
 import { Class } from '../entities/class.entity';
@@ -283,6 +285,106 @@ describe('ClassService', () => {
       // Execute & Assert
       await expect(service.create(createClassDto)).rejects.toThrow(
         NotFoundException,
+      );
+    });
+  });
+
+  describe('updateClass', () => {
+    const classId = 'class-uuid-1';
+    const updateDto = { name: 'JSS2', arm: 'B' };
+    const mockAcademicSession = {
+      id: 'session-uuid-1',
+      name: '2026/2027',
+      startDate: new Date(),
+      endDate: new Date(),
+      status: SessionStatus.ACTIVE,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const existingClass = {
+      id: classId,
+      name: 'JSS1',
+      arm: 'A',
+      academicSession: mockAcademicSession,
+      teacher_assignment: [],
+      streams: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as unknown as Class;
+
+    beforeEach(() => {
+      classModelAction.get.mockResolvedValue(existingClass);
+      classModelAction.find.mockResolvedValue({
+        payload: [],
+        paginationMeta: {},
+      });
+      classModelAction.update = jest.fn();
+    });
+
+    it('should update class and return updated response', async () => {
+      const result = await service.updateClass(classId, updateDto);
+
+      expect(classModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: classId },
+        relations: { academicSession: true },
+      });
+      expect(classModelAction.find).toHaveBeenCalledWith({
+        findOptions: {
+          name: updateDto.name,
+          arm: updateDto.arm,
+          academicSession: { id: existingClass.academicSession.id },
+        },
+        transactionOptions: { useTransaction: false },
+      });
+      expect(classModelAction.update).toHaveBeenCalledWith({
+        identifierOptions: { id: classId },
+        updatePayload: { name: updateDto.name, arm: updateDto.arm },
+        transactionOptions: { useTransaction: false },
+      });
+      expect(result).toEqual({
+        message: expect.any(String),
+        id: classId,
+        name: updateDto.name,
+        arm: updateDto.arm,
+        academicSession: {
+          id: existingClass.academicSession.id,
+          name: existingClass.academicSession.name,
+        },
+      });
+    });
+
+    it('should throw NotFoundException if class does not exist', async () => {
+      classModelAction.get.mockResolvedValue(null);
+      await expect(service.updateClass('wrong-id', updateDto)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw BadRequestException if name is empty', async () => {
+      await expect(service.updateClass(classId, { name: '' })).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should throw ConflictException if class with same name/arm exists', async () => {
+      classModelAction.find.mockResolvedValue({
+        payload: [
+          {
+            id: 'other-id',
+            name: 'JSS2',
+            arm: 'B',
+            academicSession: mockAcademicSession,
+            teacher_assignment: [],
+            streams: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+        paginationMeta: {},
+      });
+      await expect(service.updateClass(classId, updateDto)).rejects.toThrow(
+        ConflictException,
       );
     });
   });

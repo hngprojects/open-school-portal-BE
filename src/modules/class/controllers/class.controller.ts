@@ -5,6 +5,7 @@ import {
   Query,
   ParseUUIDPipe,
   Post,
+  Patch,
   Body,
   UseGuards,
 } from '@nestjs/common';
@@ -14,10 +15,17 @@ import { Roles } from '../../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { UserRole } from '../../shared/enums';
-import { DocsCreateClass, DocsGetClassTeachers } from '../docs/class.decorator';
-import { CreateClassDto } from '../dto/create-class.dto';
-import { GetTeachersQueryDto } from '../dto/get-teachers-query.dto';
-import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
+import {
+  DocsCreateClass,
+  DocsGetClassTeachers,
+  DocsUpdateClass,
+} from '../docs/class.decorator';
+import {
+  CreateClassDto,
+  GetTeachersQueryDto,
+  TeacherAssignmentResponseDto,
+  UpdateClassDto,
+} from '../dto';
 import { ClassService } from '../services/class.service';
 
 @ApiTags('Classes')
@@ -33,6 +41,16 @@ export class ClassController {
   @DocsCreateClass()
   async create(@Body() createClassDto: CreateClassDto) {
     return this.classService.create(createClassDto);
+  }
+
+  // --- PATCH: UPDATE CLASS (ADMIN ONLY) ---
+  @Patch(':id')
+  @DocsUpdateClass()
+  async updateClass(
+    @Param('id', ParseUUIDPipe) classId: string,
+    @Body() updateClassDto: UpdateClassDto,
+  ) {
+    return this.classService.updateClass(classId, updateClassDto);
   }
 
   @Get(':id/teachers')
