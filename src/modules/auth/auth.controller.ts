@@ -1,21 +1,23 @@
 import {
   Body,
   Controller,
+  Get,
+  Headers,
   HttpCode,
   HttpStatus,
   Param,
   Patch,
   Post,
-  Get,
-  Headers,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiOperation,
   ApiResponse,
   ApiTags,
-  ApiBearerAuth,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 
+import { AUTH_LIMIT } from '../../config/throttle.config';
 import * as sysMsg from '../../constants/system.messages';
 
 import { AuthService } from './auth.service';
@@ -40,6 +42,7 @@ import { LoginDto } from './dto/login.dto';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Throttle({ default: AUTH_LIMIT })
   @Post('signup')
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({
@@ -59,6 +62,7 @@ export class AuthController {
     return this.authService.signup(signupDto);
   }
 
+  @Throttle({ default: AUTH_LIMIT })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with email and password' })
@@ -79,6 +83,7 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
+  @Throttle({ default: AUTH_LIMIT })
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token using refresh token' })
@@ -99,11 +104,13 @@ export class AuthController {
     return this.authService.refreshToken(refreshToken);
   }
 
+  @Throttle({ default: AUTH_LIMIT })
   @Post('forgot-password')
   forgotPassword(@Body() payload: ForgotPasswordDto) {
     return this.authService.forgotPassword(payload);
   }
 
+  @Throttle({ default: AUTH_LIMIT })
   @Post('reset-password')
   resetPassword(@Body() payload: ResetPasswordDto) {
     return this.authService.resetPassword(payload);

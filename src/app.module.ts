@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AppController } from './app.controller';
@@ -9,6 +10,7 @@ import { GlobalExceptionFilter } from './common/exceptions/filters/global-except
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { LoggerModule } from './common/logger.module';
 import configuration from './config/config';
+import { DEFAULT_LIMIT } from './config/throttle.config';
 import { LoggingInterceptor } from './middleware/logging.interceptor';
 import { AcademicSessionModule } from './modules/academic-session/academic-session.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -35,7 +37,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
       isGlobal: true,
       load: [configuration],
     }),
-
+    ThrottlerModule.forRoot({ throttlers: [DEFAULT_LIMIT] }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -77,6 +79,10 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     {
       provide: APP_INTERCEPTOR,
       useClass: TransformInterceptor,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
     {
       provide: APP_FILTER,
