@@ -5,11 +5,13 @@ import {
   ApiOperation,
   ApiBody,
   ApiResponse,
+  ApiParam,
 } from '@nestjs/swagger';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { CreateDepartmentDto } from '../dto/create-department.dto';
 import { DepartmentResponseDto } from '../dto/department-response.dto';
+import { UpdateDepartmentDto } from '../dto/update-department.dto';
 
 /**
  * Swagger documentation for Department endpoints.

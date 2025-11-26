@@ -11,6 +11,7 @@ import { Logger } from 'winston';
 import * as sysMsg from '../../../constants/system.messages';
 import { CreateDepartmentDto } from '../dto/create-department.dto';
 import { DepartmentResponseDto } from '../dto/department-response.dto';
+import { UpdateDepartmentDto } from '../dto/update-department.dto';
 import { Department } from '../entities/department.entity';
 import { IBaseResponse } from '../interface/types';
 import { DepartmentModelAction } from '../model-actions/department.actions';
