@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   ParseUUIDPipe,
   Post,
   UseGuards,
@@ -18,9 +19,11 @@ import {
   ApiDepartmentTags,
   ApiDepartmentBearerAuth,
   ApiCreateDepartment,
+  ApiUpdateDepartment,
   ApiRemoveDepartment,
 } from '../docs/department.swagger';
 import { CreateDepartmentDto } from '../dto/create-department.dto';
+import { UpdateDepartmentDto } from '../dto/update-department.dto';
 import { DepartmentService } from '../services/department.service';
 
 @Controller('departments')
@@ -36,6 +39,17 @@ export class DepartmentController {
   @ApiCreateDepartment()
   create(@Body() createDepartmentDto: CreateDepartmentDto) {
     return this.departmentService.create(createDepartmentDto);
+  }
+
+  @Patch(':id')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiUpdateDepartment()
+  update(
+    @Param('id') id: string,
+    @Body() updateDepartmentDto: UpdateDepartmentDto,
+  ) {
+    return this.departmentService.update(id, updateDepartmentDto);
   }
 
   @Delete(':id')

@@ -1,17 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { CreateDepartmentDto } from '../dto/create-department.dto';
+import { UpdateDepartmentDto } from '../dto/update-department.dto';
 import { DepartmentService } from '../services/department.service';
 
 import { DepartmentController } from './department.controller';
 
 describe('DepartmentController', () => {
   let controller: DepartmentController;
-  let departmentService: { create: jest.Mock; remove: jest.Mock };
+  let departmentService: {
+    create: jest.Mock;
+    update: jest.Mock;
+    remove: jest.Mock;
+  };
 
   beforeEach(async () => {
     departmentService = {
       create: jest.fn(),
+      update: jest.fn(),
       remove: jest.fn(),
     };
 
@@ -65,6 +71,40 @@ describe('DepartmentController', () => {
       );
       expect(departmentService.create).toHaveBeenCalledWith(
         createDepartmentDto,
+      );
+    });
+  });
+
+  describe('update', () => {
+    const departmentId = 'dept-1';
+    const updateDto: UpdateDepartmentDto = { name: 'Science & Technology' };
+
+    it('should delegate to DepartmentService and return its response', async () => {
+      const serviceResponse = {
+        message: 'Department updated successfully',
+        data: { id: departmentId, name: 'Science & Technology' },
+      };
+      departmentService.update.mockResolvedValue(serviceResponse);
+
+      await expect(controller.update(departmentId, updateDto)).resolves.toEqual(
+        serviceResponse,
+      );
+      expect(departmentService.update).toHaveBeenCalledWith(
+        departmentId,
+        updateDto,
+      );
+    });
+
+    it('should propagate errors thrown by DepartmentService', async () => {
+      const error = new Error('Update failed');
+      departmentService.update.mockRejectedValue(error);
+
+      await expect(controller.update(departmentId, updateDto)).rejects.toThrow(
+        error,
+      );
+      expect(departmentService.update).toHaveBeenCalledWith(
+        departmentId,
+        updateDto,
       );
     });
   });

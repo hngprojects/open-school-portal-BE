@@ -166,6 +166,12 @@ export const SESSION_ACTIVATION_FAILED =
   'Failed to activate academic session. Please try again.';
 export const ACADEMY_SESSION_ACTIVATED =
   'Academic session activated successfully.';
+export const ACADEMIC_SESSION_RETRIEVED =
+  'Academic session retrieved successfully.';
+export const ACADEMIC_SESSION_UPDATED =
+  'Academic session updated successfully.';
+export const ACADEMIC_SESSION_DELETED =
+  'Academic session deleted successfully.';
 // Session management messages
 export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
@@ -191,6 +197,7 @@ export const ROOM_STATUS_UPDATED = 'Room status updated successfully.';
 export const DEPARTMENT_NOT_FOUND = 'Department not found';
 export const DEPARTMENT_CREATED = 'Department created successfully';
 export const DEPARTMENT_ALREADY_EXISTS = 'Department already exists';
+export const DEPARTMENT_UPDATED = 'Department updated successfully';
 export const DEPARTMENT_DELETED = 'Department deleted successfully';
 export const DEPARTMENT_HAS_ASSOCIATED_SUBJECTS =
   'Cannot delete department with associated subjects';
@@ -210,6 +217,8 @@ export const TEACHER_ASSIGNED = 'teacher successfully assigned to the class';
 export const CLASS_CREATED = 'Class successfully created.';
 export const CLASS_ALREADY_EXIST =
   'A class with the same name and arm already exists in this session.';
+export const CLASS_NAME_EMPTY = 'class name cannot be empty';
+export const CLASS_UPDATED = 'class updated successfully';
 export const CLASS_FETCHED = 'classes fetched successfully';
 export const NO_CLASS_FOUND = 'no classes found.';
 
@@ -226,6 +235,13 @@ export const CONTACT_NOT_FOUND = 'Contact inquiry not found';
 export const CONTACT_ALREADY_RESOLVED = 'Contact inquiry already resolved';
 export const CONTACT_STATUS_UPDATED = 'Contact status updated successfully';
 
+// Database messages
+export const DATABASE_CREATED = 'Database stored successfully';
+export const DATABASE_ALREADY_CONFIGURED =
+  'Database already configured for this school';
+export const DATABASE_CONFIGURATION_FAILED = 'Database configuration failed';
+export const DATABASE_CONFIGURATION_SUCCESS =
+  'Database configuration successful';
 // Student messages
 export const STUDENT_CREATED = 'Student created successfully';
 export const STUDENT_EMAIL_CONFLICT = `Student with email already exists.`;
@@ -233,5 +249,7 @@ export const STUDENT_REGISTRATION_NUMBER_CONFLICT = `Student with registration n
 export const STUDENT_FETCHED = 'Student fetched successfully';
 export const STUDENTS_FETCHED = 'Students fetched successfully';
 export const STUDENT_NOT_FOUND = 'Student not found';
-
 export const STUDENT_UPDATED = 'Student updated successfully';
+
+// Dashboard messages
+export const DASHBOARD_RESOLVED = 'Dashboard resolved successfully';

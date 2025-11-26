@@ -18,37 +18,55 @@ export class RoomService {
   ) {}
 
   async create(createRoomDto: CreateRoomDTO) {
-    const existingRoom = await this.findByName(
-      this.sanitizedName(createRoomDto.name),
-    );
+    const data = await this.datasource.transaction(async (manager) => {
+      const existingRoom = await this.findByName(
+        this.sanitizedName(createRoomDto.name),
+      );
 
-    if (existingRoom) {
-      throw new ConflictException(sysMsg.DUPLICATE_ROOM_NAME);
-    }
+      if (existingRoom) {
+        throw new ConflictException(sysMsg.DUPLICATE_ROOM_NAME);
+      }
 
-    let streamEntities: Stream[] = [];
+      let streamEntities: Stream[] = [];
 
-    if (createRoomDto.streams && createRoomDto.streams.length > 0) {
-      streamEntities = await this.validateStreams(createRoomDto.streams);
-    }
+      if (createRoomDto.streams && createRoomDto.streams.length > 0) {
+        streamEntities = await this.validateStreams(createRoomDto.streams);
+      }
 
-    const newRoom = await this.roomModelAction.create({
-      createPayload: {
-        name: this.sanitizedName(createRoomDto.name),
-        type: createRoomDto.type,
-        capacity: createRoomDto.capacity,
-        location: createRoomDto.location,
-        building: createRoomDto.building,
-        floor: createRoomDto.floor,
-        description: createRoomDto.description,
-        streams: streamEntities,
-      },
-      transactionOptions: {
-        useTransaction: false,
-      },
+      const newRoom = await this.roomModelAction.create({
+        createPayload: {
+          name: this.sanitizedName(createRoomDto.name),
+          type: createRoomDto.type,
+          capacity: createRoomDto.capacity,
+          location: createRoomDto.location,
+          building: createRoomDto.building,
+          floor: createRoomDto.floor,
+          description: createRoomDto.description,
+          streams: streamEntities,
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      return { message: sysMsg.ROOM_CREATED_SUCCESSFULLY, ...newRoom };
     });
 
-    return { message: sysMsg.ROOM_CREATED_SUCCESSFULLY, ...newRoom };
+    return data;
+  }
+
+  async findOne(id: string) {
+    const room = await this.roomModelAction.get({
+      identifierOptions: { id },
+      relations: { streams: true },
+    });
+
+    if (!room) {
+      throw new NotFoundException(sysMsg.ROOM_NOT_FOUND);
+    }
+
+    return { message: sysMsg.ROOM_RETRIEVED_SUCCESSFULLY, ...room };
   }
 
   private async validateStreams(streams: string[]) {
