@@ -135,16 +135,35 @@ export class AcademicSessionController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.academicSessionService.findOne(+id);
+    return this.academicSessionService.findOne(id);
   }
 
   @Patch(':id')
   update(@Param('id') id: string) {
-    return this.academicSessionService.update(+id);
+    return this.academicSessionService.update(id);
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation(AcademicSessionSwagger.decorators.delete.operation)
+  @ApiParam({
+    name: 'id',
+    type: String,
+    description: 'Academic Session UUID',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @ApiResponse(AcademicSessionSwagger.decorators.delete.response)
+  @ApiResponse({
+    status: 404,
+    description: 'Academic session not found',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Cannot delete active session',
+  })
   remove(@Param('id') id: string) {
-    return this.academicSessionService.remove(+id);
+    return this.academicSessionService.remove(id);
   }
 }

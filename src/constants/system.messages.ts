@@ -151,10 +151,13 @@ export const ACADEMIC_SESSION_CREATED =
 export const DUPLICATE_SESSION_NAME =
   'An academic session with this name already exists.';
 export const INVALID_DATE_RANGE = 'End date must be after start date.';
+export const CANNOT_DELETE_ACTIVE_SESSION = 'Cannot delete active session';
 export const START_DATE_IN_PAST = 'Start date cannot be in the past.';
 export const END_DATE_IN_PAST = 'End date cannot be in the past.';
 export const ACTIVE_ACADEMIC_SESSION_SUCCESS =
   'Academic session retrieved successfully.';
+export const ACADEMY_SESSION_ACTIVATED =
+  'Academic session activated successfully.';
 export const MULTIPLE_ACTIVE_ACADEMIC_SESSION =
   'Multiple academic session records detected.';
 export const ACADEMIC_SESSION_LIST_SUCCESS =
@@ -164,8 +167,8 @@ export const SESSION_ACTIVATED_SUCCESSFULLY =
   'Academic session activated successfully.';
 export const SESSION_ACTIVATION_FAILED =
   'Failed to activate academic session. Please try again.';
-export const ACADEMY_SESSION_ACTIVATED =
-  'Academic session activated successfully.';
+export const ACADEMIC_SESSION_DELETED =
+  'Academic session deleted successfully.';
 // Session management messages
 export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';

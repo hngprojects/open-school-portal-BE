@@ -4,15 +4,17 @@ import {
   ConflictException,
   HttpStatus,
   InternalServerErrorException,
-} from '@nestjs/common'; // Added HttpStatus
+  NotFoundException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { DataSource, EntityManager } from 'typeorm';
+import { DataSource, EntityManager, DeleteResult } from 'typeorm';
 
 import * as sysMsg from '../../constants/system.messages';
 
 import {
   AcademicSessionService,
   ICreateSessionResponse,
+  IDeleteSessionResponse,
 } from './academic-session.service';
 import { CreateAcademicSessionDto } from './dto/create-academic-session.dto';
 import {
@@ -26,10 +28,10 @@ describe('AcademicSessionService', () => {
   let mockSessionModelAction: jest.Mocked<AcademicSessionModelAction>;
 
   beforeEach(async () => {
-    // FIX: Use Partial<T> to define the required methods and the two-step assertion
     const mockModelActionProvider: Partial<AcademicSessionModelAction> = {
       get: jest.fn(),
       create: jest.fn(),
+      delete: jest.fn(),
       list: jest.fn(),
       update: jest.fn(),
     };
@@ -53,6 +55,10 @@ describe('AcademicSessionService', () => {
           provide: DataSource,
           useValue: mockDataSource,
         },
+        {
+          provide: DataSource,
+          useValue: mockDataSource,
+        },
       ],
     }).compile();
 
@@ -60,15 +66,14 @@ describe('AcademicSessionService', () => {
   });
 
   describe('create', () => {
-    // Define a standard DTO and the corresponding full response object for reuse
     const createDto: CreateAcademicSessionDto = {
       name: '2024/2025',
-      startDate: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
-      endDate: new Date(Date.now() + 172800000).toISOString(), // Day after tomorrow
+      startDate: new Date(Date.now() + 86400000).toISOString(),
+      endDate: new Date(Date.now() + 172800000).toISOString(),
     };
 
     const mockSession: AcademicSession = {
-      id: '1',
+      id: '550e8400-e29b-41d4-a716-446655440000',
       name: createDto.name,
       startDate: new Date(createDto.startDate),
       endDate: new Date(createDto.endDate),
@@ -78,8 +83,8 @@ describe('AcademicSessionService', () => {
     };
 
     const expectedSuccessResponse: ICreateSessionResponse = {
-      status_code: HttpStatus.OK, // Match service return
-      message: sysMsg.ACADEMIC_SESSION_CREATED, // Match service return
+      status_code: HttpStatus.OK,
+      message: sysMsg.ACADEMIC_SESSION_CREATED,
       data: mockSession,
     };
 
@@ -89,7 +94,6 @@ describe('AcademicSessionService', () => {
 
       const result = await service.create(createDto);
 
-      // ASSERTION CHANGE: Expect the full IcreateSessionResponse object
       expect(result).toEqual(expectedSuccessResponse);
       expect(mockSessionModelAction.get).toHaveBeenCalledWith({
         identifierOptions: { name: createDto.name },
@@ -105,7 +109,6 @@ describe('AcademicSessionService', () => {
     });
 
     it('should throw ConflictException if session name already exists', async () => {
-      // Cast needed to satisfy TS type check for existing record
       mockSessionModelAction.get.mockResolvedValue({} as AcademicSession);
 
       await expect(service.create(createDto)).rejects.toThrow(
@@ -117,7 +120,7 @@ describe('AcademicSessionService', () => {
     it('should throw BadRequestException if start date is in the past', async () => {
       const invalidDto: CreateAcademicSessionDto = {
         name: 'Past Start',
-        startDate: new Date(Date.now() - 86400000).toISOString(), // Yesterday (Invalid)
+        startDate: new Date(Date.now() - 86400000).toISOString(),
         endDate: new Date(Date.now() + 172800000).toISOString(),
       };
 
@@ -132,7 +135,7 @@ describe('AcademicSessionService', () => {
       const invalidDto: CreateAcademicSessionDto = {
         name: 'Past End',
         startDate: new Date(Date.now() + 86400000).toISOString(),
-        endDate: new Date(Date.now() - 86400000).toISOString(), // Yesterday (Invalid)
+        endDate: new Date(Date.now() - 86400000).toISOString(),
       };
 
       mockSessionModelAction.get.mockResolvedValue(null);
@@ -147,7 +150,7 @@ describe('AcademicSessionService', () => {
       const invalidDto: CreateAcademicSessionDto = {
         name: 'Invalid Range',
         startDate: startDate.toISOString(),
-        endDate: startDate.toISOString(), // Same as start date (Invalid)
+        endDate: startDate.toISOString(),
       };
 
       mockSessionModelAction.get.mockResolvedValue(null);
@@ -158,11 +161,62 @@ describe('AcademicSessionService', () => {
     });
   });
 
-  // --- Placeholder Tests (Unchanged) ---
+  describe('activeSessions', () => {
+    const mockActiveSession: AcademicSession = {
+      id: '550e8400-e29b-41d4-a716-446655440000',
+      name: '2024/2025',
+      startDate: new Date(),
+      endDate: new Date(Date.now() + 86400000),
+      status: SessionStatus.ACTIVE,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    it('should return null when no active sessions exist', async () => {
+      mockSessionModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { total: 0 },
+      });
+
+      const result = await service.activeSessions();
+      expect(result).toBeNull();
+    });
+
+    it('should return the single active session when exactly one exists', async () => {
+      mockSessionModelAction.list.mockResolvedValue({
+        payload: [mockActiveSession],
+        paginationMeta: { total: 1 },
+      });
+
+      const result = await service.activeSessions();
+      expect(result).toEqual(mockActiveSession);
+    });
+
+    it('should throw InternalServerErrorException when multiple active sessions exist', async () => {
+      const mockActiveSession2: AcademicSession = {
+        ...mockActiveSession,
+        id: '550e8400-e29b-41d4-a716-446655440001',
+        name: '2025/2026',
+      };
+
+      mockSessionModelAction.list.mockResolvedValue({
+        payload: [mockActiveSession, mockActiveSession2],
+        paginationMeta: { total: 2 },
+      });
+
+      await expect(service.activeSessions()).rejects.toThrow(
+        InternalServerErrorException,
+      );
+      await expect(service.activeSessions()).rejects.toThrow(
+        sysMsg.MULTIPLE_ACTIVE_ACADEMIC_SESSION,
+      );
+    });
+  });
+
   describe('findAll', () => {
     const mockSessions: AcademicSession[] = [
       {
-        id: '1',
+        id: '550e8400-e29b-41d4-a716-446655440000',
         name: '2024/2025',
         startDate: new Date('2024-01-01'),
         endDate: new Date('2024-12-31'),
@@ -171,7 +225,7 @@ describe('AcademicSessionService', () => {
         updatedAt: new Date(),
       },
       {
-        id: '2',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         name: '2025/2026',
         startDate: new Date('2025-01-01'),
         endDate: new Date('2025-12-31'),
@@ -212,9 +266,11 @@ describe('AcademicSessionService', () => {
     });
 
     it('should return paginated academic sessions with custom pagination', async () => {
+      const customPaginationMeta = { ...mockPaginationMeta, page: 2, limit: 1 };
+
       mockSessionModelAction.list.mockResolvedValue({
-        payload: mockSessions.slice(0, 1),
-        paginationMeta: { ...mockPaginationMeta, page: 2, limit: 1 },
+        payload: [mockSessions[0]],
+        paginationMeta: customPaginationMeta,
       });
 
       const result = await service.findAll({ page: 2, limit: 1 });
@@ -222,8 +278,8 @@ describe('AcademicSessionService', () => {
       expect(result).toEqual({
         status_code: HttpStatus.OK,
         message: sysMsg.ACADEMIC_SESSION_LIST_SUCCESS,
-        data: mockSessions.slice(0, 1),
-        meta: { ...mockPaginationMeta, page: 2, limit: 1 },
+        data: [mockSessions[0]],
+        meta: customPaginationMeta,
       });
       expect(mockSessionModelAction.list).toHaveBeenCalledWith({
         order: { startDate: 'ASC' },
@@ -252,113 +308,95 @@ describe('AcademicSessionService', () => {
     });
   });
 
+  describe('remove', () => {
+    const id = '550e8400-e29b-41d4-a716-446655440000';
+
+    const mockInactiveSession: AcademicSession = {
+      id: '550e8400-e29b-41d4-a716-446655440000',
+      name: '2024/2025',
+      startDate: new Date(),
+      endDate: new Date(Date.now() + 86400000),
+      status: SessionStatus.INACTIVE,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const mockActiveSession: AcademicSession = {
+      ...mockInactiveSession,
+      status: SessionStatus.ACTIVE,
+    };
+
+    const expectedSuccessResponse: IDeleteSessionResponse = {
+      status_code: HttpStatus.OK,
+      message: sysMsg.ACADEMIC_SESSION_DELETED,
+      data: {},
+    };
+
+    const mockDeleteResult: DeleteResult = {
+      raw: {},
+      affected: 1,
+    };
+
+    it('should delete an academic session successfully', async () => {
+      mockSessionModelAction.get.mockResolvedValue(mockInactiveSession);
+      mockSessionModelAction.delete.mockResolvedValue(mockDeleteResult);
+
+      const result = await service.remove(id);
+
+      expect(result).toEqual(expectedSuccessResponse);
+      expect(mockSessionModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id },
+      });
+      expect(mockSessionModelAction.delete).toHaveBeenCalledWith({
+        identifierOptions: { id },
+        transactionOptions: { useTransaction: false },
+      });
+    });
+
+    it('should throw NotFoundException if session does not exist', async () => {
+      mockSessionModelAction.get.mockResolvedValue(null);
+
+      await expect(service.remove(id)).rejects.toThrow(
+        new NotFoundException(sysMsg.SESSION_NOT_FOUND),
+      );
+      expect(mockSessionModelAction.delete).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException if session is active', async () => {
+      mockSessionModelAction.get.mockResolvedValue(mockActiveSession);
+
+      await expect(service.remove(id)).rejects.toThrow(
+        new BadRequestException(sysMsg.CANNOT_DELETE_ACTIVE_SESSION),
+      );
+      expect(mockSessionModelAction.delete).not.toHaveBeenCalled();
+    });
+
+    it('should handle delete operation with correct parameters', async () => {
+      mockSessionModelAction.get.mockResolvedValue(mockInactiveSession);
+      mockSessionModelAction.delete.mockResolvedValue(mockDeleteResult);
+
+      await service.remove(id);
+
+      expect(mockSessionModelAction.delete).toHaveBeenCalledWith({
+        identifierOptions: { id: '550e8400-e29b-41d4-a716-446655440000' },
+        transactionOptions: { useTransaction: false },
+      });
+    });
+  });
+
   describe('findOne', () => {
-    it('should return a single academic session message', () => {
-      const result = service.findOne(1);
-      expect(result).toBe('This action returns a #1 academicSession');
+    it('should return a single academic session message with string ID', () => {
+      const uuid = '550e8400-e29b-41d4-a716-446655440000';
+      const result = service.findOne(uuid);
+      expect(result).toBe(`This action returns a #${uuid} academicSession`);
     });
   });
 
   describe('update', () => {
-    it('should return update message', () => {
-      const result = service.update(1);
-      expect(result).toBe('This action updates a #1 academicSession');
-    });
-  });
-
-  describe('remove', () => {
-    it('should return remove message', () => {
-      const result = service.remove(1);
-      expect(result).toBe('This action removes a #1 academicSession');
-    });
-  });
-
-  describe('AcademicSessionService.activeSessions', () => {
-    let service: AcademicSessionService;
-    let modelAction: jest.Mocked<AcademicSessionModelAction>;
-
-    const mockMeta = { total: 1 };
-
-    const makeSession = (
-      overrides: Partial<AcademicSession>,
-    ): AcademicSession => {
-      return {
-        id: overrides.id ?? '1',
-        name: overrides.name ?? '2024 Session',
-        startDate: overrides.startDate ?? new Date('2024-01-01'),
-        endDate: overrides.endDate ?? new Date('2024-12-31'),
-        status: overrides.status ?? SessionStatus.ACTIVE,
-        createdAt: overrides.createdAt ?? new Date(),
-        updatedAt: overrides.updatedAt ?? new Date(),
-      };
-    };
-
-    beforeEach(async () => {
-      // Mock DataSource - required by AcademicSessionService constructor
-      const mockDataSource: Partial<DataSource> = {
-        transaction: jest.fn(),
-      };
-
-      const module: TestingModule = await Test.createTestingModule({
-        providers: [
-          AcademicSessionService,
-          {
-            provide: AcademicSessionModelAction,
-            useValue: {
-              list: jest.fn(),
-            },
-          },
-          {
-            provide: DataSource,
-            useValue: mockDataSource,
-          },
-        ],
-      }).compile();
-
-      service = module.get(AcademicSessionService);
-      modelAction = module.get(
-        AcademicSessionModelAction,
-      ) as jest.Mocked<AcademicSessionModelAction>;
-    });
-
-    test('returns null when no active sessions exist', async () => {
-      modelAction.list.mockResolvedValue({
-        payload: [],
-        paginationMeta: mockMeta,
-      });
-
-      const result = await service.activeSessions();
-      expect(result).toBeNull();
-    });
-
-    test('returns the single active session when exactly one exists', async () => {
-      const session = makeSession({ id: '1' });
-
-      modelAction.list.mockResolvedValue({
-        payload: [session],
-        paginationMeta: mockMeta,
-      });
-
-      const result = await service.activeSessions();
-      expect(result).toEqual(session);
-    });
-
-    test('throws InternalServerErrorException when multiple active sessions exist', async () => {
-      const s1 = makeSession({ id: '1' });
-      const s2 = makeSession({ id: '2' });
-
-      modelAction.list.mockResolvedValue({
-        payload: [s1, s2],
-        paginationMeta: mockMeta,
-      });
-
-      await expect(service.activeSessions()).rejects.toThrow(
-        InternalServerErrorException,
-      );
-
-      await expect(service.activeSessions()).rejects.toThrow(
-        sysMsg.MULTIPLE_ACTIVE_ACADEMIC_SESSION,
-      );
+    it('should return update message with string ID', () => {
+      const uuid = '550e8400-e29b-41d4-a716-446655440000';
+      const result = service.update(uuid);
+      expect(result).toBe(`This action updates a #${uuid} academicSession`);
     });
   });
 
