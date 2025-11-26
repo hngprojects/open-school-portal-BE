@@ -11,6 +11,10 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsString()
+  middle_name?: string;
+
+  @IsOptional()
+  @IsString()
   phone?: string;
 
   @IsOptional()
@@ -19,9 +23,5 @@ export class UpdateUserDto {
 
   @IsString()
   @IsOptional()
-  gender: string;
-
-  @IsString()
-  @IsOptional()
-  dob: string;
+  homeAddress?: string;
 }
