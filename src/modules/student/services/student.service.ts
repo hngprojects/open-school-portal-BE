@@ -286,7 +286,7 @@ export class StudentService {
         },
       });
 
-      this.logger.info(sysMsg.RESOURCE_UPDATED, {
+      this.logger.info(sysMsg.RESOURCE_DELETED, {
         studentId: id,
       });
 
