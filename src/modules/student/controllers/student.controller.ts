@@ -29,8 +29,8 @@ import {
 import {
   CreateStudentDto,
   ListStudentsDto,
-  PatchStudentDto,
   StudentResponseDto,
+  PatchStudentDto,
 } from '../dto';
 import { StudentService } from '../services';
 
