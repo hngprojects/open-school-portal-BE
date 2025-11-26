@@ -48,7 +48,7 @@ export class RoomService {
       },
     });
 
-    return newRoom;
+    return { message: sysMsg.ROOM_CREATED_SUCCESSFULLY, ...newRoom };
   }
 
   private async validateStreams(streams: string[]) {
@@ -66,7 +66,7 @@ export class RoomService {
 
   private async findByName(name: string) {
     const room = await this.roomModelAction.get({
-      identifierOptions: { name: this.sanitizedName(name) },
+      identifierOptions: { name },
     });
 
     return room;

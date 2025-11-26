@@ -7,7 +7,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 
-import * as sysMsg from '../../../constants/system.messages';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -26,11 +25,6 @@ export class RoomController {
   @HttpCode(HttpStatus.CREATED)
   @ApiCreateRoom()
   async create(@Body() createRoomDto: CreateRoomDTO) {
-    const data = await this.roomService.create(createRoomDto);
-
-    return {
-      message: sysMsg.ROOM_CREATED_SUCCESSFULLY,
-      data,
-    };
+    return this.roomService.create(createRoomDto);
   }
 }

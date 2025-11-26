@@ -2,6 +2,7 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource, In } from 'typeorm';
 
+import * as sysMsg from '../../../constants/system.messages';
 import { Stream } from '../../stream/entities/stream.entity';
 import { CreateRoomDTO } from '../dto/create-room-dto';
 import { Room } from '../entities/room.entity';
@@ -96,7 +97,10 @@ describe('RoomService', () => {
         transactionOptions: { useTransaction: false },
       });
 
-      expect(result).toEqual(createdEntity);
+      expect(result).toEqual({
+        message: sysMsg.ROOM_CREATED_SUCCESSFULLY,
+        ...createdEntity,
+      });
     });
 
     it('throws conflict when name already exists', async () => {
@@ -141,7 +145,10 @@ describe('RoomService', () => {
         transactionOptions: { useTransaction: false },
       });
 
-      expect(result).toEqual(expectedRoom);
+      expect(result).toEqual({
+        message: sysMsg.ROOM_CREATED_SUCCESSFULLY,
+        ...expectedRoom,
+      });
     });
   });
 });
