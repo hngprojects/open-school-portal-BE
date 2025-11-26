@@ -5,7 +5,9 @@ import {
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiNotFoundResponse,
+  ApiOkResponse,
   ApiOperation,
+  ApiParam,
 } from '@nestjs/swagger';
 
 import * as sysMsg from '../../../constants/system.messages';
@@ -42,4 +44,18 @@ export const ApiCreateRoom = () =>
     }),
     ApiConflictResponse({ description: sysMsg.DUPLICATE_ROOM_NAME }),
     ApiNotFoundResponse({ description: sysMsg.INVALID_STREAM_IDS }),
+  );
+
+export const ApiFindOneRoom = () =>
+  applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: 'Get Room by ID',
+      description: 'Retrieves a single room by its ID.',
+    }),
+    ApiParam({ name: 'id', description: 'Room ID' }),
+    ApiOkResponse({
+      description: sysMsg.ROOM_RETRIEVED_SUCCESSFULLY,
+    }),
+    ApiNotFoundResponse({ description: sysMsg.ROOM_NOT_FOUND }),
   );

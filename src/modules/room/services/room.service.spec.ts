@@ -18,6 +18,8 @@ describe('RoomService', () => {
     get: jest.Mock;
     create: jest.Mock;
     list: jest.Mock;
+    update: jest.Mock;
+    delete: jest.Mock;
   };
 
   let streamRepo: {
@@ -30,6 +32,7 @@ describe('RoomService', () => {
 
   let dataSource: {
     getRepository: jest.Mock;
+    transaction: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -37,11 +40,14 @@ describe('RoomService', () => {
       get: jest.fn(),
       create: jest.fn(),
       list: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
     };
 
     streamRepo = {
       findBy: jest.fn(),
     };
+
     roomRepo = {
       save: jest.fn(),
     };
@@ -51,6 +57,9 @@ describe('RoomService', () => {
         if (entity === Stream) return streamRepo;
         if (entity === Room) return roomRepo;
         return null;
+      }),
+      transaction: jest.fn().mockImplementation(async (cb) => {
+        return cb('MOCK_MANAGER');
       }),
     };
 
@@ -85,6 +94,8 @@ describe('RoomService', () => {
 
       const result = await service.create(dto);
 
+      expect(dataSource.transaction).toHaveBeenCalled();
+
       expect(modelAction.get).toHaveBeenCalledWith({
         identifierOptions: { name: 'main hall' },
       });
@@ -94,7 +105,10 @@ describe('RoomService', () => {
           name: 'main hall',
           streams: [],
         }),
-        transactionOptions: { useTransaction: false },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: 'MOCK_MANAGER',
+        },
       });
 
       expect(result).toEqual({
@@ -142,13 +156,39 @@ describe('RoomService', () => {
           name: 'main hall',
           streams: [mockStream],
         }),
-        transactionOptions: { useTransaction: false },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: 'MOCK_MANAGER',
+        },
       });
 
       expect(result).toEqual({
         message: sysMsg.ROOM_CREATED_SUCCESSFULLY,
         ...expectedRoom,
       });
+    });
+  });
+
+  describe('findOne', () => {
+    it('returns a room when found', async () => {
+      const room: Room = { id: 'r1', name: 'Room 1', streams: [] } as Room;
+      modelAction.get.mockResolvedValue(room);
+
+      const result = await service.findOne('r1');
+
+      expect(modelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: 'r1' },
+        relations: { streams: true },
+      });
+      expect(result).toEqual({
+        message: sysMsg.ROOM_RETRIEVED_SUCCESSFULLY,
+        ...room,
+      });
+    });
+
+    it('throws NotFoundException if room does not exist', async () => {
+      modelAction.get.mockResolvedValue(null);
+      await expect(service.findOne('r1')).rejects.toThrow(NotFoundException);
     });
   });
 });
