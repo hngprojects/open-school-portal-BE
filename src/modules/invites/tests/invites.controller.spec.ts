@@ -4,7 +4,6 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 // import { UserRole } from '../../shared/enums';
 import { InviteUserDto, InviteRole } from '../dto/invite-user.dto';
-import { ValidateInviteDto } from '../dto/validate-invite.dto';
 import { InvitesController } from '../invites.controller';
 import { InviteService } from '../invites.service';
 
@@ -57,20 +56,6 @@ describe('InvitesController', () => {
       const result = await controller.inviteUser(payload);
 
       expect(service.sendInvite).toHaveBeenCalledWith(payload);
-      expect(result).toEqual(mockResponse);
-    });
-  });
-
-  describe('validateInviteToken', () => {
-    it('should call service.validateInviteToken with dto', async () => {
-      const dto: ValidateInviteDto = { token: 'some-token' };
-      const mockResponse = { valid: true, message: 'Valid', data: {} };
-
-      mockInviteService.validateInviteToken.mockResolvedValue(mockResponse);
-
-      const result = await controller.validateInviteToken(dto);
-
-      expect(service.validateInviteToken).toHaveBeenCalledWith(dto);
       expect(result).toEqual(mockResponse);
     });
   });

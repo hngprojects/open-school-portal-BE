@@ -7,10 +7,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 
-import {
-  InviteUserDto,
-  CreatedInvitesResponseDto,
-} from '../dto/invite-user.dto';
+import { InviteUserDto } from '../dto/invite-user.dto';
 import { PendingInvitesResponseDto } from '../dto/pending-invite.dto';
 import { ValidateInviteResponseDto } from '../dto/validate-invite.dto';
 

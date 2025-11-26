@@ -11,9 +11,7 @@ import { School } from '../../school/entities/school.entity';
 
 export enum InviteStatus {
   PENDING = 'pending',
-  USED = 'used',
-  EXPIRED = 'expired',
-  FAILED = 'failed',
+  ACCEPTED = 'accepted',
 }
 
 @Entity({ name: 'invites' })

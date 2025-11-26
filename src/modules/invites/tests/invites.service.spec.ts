@@ -1,250 +1,384 @@
-import { createHash } from 'crypto';
-
-import { HttpStatus } from '@nestjs/common';
+import { PaginationMeta } from '@hng-sdk/orm';
+import { HttpStatus, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
+import { In } from 'typeorm';
 
+import { EmailTemplateID } from '../../../constants/email-constants';
 import * as sysMsg from '../../../constants/system.messages';
 import { EmailService } from '../../email/email.service';
-import { School } from '../../school/entities/school.entity';
+import { SchoolService } from '../../school/school.service';
+import * as passwordUtil from '../../shared/utils/password.util';
 import { User } from '../../user/entities/user.entity';
+import { UserService } from '../../user/user.service';
 import { InviteUserDto, InviteRole } from '../dto/invite-user.dto';
-import { ValidateInviteDto } from '../dto/validate-invite.dto';
 import { Invite, InviteStatus } from '../entities/invites.entity';
 import { InviteService } from '../invites.service';
+import { InviteModelAction } from '../model-actions/invite-action';
 
 describe('InviteService', () => {
   let service: InviteService;
-  let emailService: EmailService;
+  let inviteModelAction: jest.Mocked<InviteModelAction>;
+  let userService: jest.Mocked<UserService>;
+  let emailService: jest.Mocked<EmailService>;
+  let configService: jest.Mocked<ConfigService>;
 
-  const mockInviteRepo = {
-    findOne: jest.fn(),
+  const mockInviteModelAction = {
+    get: jest.fn(),
     create: jest.fn(),
-    save: jest.fn(),
-    update: jest.fn(),
-    find: jest.fn(),
+    list: jest.fn(),
   };
 
-  const mockUserRepo = {
-    findOne: jest.fn(),
+  const mockUserService = {
+    findByEmail: jest.fn(),
   };
 
-  const mockSchoolRepo = {
-    findOne: jest.fn(),
+  const mockSchoolService = {};
+
+  const mockEmailService = {
+    sendMail: jest.fn(),
   };
 
   const mockConfigService = {
-    get: jest.fn().mockReturnValue('http://localhost:3000'),
-  };
-
-  const mockEmailService = {
-    sendMail: jest.fn().mockResolvedValue(true),
+    get: jest.fn(),
   };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InviteService,
-        { provide: getRepositoryToken(Invite), useValue: mockInviteRepo },
-        { provide: getRepositoryToken(User), useValue: mockUserRepo },
-        { provide: getRepositoryToken(School), useValue: mockSchoolRepo },
-        { provide: ConfigService, useValue: mockConfigService },
-        { provide: EmailService, useValue: mockEmailService },
+        {
+          provide: InviteModelAction,
+          useValue: mockInviteModelAction,
+        },
+        {
+          provide: UserService,
+          useValue: mockUserService,
+        },
+        {
+          provide: SchoolService,
+          useValue: mockSchoolService,
+        },
+        {
+          provide: EmailService,
+          useValue: mockEmailService,
+        },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
+        },
       ],
     }).compile();
 
     service = module.get<InviteService>(InviteService);
+    inviteModelAction = module.get(InviteModelAction);
+    userService = module.get(UserService);
+    emailService = module.get(EmailService);
+    configService = module.get(ConfigService);
+  });
 
-    emailService = module.get<EmailService>(EmailService);
-
+  afterEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('sendInvite', () => {
-    const payload: InviteUserDto = {
-      email: 'test@test.com',
+    const mockPayload: InviteUserDto = {
+      email: 'test@example.com',
       role: InviteRole.TEACHER,
       first_name: 'John',
       last_name: 'Doe',
     };
 
+    const mockInvite = {
+      id: '123',
+      email: 'test@example.com',
+      role: InviteRole.TEACHER,
+      first_name: 'John',
+      last_name: 'Doe',
+      token_hash: 'hashed-token',
+      status: InviteStatus.PENDING,
+      invited_at: new Date(),
+      expires_at: new Date(Date.now() + 30 * 60 * 1000),
+    };
+
+    beforeEach(() => {
+      configService.get.mockReturnValue('http://localhost:3000');
+      jest.spyOn(passwordUtil, 'generateUniqueToken').mockResolvedValue({
+        rawToken: 'raw-token-123',
+        hashedToken: 'hashed-token-123',
+      });
+    });
+
     it('should return CONFLICT if user already exists', async () => {
-      mockUserRepo.findOne.mockResolvedValue({ id: 'user-id' }); // User found
+      userService.findByEmail.mockResolvedValue({ id: '1' } as User);
 
-      const result = await service.sendInvite(payload);
+      const result = await service.sendInvite(mockPayload);
 
-      expect(result.status_code).toBe(HttpStatus.CONFLICT);
-      expect(result.message).toBe(sysMsg.ACCOUNT_ALREADY_EXISTS);
-      expect(mockUserRepo.findOne).toHaveBeenCalledWith({
-        where: { email: payload.email },
+      expect(result).toEqual({
+        status_code: HttpStatus.CONFLICT,
+        message: sysMsg.ACCOUNT_ALREADY_EXISTS,
+        data: [],
+      });
+      expect(userService.findByEmail).toHaveBeenCalledWith(mockPayload.email);
+    });
+
+    it('should return CONFLICT if invitation already sent', async () => {
+      userService.findByEmail.mockResolvedValue(null);
+      inviteModelAction.get.mockResolvedValueOnce(mockInvite as Invite);
+
+      const result = await service.sendInvite(mockPayload);
+
+      expect(result).toEqual({
+        status_code: HttpStatus.CONFLICT,
+        message: sysMsg.INVITE_ALREADY_SENT,
+        data: [],
+      });
+      expect(inviteModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: {
+          email: mockPayload.email,
+          status: In([InviteStatus.PENDING, InviteStatus.ACCEPTED]),
+        },
       });
     });
 
-    it('should return CONFLICT if invitation already sent (PENDING or USED)', async () => {
-      mockUserRepo.findOne.mockResolvedValue(null); // User not found
-      mockInviteRepo.findOne.mockResolvedValue({ id: 'invite-id' }); // Invite found
+    it('should throw ServiceUnavailableException if token already exists', async () => {
+      userService.findByEmail.mockResolvedValue(null);
+      inviteModelAction.get.mockResolvedValueOnce(null);
+      inviteModelAction.get.mockResolvedValueOnce(mockInvite as Invite);
 
-      const result = await service.sendInvite(payload);
-
-      expect(result.status_code).toBe(HttpStatus.CONFLICT);
-      expect(result.message).toBe(sysMsg.INVITE_ALREADY_SENT);
+      await expect(service.sendInvite(mockPayload)).rejects.toThrow(
+        ServiceUnavailableException,
+      );
     });
 
-    it('should return BAD_REQUEST if no school is found', async () => {
-      mockUserRepo.findOne.mockResolvedValue(null);
-      mockInviteRepo.findOne.mockResolvedValue(null);
-      mockSchoolRepo.findOne.mockResolvedValue(null); // No school found
+    it('should successfully send invite for TEACHER role', async () => {
+      userService.findByEmail.mockResolvedValue(null);
+      inviteModelAction.get.mockResolvedValue(null); // No existing invite or token
+      inviteModelAction.create.mockResolvedValue(mockInvite as Invite);
+      emailService.sendMail.mockResolvedValue(undefined);
 
-      const result = await service.sendInvite(payload);
+      const result = await service.sendInvite(mockPayload);
 
-      expect(result.status_code).toBe(HttpStatus.BAD_REQUEST);
-      expect(result.message).toBe('No school found');
-    });
+      expect(result).toEqual({
+        status_code: HttpStatus.OK,
+        message: sysMsg.INVITE_SENT,
+        data: null,
+      });
 
-    it('should create invite and send email successfully', async () => {
-      const mockSchool = {
-        id: 'school-id',
-        name: 'Test School',
-        logo_url: 'logo.png',
-        email: 'school@test.com',
-      };
-      const mockInvite = {
-        id: 'invite-id',
-        email: payload.email,
-        role: payload.role,
-        token_hash: 'hashed',
-        status: InviteStatus.PENDING,
-        invited_at: new Date(),
-        first_name: 'John',
-        last_name: 'Doe',
-      };
+      expect(inviteModelAction.create).toHaveBeenCalledWith({
+        createPayload: {
+          email: mockPayload.email,
+          role: mockPayload.role,
+          first_name: mockPayload.first_name,
+          last_name: mockPayload.last_name,
+          token_hash: 'hashed-token-123',
+          status: InviteStatus.PENDING,
+          invited_at: expect.any(Date),
+          expires_at: expect.any(Date),
+        },
+        transactionOptions: { useTransaction: false },
+      });
 
-      mockUserRepo.findOne.mockResolvedValue(null);
-      mockInviteRepo.findOne.mockResolvedValue(null);
-      mockSchoolRepo.findOne.mockResolvedValue(mockSchool);
-
-      // Mock create to return the object, mock save to resolve
-      mockInviteRepo.create.mockReturnValue(mockInvite);
-      mockInviteRepo.save.mockResolvedValue(mockInvite);
-
-      const result = await service.sendInvite(payload);
-
-      expect(mockInviteRepo.create).toHaveBeenCalled();
-      expect(mockInviteRepo.save).toHaveBeenCalled();
-      expect(emailService.sendMail).toHaveBeenCalled();
-      expect(result.status_code).toBe(HttpStatus.OK);
-      expect(result.message).toBe(sysMsg.INVITE_SENT);
-    });
-  });
-
-  describe('validateInviteToken', () => {
-    const rawToken = 'test-token';
-    const dto: ValidateInviteDto = { token: rawToken };
-    // Replicate hashing logic from service to match mock lookup
-    const hashToken = createHash('sha256').update(rawToken).digest('hex');
-
-    it('should return invalid if token does not exist', async () => {
-      mockInviteRepo.findOne.mockResolvedValue(null);
-
-      const result = await service.validateInviteToken(dto);
-
-      expect(result.valid).toBe(false);
-      expect(result.reason).toBe(sysMsg.INVALID_TOKEN);
-      expect(mockInviteRepo.findOne).toHaveBeenCalledWith({
-        where: { token_hash: hashToken },
+      expect(emailService.sendMail).toHaveBeenCalledWith({
+        to: [
+          {
+            email: mockInvite.email,
+            name: `${mockInvite.first_name} ${mockInvite.last_name}`,
+          },
+        ],
+        subject: 'You are invited to join',
+        templateNameID: EmailTemplateID.INVITE,
+        templateData: {
+          firstName: mockInvite.first_name,
+          role: mockInvite.role,
+          inviteLink:
+            'http://localhost:3000/invited-teacher?token=raw-token-123',
+        },
       });
     });
 
-    it('should return invalid if token status is USED', async () => {
-      mockInviteRepo.findOne.mockResolvedValue({ status: InviteStatus.USED });
+    it('should use correct route for PARENT role', async () => {
+      const parentPayload = { ...mockPayload, role: InviteRole.PARENT };
+      userService.findByEmail.mockResolvedValue(null);
+      inviteModelAction.get.mockResolvedValue(null);
+      inviteModelAction.create.mockResolvedValue({
+        ...mockInvite,
+        role: InviteRole.PARENT,
+      } as Invite);
+      emailService.sendMail.mockResolvedValue(undefined);
 
-      const result = await service.validateInviteToken(dto);
+      await service.sendInvite(parentPayload);
 
-      expect(result.valid).toBe(false);
-      expect(result.reason).toBe(sysMsg.TOKEN_ALREADY_USED);
+      expect(emailService.sendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          templateData: expect.objectContaining({
+            inviteLink:
+              'http://localhost:3000/invited-parent?token=raw-token-123',
+          }),
+        }),
+      );
     });
 
-    it('should return invalid and update DB if token is EXPIRED', async () => {
-      const expiredDate = new Date();
-      expiredDate.setHours(expiredDate.getHours() - 1); // 1 hour ago
+    it('should use correct route for ADMIN role', async () => {
+      const adminPayload = { ...mockPayload, role: InviteRole.ADMIN };
+      userService.findByEmail.mockResolvedValue(null);
+      inviteModelAction.get.mockResolvedValue(null);
+      inviteModelAction.create.mockResolvedValue({
+        ...mockInvite,
+        role: InviteRole.ADMIN,
+      } as Invite);
+      emailService.sendMail.mockResolvedValue(undefined);
 
-      mockInviteRepo.findOne.mockResolvedValue({
-        id: 'invite-id',
-        status: InviteStatus.PENDING,
-        expires_at: expiredDate,
-      });
+      await service.sendInvite(adminPayload);
 
-      const result = await service.validateInviteToken(dto);
-
-      expect(result.valid).toBe(false);
-      expect(result.reason).toBe(sysMsg.TOKEN_EXPIRED);
-      expect(mockInviteRepo.update).toHaveBeenCalledWith('invite-id', {
-        status: InviteStatus.EXPIRED,
-      });
+      expect(emailService.sendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          templateData: expect.objectContaining({
+            inviteLink:
+              'http://localhost:3000/invited-admin?token=raw-token-123',
+          }),
+        }),
+      );
     });
 
-    it('should return valid data if token is valid', async () => {
-      const futureDate = new Date();
-      futureDate.setHours(futureDate.getHours() + 1); // 1 hour future
+    it('should use correct route for STUDENT role', async () => {
+      const studentPayload = { ...mockPayload, role: InviteRole.STUDENT };
+      userService.findByEmail.mockResolvedValue(null);
+      inviteModelAction.get.mockResolvedValue(null);
+      inviteModelAction.create.mockResolvedValue({
+        ...mockInvite,
+        role: InviteRole.STUDENT,
+      } as Invite);
+      emailService.sendMail.mockResolvedValue(undefined);
 
-      const validInvite = {
-        id: 'invite-id',
-        email: 'test@test.com',
-        role: InviteRole.TEACHER,
-        status: InviteStatus.PENDING,
-        expires_at: futureDate,
-        first_name: 'John',
-        last_name: 'Doe',
-      };
+      await service.sendInvite(studentPayload);
 
-      mockInviteRepo.findOne.mockResolvedValue(validInvite);
-
-      const result = await service.validateInviteToken(dto);
-
-      expect(result.valid).toBe(true);
-      expect(result.reason).toBe(sysMsg.VALID_TOKEN);
-      expect(result.data.email).toBe(validInvite.email);
+      expect(emailService.sendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          templateData: expect.objectContaining({
+            inviteLink:
+              'http://localhost:3000/invited-student?token=raw-token-123',
+          }),
+        }),
+      );
     });
   });
 
   describe('getPendingInvites', () => {
-    it('should return NOT_FOUND if no pending invites', async () => {
-      mockInviteRepo.find.mockResolvedValue([]);
-
+    it('should return NOT_FOUND if no pending invites exist', async () => {
+      inviteModelAction.list.mockResolvedValue({
+        payload: [],
+        count: 0,
+      } as unknown as {
+        payload: Invite[];
+        paginationMeta: Partial<PaginationMeta>;
+      });
       const result = await service.getPendingInvites();
 
-      expect(result.status_code).toBe(HttpStatus.NOT_FOUND);
-      expect(result.message).toBe(sysMsg.NO_PENDING_INVITES);
-      expect(result.data).toHaveLength(0);
+      expect(result).toEqual({
+        status_code: HttpStatus.NOT_FOUND,
+        message: sysMsg.NO_PENDING_INVITES,
+        data: [],
+      });
+      expect(inviteModelAction.list).toHaveBeenCalledWith({
+        filterRecordOptions: { status: InviteStatus.PENDING },
+      });
     });
 
-    it('should return list of pending invites', async () => {
-      const invites = [
+    it('should return pending invites successfully', async () => {
+      const mockInvites = [
         {
           id: '1',
-          email: 'a@a.com',
-          invited_at: new Date(),
+          email: 'test1@example.com',
+          invited_at: new Date('2024-01-01'),
           status: InviteStatus.PENDING,
         },
         {
           id: '2',
-          email: 'b@b.com',
-          invited_at: new Date(),
+          email: 'test2@example.com',
+          invited_at: new Date('2024-01-02'),
           status: InviteStatus.PENDING,
         },
       ];
-      mockInviteRepo.find.mockResolvedValue(invites);
+
+      inviteModelAction.list.mockResolvedValue({
+        payload: mockInvites,
+        count: 2,
+      } as unknown as {
+        payload: Invite[];
+        paginationMeta: Partial<PaginationMeta>;
+      });
 
       const result = await service.getPendingInvites();
 
-      expect(result.status_code).toBe(HttpStatus.OK);
-      expect(result.message).toBe(sysMsg.PENDING_INVITES_FETCHED);
-      expect(result.data).toHaveLength(2);
+      expect(result).toEqual({
+        status_code: HttpStatus.OK,
+        message: sysMsg.PENDING_INVITES_FETCHED,
+        data: mockInvites.map((invite) => ({
+          id: invite.id,
+          email: invite.email,
+          invited_at: invite.invited_at,
+          status: invite.status,
+        })),
+      });
+    });
+  });
+
+  describe('getAcceptedInvites', () => {
+    it('should return NOT_FOUND if no accepted invites exist', async () => {
+      inviteModelAction.list.mockResolvedValue({
+        payload: [],
+        count: 0,
+      } as unknown as {
+        payload: Invite[];
+        paginationMeta: Partial<PaginationMeta>;
+      });
+
+      const result = await service.getAcceptedInvites();
+
+      expect(result).toEqual({
+        status_code: HttpStatus.NOT_FOUND,
+        message: sysMsg.NO_ACCEPTED_INVITES,
+        data: [],
+      });
+      expect(inviteModelAction.list).toHaveBeenCalledWith({
+        filterRecordOptions: { status: InviteStatus.ACCEPTED },
+      });
+    });
+
+    it('should return accepted invites successfully', async () => {
+      const mockInvites = [
+        {
+          id: '1',
+          email: 'test1@example.com',
+          invited_at: new Date('2024-01-01'),
+          status: InviteStatus.ACCEPTED,
+        },
+        {
+          id: '2',
+          email: 'test2@example.com',
+          invited_at: new Date('2024-01-02'),
+          status: InviteStatus.ACCEPTED,
+        },
+      ];
+
+      inviteModelAction.list.mockResolvedValue({
+        payload: mockInvites,
+        count: 2,
+      } as any);
+
+      const result = await service.getAcceptedInvites();
+
+      expect(result).toEqual({
+        status_code: HttpStatus.OK,
+        message: sysMsg.ACCEPTED_INVITES_FETCHED,
+        data: mockInvites.map((invite) => ({
+          id: invite.id,
+          email: invite.email,
+          invited_at: invite.invited_at,
+          status: invite.status,
+        })),
+      });
     });
   });
 });

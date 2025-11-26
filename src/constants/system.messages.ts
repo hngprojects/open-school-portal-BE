@@ -18,6 +18,11 @@ export const TOKEN_INVALID = 'token invalid';
 export const TOKEN_REFRESH_SUCCESS = 'Tokens refresh successful';
 export const LOGOUT_SUCCESS = 'logout success';
 
+// Token Validation
+export const TOKEN_ALREADY_USED = 'TOKEN_ALREADY_USED';
+export const VALID_TOKEN = 'VALID_TOKEN';
+export const VALID_TOKEN_MESSAGE = 'Invitation token is valid.';
+
 export const ACTIVATE_ACCOUNT = 'Activate a user account';
 export const USER_IS_ACTIVATED = 'user already activated';
 export const USER_ACTIVATED = 'user activated';
@@ -147,18 +152,6 @@ export const INVITE_ACCEPTED = 'INVITE_ACCEPTED';
 export const INVITE_RESENT = 'INVITE_RESENT';
 export const INVITE_DELETED = 'INVITE_DELETED';
 export const NO_ACCEPTED_INVITES = 'No accepted invites found';
-
-// Token Validation
-export const INVALID_TOKEN = 'INVALID_TOKEN';
-export const TOKEN_ALREADY_USED = 'TOKEN_ALREADY_USED';
-export const VALID_TOKEN = 'VALID_TOKEN';
-export const INVALID_TOKEN_MESSAGE =
-  'Invitation token is invalid or does not exist.';
-export const TOKEN_ALREADY_USED_MESSAGE =
-  'This invitation token has already been used.';
-export const TOKEN_EXPIRED_MESSAGE =
-  'This invitation link has expired. Please request a new one.';
-export const VALID_TOKEN_MESSAGE = 'Invitation token is valid.';
 
 // User/Account
 export const USER_CREATED = 'USER_CREATED';

@@ -1,7 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
-
-import { PendingInviteDto } from './pending-invite.dto';
 
 export enum InviteRole {
   TEACHER = 'TEACHER',
@@ -33,31 +31,4 @@ export class InviteUserDto {
   @IsOptional()
   @IsUUID()
   school_id?: string;
-}
-
-export class CreatedInviteDto extends PendingInviteDto {
-  @ApiProperty({ enum: InviteRole, example: InviteRole.TEACHER })
-  readonly role: InviteRole;
-
-  @ApiProperty({ example: 'Olivia' })
-  readonly first_name: string;
-
-  @ApiProperty({ example: 'Doe' })
-  readonly last_name: string;
-
-  @ApiPropertyOptional({ example: 'pending' })
-  readonly status?: string;
-
-  school_id?: string;
-}
-
-export class CreatedInvitesResponseDto {
-  @ApiProperty({ example: 200 })
-  status_code: number;
-
-  @ApiProperty({ example: 'Invite sent successfully' })
-  message: string;
-
-  @ApiProperty({ type: [CreatedInviteDto] })
-  data: CreatedInviteDto[];
 }

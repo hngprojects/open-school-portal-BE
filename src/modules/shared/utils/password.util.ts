@@ -1,3 +1,5 @@
+import { createHash, randomBytes } from 'crypto';
+
 export function generateTempPassword(): string {
   return Math.random().toString(36).slice(-10);
 }
@@ -30,4 +32,11 @@ export function generateStrongPassword(length: number = 12): string {
     .split('')
     .sort(() => Math.random() - 0.5)
     .join('');
+}
+export async function generateUniqueToken() {
+  for (let i = 0; i < 3; i++) {
+    const rawToken = randomBytes(32).toString('hex');
+    const hashedToken = createHash('sha256').update(rawToken).digest('hex');
+    return { rawToken, hashedToken };
+  }
 }
