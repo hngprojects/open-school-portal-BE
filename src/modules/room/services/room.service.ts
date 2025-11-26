@@ -56,6 +56,17 @@ export class RoomService {
     return data;
   }
 
+  async findAll() {
+    const { payload } = await this.roomModelAction.list({
+      relations: { streams: true },
+    });
+
+    return {
+      message: sysMsg.ROOM_LIST_RETRIEVED_SUCCESSFULLY,
+      rooms: Object.values(payload),
+    };
+  }
+
   async findOne(id: string) {
     const room = await this.roomModelAction.get({
       identifierOptions: { id },

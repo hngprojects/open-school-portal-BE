@@ -1,6 +1,5 @@
 import { applyDecorators } from '@nestjs/common';
 import {
-  ApiBearerAuth,
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
@@ -15,7 +14,6 @@ import { CreateRoomDTO } from '../dto/create-room-dto';
 
 export const ApiCreateRoom = () =>
   applyDecorators(
-    ApiBearerAuth(),
     ApiOperation({
       summary: 'Create Room',
       description: 'Creates a new room. Room name must be unique.',
@@ -46,9 +44,19 @@ export const ApiCreateRoom = () =>
     ApiNotFoundResponse({ description: sysMsg.INVALID_STREAM_IDS }),
   );
 
+export const ApiFindAllRooms = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Get All Rooms',
+      description: 'Retrieves the list of all rooms.',
+    }),
+    ApiOkResponse({
+      description: sysMsg.ROOM_LIST_RETRIEVED_SUCCESSFULLY,
+    }),
+  );
+
 export const ApiFindOneRoom = () =>
   applyDecorators(
-    ApiBearerAuth(),
     ApiOperation({
       summary: 'Get Room by ID',
       description: 'Retrieves a single room by its ID.',
