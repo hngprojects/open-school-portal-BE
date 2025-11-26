@@ -14,14 +14,14 @@ import { DatabaseService } from './database.service';
 import { CreateDatabaseDocs } from './docs/database.swagger';
 import { ConfigureDatabaseDto } from './dto/configure-database.dto';
 
-@Controller('setup')
-@ApiTags('Databases')
+@Controller('database')
+@ApiTags('Database')
 @UseGuards(SetupGuard)
 export class DatabaseController {
   constructor(private readonly databaseService: DatabaseService) {}
 
   //===> save database config (Super Admin) <====
-  @Post('database')
+  @Post()
   @HttpCode(HttpStatus.CREATED)
   @CreateDatabaseDocs() // <=== Swagger docs
   create(@Body() configureDatabaseDto: ConfigureDatabaseDto) {
