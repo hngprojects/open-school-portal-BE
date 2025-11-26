@@ -249,11 +249,9 @@ describe('RoomService', () => {
 
       expect(modelAction.update).not.toHaveBeenCalled();
 
-      // 👇 FIX: Update expectation to include the 'Room' class argument
       expect(mockManager.save).toHaveBeenCalledWith(
-        Room, // First arg: The Entity Class
+        Room,
         expect.objectContaining({
-          // Second arg: The data object
           name: 'updated room',
           streams: [mockStream],
         }),
