@@ -1,8 +1,10 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -11,7 +13,7 @@ import { Roles } from '../../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { UserRole } from '../../shared/enums';
-import { ApiCreateRoom } from '../docs/room-swagger';
+import { ApiCreateRoom, ApiFindOneRoom } from '../docs/room-swagger';
 import { CreateRoomDTO } from '../dto/create-room-dto';
 import { RoomService } from '../services/room.service';
 
@@ -26,5 +28,14 @@ export class RoomController {
   @ApiCreateRoom()
   async create(@Body() createRoomDto: CreateRoomDTO) {
     return this.roomService.create(createRoomDto);
+  }
+
+  @Get(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiFindOneRoom()
+  async findOne(@Param('id') id: string) {
+    return this.roomService.findOne(id);
   }
 }
