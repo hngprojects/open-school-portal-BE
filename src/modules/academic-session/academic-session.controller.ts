@@ -4,12 +4,13 @@ import {
   Delete,
   Get,
   Param,
-  Patch,
   Post,
   Query,
   HttpStatus,
   UseGuards,
   HttpCode,
+  Put,
+  Patch,
 } from '@nestjs/common';
 import {
   ApiBody,
@@ -28,8 +29,12 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserRole } from '../shared/enums';
 
 import { AcademicSessionService } from './academic-session.service';
-import { AcademicSessionSwagger } from './docs/academic-session.swagger';
+import {
+  AcademicSessionSwagger,
+  UpdateAcademicSessionDocs,
+} from './docs/academic-session.swagger';
 import { CreateAcademicSessionDto } from './dto/create-academic-session.dto';
+import { UpdateAcademicSessionDto } from './dto/update-academic-session.dto';
 
 @ApiTags('Academic Session')
 @Controller('academic-session')
@@ -138,9 +143,16 @@ export class AcademicSessionController {
     return this.academicSessionService.findOne(+id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string) {
-    return this.academicSessionService.update(+id);
+  @Put(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @UpdateAcademicSessionDocs
+  update(
+    @Param('id') id: string,
+    @Body() updateAcademicSessionDto: UpdateAcademicSessionDto,
+  ) {
+    return this.academicSessionService.update(id, updateAcademicSessionDto);
   }
 
   @Delete(':id')

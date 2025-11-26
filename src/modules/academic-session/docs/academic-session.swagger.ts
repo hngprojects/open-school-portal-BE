@@ -1,5 +1,17 @@
+import { HttpStatus, applyDecorators } from '@nestjs/common';
+import {
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+} from '@nestjs/swagger';
+
 import * as sysMsg from '../../../constants/system.messages';
 import { CreateAcademicSessionDto } from '../dto/create-academic-session.dto';
+import {
+  UpdateAcademicSessionDto,
+  UpdateAcademicSessionResponseDto,
+} from '../dto/update-academic-session.dto';
 
 /**
  * Swagger documentation for Academic Session endpoints.
@@ -445,3 +457,41 @@ export const AcademicSessionSwagger = {
     },
   },
 };
+
+export const UpdateAcademicSessionDocs = applyDecorators(
+  ApiBearerAuth(),
+  ApiOperation({
+    summary: 'Update Academic Session',
+    description: 'Updates an existing academic session. (ADMIN ONLY)',
+  }),
+  ApiBody({ type: UpdateAcademicSessionDto }),
+  ApiResponse({
+    status: HttpStatus.OK,
+    description: sysMsg.ACADEMIC_SESSION_UPDATED,
+    type: UpdateAcademicSessionResponseDto,
+  }),
+  ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: sysMsg.UNAUTHORIZED,
+  }),
+  ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: sysMsg.ACADEMIC_SESSION_NOT_FOUND,
+  }),
+  ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: sysMsg.START_DATE_IN_PAST,
+  }),
+  ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: sysMsg.END_DATE_IN_PAST,
+  }),
+  ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: sysMsg.INVALID_DATE_RANGE,
+  }),
+  ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: sysMsg.DUPLICATE_SESSION_NAME,
+  }),
+);
