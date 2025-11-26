@@ -28,7 +28,7 @@ describe('RoomsService', () => {
           useValue: {
             transaction: jest.fn((cb) =>
               cb({
-                // Mock manager if needed within the transaction callback
+                // mocked transaction manager
               }),
             ),
           },
@@ -79,10 +79,11 @@ describe('RoomsService', () => {
 
       const result = await service.create(createRoomDto);
 
-      expect(service['roomModelAction']['get']).toHaveBeenCalledWith({
+      expect(service['roomModelAction'].get).toHaveBeenCalledWith({
         identifierOptions: { name: ILike(createRoomDto.name) },
       });
-      expect(service['roomModelAction']['create']).toHaveBeenCalledWith({
+
+      expect(service['roomModelAction'].create).toHaveBeenCalledWith({
         createPayload: {
           name: createRoomDto.name,
           capacity: createRoomDto.capacity,
@@ -90,17 +91,17 @@ describe('RoomsService', () => {
           floor: createRoomDto.floor,
           room_type: createRoomDto.room_type,
           description: createRoomDto.description,
-          createdAt: Date(),
-          updatedAt: Date(),
+          // ⛔ timestamps NOT expected here
         },
         transactionOptions: {
           useTransaction: true,
-          transaction: expect.any(Object),
+          transaction: {},
         },
       });
 
       expect(result.status_code).toBe(201);
       expect(result.message).toBe(sysMsg.ROOM_CREATED);
+
       expect(result.data).toEqual(
         expect.objectContaining({
           name: createRoomDto.name,
@@ -109,8 +110,8 @@ describe('RoomsService', () => {
           floor: createRoomDto.floor,
           roomType: createRoomDto.room_type,
           description: createRoomDto.description,
-          createdAt: Date(),
-          updatedAt: Date(),
+          createdAt: expect.any(Date),
+          updatedAt: expect.any(Date),
         }),
       );
     });
@@ -122,8 +123,7 @@ describe('RoomsService', () => {
         sysMsg.ROOM_ALREADY_EXISTS,
       );
 
-      // The create method should not have been called
-      expect(service['roomModelAction']['create']).not.toHaveBeenCalled();
+      expect(service['roomModelAction'].create).not.toHaveBeenCalled();
     });
   });
 });

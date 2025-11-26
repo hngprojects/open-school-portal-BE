@@ -34,7 +34,7 @@ export class RoomResponseDto {
     example: 'Classroom',
     description: 'Type of the room (e.g., classroom, lab, office)',
   })
-  @Expose()
+  @Expose({ name: 'room_type' })
   roomType?: string;
 
   @ApiPropertyOptional({
