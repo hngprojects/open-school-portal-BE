@@ -1,4 +1,4 @@
-import { applyDecorators } from '@nestjs/common';
+import { applyDecorators, HttpStatus } from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -56,5 +56,24 @@ export const ApiCreateDepartment = () =>
     ApiResponse({
       status: 400,
       description: 'Invalid input data.',
+    }),
+  );
+
+/** * Swagger decorators for Find All Departments endpoint
+ */
+export const ApiFindAllDepartments = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Get All Departments',
+      description: 'Retrieves a list of all departments.',
+    }),
+    ApiResponse({
+      status: HttpStatus.OK,
+      description: 'Departments retrieved successfully.',
+      type: [DepartmentResponseDto],
+    }),
+    ApiResponse({
+      status: HttpStatus.BAD_REQUEST,
+      description: 'Invalid query parameters.',
     }),
   );

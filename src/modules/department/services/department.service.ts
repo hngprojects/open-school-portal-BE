@@ -9,6 +9,12 @@ import { Department } from '../entities/department.entity';
 import { IBaseResponse } from '../interface/types';
 import { DepartmentModelAction } from '../model-actions/department.actions';
 
+export interface IListDepartmentsOptions {
+  page?: number;
+  limit?: number;
+  order?: { [key: string]: 'ASC' | 'DESC' };
+}
+
 @Injectable()
 export class DepartmentService {
   private readonly logger: Logger;
@@ -45,6 +51,28 @@ export class DepartmentService {
     return {
       message: sysMsg.DEPARTMENT_CREATED,
       data: this.mapToResponseDto(newDepartment),
+    };
+  }
+
+  //FIND ALL DEPARTMENTS
+  async findAll(
+    options: IListDepartmentsOptions = {},
+  ): Promise<IBaseResponse<DepartmentResponseDto[]> & { meta?: unknown }> {
+    const normalizedPage = Math.max(1, Math.floor(options.page ?? 1));
+    const normalizedLimit = Math.max(1, Math.floor(options.limit ?? 20));
+
+    const { payload, paginationMeta } = await this.departmentModelAction.list({
+      order: options.order ?? { name: 'ASC' },
+      paginationPayload: {
+        page: normalizedPage,
+        limit: normalizedLimit,
+      },
+    });
+
+    return {
+      message: sysMsg.DEPARTMENT_RETRIEVED_SUCCESS,
+      data: payload.map((dept) => this.mapToResponseDto(dept)),
+      meta: paginationMeta,
     };
   }
 

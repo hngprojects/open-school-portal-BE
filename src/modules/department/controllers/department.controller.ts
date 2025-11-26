@@ -4,6 +4,8 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Get,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 
@@ -15,6 +17,7 @@ import {
   ApiDepartmentTags,
   ApiDepartmentBearerAuth,
   ApiCreateDepartment,
+  ApiFindAllDepartments,
 } from '../docs/department.swagger';
 import { CreateDepartmentDto } from '../dto/create-department.dto';
 import { DepartmentService } from '../services/department.service';
@@ -32,5 +35,18 @@ export class DepartmentController {
   @ApiCreateDepartment()
   create(@Body() createDepartmentDto: CreateDepartmentDto) {
     return this.departmentService.create(createDepartmentDto);
+  }
+
+  @Get()
+  @Roles(UserRole.ADMIN)
+  @ApiFindAllDepartments()
+  findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
+    const parsedPage = Number(page);
+    const parsedLimit = Number(limit);
+
+    return this.departmentService.findAll({
+      page: Number.isNaN(parsedPage) ? undefined : parsedPage,
+      limit: Number.isNaN(parsedLimit) ? undefined : parsedLimit,
+    });
   }
 }
