@@ -8,7 +8,7 @@ export class StudentResponseDto {
     description: 'Response message',
     example: 'Student created successfully',
   })
-  message: string;
+  message?: string;
 
   @ApiProperty({
     description: 'Student ID (UUID)',
@@ -18,7 +18,7 @@ export class StudentResponseDto {
 
   @ApiProperty({
     description: 'Registration number',
-    example: 'REG-2025-014',
+    example: 'STU-2025-0014',
   })
   registration_number: string;
 
@@ -89,7 +89,7 @@ export class StudentResponseDto {
   })
   updated_at: Date;
 
-  constructor(message: string, student: Student, user: User) {
+  constructor(student: Student, user: User, message?: string) {
     this.message = message;
     this.id = student.id;
     this.registration_number = student.registration_number;
