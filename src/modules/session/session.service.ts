@@ -108,4 +108,33 @@ export class SessionService {
       revoked_count: result.affected || 0,
     };
   }
+
+  async validateRefreshToken(
+    userId: string,
+    refreshToken: string,
+  ): Promise<Session | null> {
+    // Get all active sessions for the user
+    const sessions = await this.sessionRepository.find({
+      where: {
+        user_id: userId,
+        is_active: true,
+      },
+    });
+
+    // Check if any session has expired
+    const now = new Date();
+    const validSessions = sessions.filter(
+      (session) => session.expires_at > now,
+    );
+
+    // Try to match the refresh token against stored hashes
+    for (const session of validSessions) {
+      const isMatch = await bcrypt.compare(refreshToken, session.refresh_token);
+      if (isMatch) {
+        return session;
+      }
+    }
+
+    return null;
+  }
 }
