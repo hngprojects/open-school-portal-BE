@@ -1,7 +1,17 @@
-import { Controller, Post, Body, HttpStatus, HttpCode } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpStatus,
+  HttpCode,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 import * as sysMsg from '../../constants/system.messages';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { UserRole } from '../shared/enums';
 
 import { ApiInviteTags } from './docs/invite.swagger';
 import { AcceptInviteDto } from './dto/accept-invite.dto';
@@ -14,6 +24,8 @@ export class InvitesController {
   constructor(private readonly inviteService: InviteService) {}
 
   @Post()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   async inviteUser(@Body() inviteUserDto: InviteUserDto) {
     const result = await this.inviteService.inviteUser(inviteUserDto);
     return {
