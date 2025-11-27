@@ -1,4 +1,4 @@
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import * as sysMsg from '../../constants/system.messages';
@@ -103,33 +103,33 @@ describe('SuperadminController', () => {
       expect(result).toEqual(serviceResult);
     });
 
-    it('should propagate ConflictException when email does not exist', async () => {
+    it('should propagate UnauthorizedException when email does not exist', async () => {
       mockService.login.mockRejectedValue(
-        new ConflictException('Superadmin not found'),
+        new UnauthorizedException('Superadmin not found'),
       );
 
       await expect(controller.login(loginDto)).rejects.toThrow(
-        ConflictException,
+        UnauthorizedException,
       );
     });
 
-    it('should propagate ConflictException when password is invalid', async () => {
+    it('should propagate UnauthorizedException when password is invalid', async () => {
       mockService.login.mockRejectedValue(
-        new ConflictException('Invalid password'),
+        new UnauthorizedException('Invalid password'),
       );
 
       await expect(controller.login(loginDto)).rejects.toThrow(
-        ConflictException,
+        UnauthorizedException,
       );
     });
 
-    it('should propagate ConflictException when superadmin is inactive', async () => {
+    it('should propagate UnauthorizedException when superadmin is inactive', async () => {
       mockService.login.mockRejectedValue(
-        new ConflictException('Superadmin account is inactive'),
+        new UnauthorizedException('Superadmin account is inactive'),
       );
 
       await expect(controller.login(loginDto)).rejects.toThrow(
-        ConflictException,
+        UnauthorizedException,
       );
     });
   });

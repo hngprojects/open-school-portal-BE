@@ -58,7 +58,6 @@ export const ApiLoginSuperadmin = () => {
     ApiResponse({
       status: HttpStatus.CONFLICT,
       description: sysMsg.SUPERADMIN_CONFLICT_GENERAL_MSG,
-
       content: {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         'application/json': {

@@ -4,7 +4,7 @@ import * as sysMsg from '../../../constants/system.messages';
 
 export class SuperadminLogoutResponseDto {
   @ApiProperty({
-    example: '204',
+    example: '200',
     nullable: false,
   })
   status_code: number;

@@ -1,4 +1,4 @@
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -8,13 +8,13 @@ import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../constants/system.messages';
-import { SessionService } from '../session/session.service';
 
 import { CreateSuperadminDto } from './dto/create-superadmin.dto';
 import { LoginSuperadminDto } from './dto/login-superadmin.dto';
 import { LogoutDto } from './dto/superadmin-logout.dto';
 import { SuperAdmin } from './entities/superadmin.entity';
 import { SuperadminModelAction } from './model-actions/superadmin-actions';
+import { SuperadminSessionService } from './session/superadmin-session.service';
 import { SuperadminService } from './superadmin.service';
 
 describe('SuperadminService', () => {
@@ -43,7 +43,7 @@ describe('SuperadminService', () => {
     verifyAsync: jest.fn(),
   };
 
-  const mock_session_service = {
+  const mock_superadmin_session_service = {
     createSession: jest.fn(),
     revokeSession: jest.fn(),
   };
@@ -73,8 +73,8 @@ describe('SuperadminService', () => {
           useValue: mock_jwt_service,
         },
         {
-          provide: SessionService,
-          useValue: mock_session_service,
+          provide: SuperadminSessionService,
+          useValue: mock_superadmin_session_service,
         },
       ],
     }).compile();
@@ -88,12 +88,6 @@ describe('SuperadminService', () => {
     jest.clearAllMocks();
     jest.restoreAllMocks();
   });
-
-  // Reset mock implementations before each test
-  // const resetMocks = () => {
-  //   mock_model_action_impl.get.mockReset();
-  //   mock_model_action_impl.create.mockReset();
-  // };
 
   it('should be defined', () => {
     expect(service).toBeDefined();
@@ -141,6 +135,7 @@ describe('SuperadminService', () => {
         updatedAt: new Date(),
         reset_token: null,
         reset_token_expiration: null,
+        sessions: [],
       };
 
       mock_model_action_impl.create.mockResolvedValue(createdEntity);
@@ -187,6 +182,7 @@ describe('SuperadminService', () => {
         is_active: true,
         createdAt: new Date(),
         updatedAt: new Date(),
+        sessions: [],
       };
       mock_model_action_impl.get.mockResolvedValue(existing_super_admin);
 
@@ -220,6 +216,7 @@ describe('SuperadminService', () => {
         is_active: true,
         createdAt: new Date(),
         updatedAt: new Date(),
+        sessions: [],
       };
 
       mock_model_action_impl.get.mockResolvedValue(superadminEntity);
@@ -239,7 +236,9 @@ describe('SuperadminService', () => {
         session_id: 'session-uuid',
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       };
-      mock_session_service.createSession.mockResolvedValue(sessionInfo);
+      mock_superadmin_session_service.createSession.mockResolvedValue(
+        sessionInfo,
+      );
 
       const result = await service.login(loginDto);
 
@@ -253,7 +252,7 @@ describe('SuperadminService', () => {
       );
 
       expect(mock_jwt_service.signAsync).toHaveBeenCalledTimes(2);
-      expect(mock_session_service.createSession).toHaveBeenCalled();
+      expect(mock_superadmin_session_service.createSession).toHaveBeenCalled();
 
       expect(result).toHaveProperty('message', sysMsg.LOGIN_SUCCESS);
       expect(result).toHaveProperty('status_code', 200);
@@ -265,17 +264,19 @@ describe('SuperadminService', () => {
       expect(result.data.email).toBe(superadminEntity.email);
     });
 
-    it('should throw ConflictException when superadmin email does not exist', async () => {
+    it('should throw UnauthorizedException when superadmin email does not exist', async () => {
       mock_model_action_impl.get.mockResolvedValue(null);
 
-      await expect(service.login(loginDto)).rejects.toThrow(ConflictException);
+      await expect(service.login(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
 
       expect(model_action.get).toHaveBeenCalledWith({
         identifierOptions: { email: loginDto.email },
       });
     });
 
-    it('should throw ConflictException when superadmin is inactive', async () => {
+    it('should throw UnauthorizedException when superadmin is inactive', async () => {
       const inactiveSuperadmin: SuperAdmin = {
         id: 'uuid-1',
         first_name: 'Test',
@@ -288,14 +289,17 @@ describe('SuperadminService', () => {
         is_active: false,
         createdAt: new Date(),
         updatedAt: new Date(),
+        sessions: [],
       };
 
       mock_model_action_impl.get.mockResolvedValue(inactiveSuperadmin);
 
-      await expect(service.login(loginDto)).rejects.toThrow(ConflictException);
+      await expect(service.login(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
-    it('should throw ConflictException when password is invalid', async () => {
+    it('should throw UnauthorizedException when password is invalid', async () => {
       const superadminEntity: SuperAdmin = {
         id: 'uuid-1',
         first_name: 'Test',
@@ -308,6 +312,7 @@ describe('SuperadminService', () => {
         is_active: true,
         createdAt: new Date(),
         updatedAt: new Date(),
+        sessions: [],
       };
 
       mock_model_action_impl.get.mockResolvedValue(superadminEntity);
@@ -319,7 +324,9 @@ describe('SuperadminService', () => {
       ) as unknown as jest.SpyInstance<Promise<boolean>, [string, string]>;
       compareSpy.mockResolvedValue(false as never);
 
-      await expect(service.login(loginDto)).rejects.toThrow(ConflictException);
+      await expect(service.login(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
 
       expect(compareSpy).toHaveBeenCalledWith(
         loginDto.password,
@@ -340,6 +347,7 @@ describe('SuperadminService', () => {
         is_active: true,
         createdAt: new Date(),
         updatedAt: new Date(),
+        sessions: [],
       };
 
       mock_model_action_impl.get.mockResolvedValue(superadminEntity);
@@ -350,7 +358,7 @@ describe('SuperadminService', () => {
         .mockResolvedValueOnce('access_token_xyz')
         .mockResolvedValueOnce('refresh_token_xyz');
 
-      mock_session_service.createSession.mockResolvedValue({
+      mock_superadmin_session_service.createSession.mockResolvedValue({
         session_id: 'session-uuid',
         expires_at: new Date(),
       });
@@ -369,16 +377,20 @@ describe('SuperadminService', () => {
         session_id: 'session-id-456',
       };
 
-      mock_session_service.revokeSession.mockResolvedValue(undefined);
+      mock_superadmin_session_service.revokeSession.mockResolvedValue(
+        undefined,
+      );
 
       const result = await service.logout(logoutDto);
 
-      expect(mock_session_service.revokeSession).toHaveBeenCalledWith(
-        logoutDto.user_id,
-        logoutDto.session_id,
-      );
+      expect(
+        mock_superadmin_session_service.revokeSession,
+      ).toHaveBeenCalledWith(logoutDto.session_id, logoutDto.user_id);
       expect(mockLogger.info).toHaveBeenCalledWith(sysMsg.LOGOUT_SUCCESS);
-      expect(result).toEqual({ message: sysMsg.LOGOUT_SUCCESS });
+      expect(result).toEqual({
+        status_code: 200,
+        message: sysMsg.LOGOUT_SUCCESS,
+      });
     });
 
     it('should handle session service not being available', async () => {
@@ -412,7 +424,7 @@ describe('SuperadminService', () => {
               useValue: mock_jwt_service,
             },
             {
-              provide: SessionService,
+              provide: SuperadminSessionService,
               useValue: null,
             },
           ],
@@ -421,9 +433,14 @@ describe('SuperadminService', () => {
       const serviceWithoutSession =
         moduleWithoutSession.get<SuperadminService>(SuperadminService);
 
-      const result = await serviceWithoutSession.logout(logoutDto);
+      const result = await serviceWithoutSession.logout(
+        logoutDto as unknown as LogoutDto,
+      );
 
-      expect(result).toEqual({ message: sysMsg.LOGOUT_SUCCESS });
+      expect(result).toEqual({
+        message: sysMsg.LOGOUT_SUCCESS,
+        status_code: 200,
+      });
       expect(mockLogger.info).toHaveBeenCalledWith(sysMsg.LOGOUT_SUCCESS);
     });
 
@@ -433,15 +450,18 @@ describe('SuperadminService', () => {
         session_id: 'different-session-id',
       };
 
-      mock_session_service.revokeSession.mockResolvedValue(undefined);
+      mock_superadmin_session_service.revokeSession.mockResolvedValue(
+        undefined,
+      );
 
       await service.logout(logoutDto);
 
-      expect(mock_session_service.revokeSession).toHaveBeenCalledWith(
-        'different-user-id',
-        'different-session-id',
-      );
-      expect(mock_session_service.revokeSession).toHaveBeenCalledTimes(1);
+      expect(
+        mock_superadmin_session_service.revokeSession,
+      ).toHaveBeenCalledWith('different-session-id', 'different-user-id');
+      expect(
+        mock_superadmin_session_service.revokeSession,
+      ).toHaveBeenCalledTimes(1);
     });
 
     it('should log success message after logout', async () => {
@@ -450,7 +470,9 @@ describe('SuperadminService', () => {
         session_id: 'session-id-456',
       };
 
-      mock_session_service.revokeSession.mockResolvedValue(undefined);
+      mock_superadmin_session_service.revokeSession.mockResolvedValue(
+        undefined,
+      );
 
       await service.logout(logoutDto);
 
@@ -464,15 +486,14 @@ describe('SuperadminService', () => {
       };
 
       const error = new Error('Session revocation failed');
-      mock_session_service.revokeSession.mockRejectedValue(error);
+      mock_superadmin_session_service.revokeSession.mockRejectedValue(error);
 
       await expect(service.logout(logoutDto)).rejects.toThrow(
         'Session revocation failed',
       );
-      expect(mock_session_service.revokeSession).toHaveBeenCalledWith(
-        logoutDto.user_id,
-        logoutDto.session_id,
-      );
+      expect(
+        mock_superadmin_session_service.revokeSession,
+      ).toHaveBeenCalledWith(logoutDto.session_id, logoutDto.user_id);
     });
   });
 });

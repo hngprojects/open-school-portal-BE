@@ -3,6 +3,7 @@ import {
   HttpStatus,
   Inject,
   Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -12,12 +13,12 @@ import { Logger } from 'winston';
 
 import config from '../../config/config';
 import * as sysMsg from '../../constants/system.messages';
-import { SessionService } from '../session/session.service';
 
 import { CreateSuperadminDto } from './dto/create-superadmin.dto';
 import { LoginSuperadminDto } from './dto/login-superadmin.dto';
 import { LogoutDto } from './dto/superadmin-logout.dto';
 import { SuperadminModelAction } from './model-actions/superadmin-actions';
+import { SuperadminSessionService } from './session/superadmin-session.service';
 
 @Injectable()
 export class SuperadminService {
@@ -27,19 +28,24 @@ export class SuperadminService {
     @Inject(WINSTON_MODULE_PROVIDER) logger: Logger,
     private readonly dataSource: DataSource,
     private readonly jwtService: JwtService,
-    private readonly sessionService: SessionService,
+    private readonly superadminSessionService: SuperadminSessionService,
   ) {
     this.logger = logger.child({ context: SuperadminService.name });
   }
 
-  // const t:string = '120m';
-
   private async generateTokens(userId: string, email: string) {
+    const { jwt } = config();
     const payload = { sub: userId, email };
 
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload),
-      this.jwtService.signAsync(payload),
+      this.jwtService.signAsync(payload, {
+        secret: jwt.secret,
+        expiresIn: '15m',
+      }),
+      this.jwtService.signAsync(payload, {
+        secret: jwt.refreshSecret,
+        expiresIn: '7d',
+      }),
     ]);
 
     return {
@@ -64,8 +70,7 @@ export class SuperadminService {
       throw new ConflictException(sysMsg.SUPERADMIN_EMAIL_EXISTS);
     }
 
-    const { hash } = config();
-    const password_hash: string = await bcrypt.hash(password, hash.salt);
+    const passwordHash: string = await bcrypt.hash(password, 10);
 
     const createdSuperadmin = await this.dataSource.transaction(
       async (manager) => {
@@ -73,8 +78,8 @@ export class SuperadminService {
           createPayload: {
             ...restData,
             email,
-            password: password_hash,
-            is_active: true,
+            password: passwordHash,
+            is_active: createSuperadminDto.school_name ? true : false,
           },
           transactionOptions: { useTransaction: true, transaction: manager },
         });
@@ -103,12 +108,12 @@ export class SuperadminService {
       identifierOptions: { email: loginSuperadminDto.email },
     });
     if (!superadmin) {
-      throw new ConflictException(sysMsg.INVALID_CREDENTIALS);
+      throw new UnauthorizedException(sysMsg.INVALID_CREDENTIALS);
     }
 
-    // Check if active (assuming is_active field)
+    // Check if active (assuming isActive field)
     if (!superadmin.is_active) {
-      throw new ConflictException(sysMsg.USER_INACTIVE);
+      throw new UnauthorizedException(sysMsg.USER_INACTIVE);
     }
 
     // Verify password
@@ -118,16 +123,14 @@ export class SuperadminService {
     );
 
     if (!isPasswordValid) {
-      throw new ConflictException(sysMsg.INVALID_CREDENTIALS);
+      throw new UnauthorizedException(sysMsg.INVALID_CREDENTIALS);
     }
 
-    // TODO: Generate JWT or session if needed
-    // Return basic info for now
     const tokens = await this.generateTokens(superadmin.id, superadmin.email);
 
     let sessionInfo = null;
-    if (this.sessionService && tokens.refresh_token) {
-      sessionInfo = await this.sessionService.createSession(
+    if (this.superadminSessionService && tokens.refresh_token) {
+      sessionInfo = await this.superadminSessionService.createSession(
         superadmin.id,
         tokens.refresh_token,
       );
@@ -155,16 +158,19 @@ export class SuperadminService {
    * logs out a logged on superadmin
    */
   async logout(logoutDto: LogoutDto) {
-    if (this.sessionService) {
-      // follow the same parameter order used in AuthService tests (user_id, session_id)
-      await this.sessionService.revokeSession(
-        logoutDto.user_id,
+    if (this.superadminSessionService) {
+      // follow the same parameter order used in AuthService tests (superadmin_id, session_id)
+      await this.superadminSessionService.revokeSession(
         logoutDto.session_id,
+        logoutDto.user_id,
       );
     }
 
     this.logger.info(sysMsg.LOGOUT_SUCCESS);
 
-    return { message: sysMsg.LOGOUT_SUCCESS };
+    return {
+      status_code: HttpStatus.OK,
+      message: sysMsg.LOGOUT_SUCCESS,
+    };
   }
 }

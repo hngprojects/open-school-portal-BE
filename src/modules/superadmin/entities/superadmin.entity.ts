@@ -1,7 +1,8 @@
 import { IsEmail, IsNotEmpty, IsString, Length } from 'class-validator';
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, OneToMany } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
+import { SuperadminSession } from '../session/entities/superadmin-session.entity';
 
 @Entity('superadmin')
 export class SuperAdmin extends BaseEntity {
@@ -33,6 +34,9 @@ export class SuperAdmin extends BaseEntity {
   @Column({ nullable: true, type: 'varchar' })
   reset_token: string;
 
-  @Column({ nullable: true, type: 'timestamp with time zone' })
+  @Column({ nullable: true, type: 'date' })
   reset_token_expiration: Date;
+
+  @OneToMany(() => SuperadminSession, (session) => session.superadmin)
+  sessions!: SuperadminSession[];
 }

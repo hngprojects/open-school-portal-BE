@@ -13,29 +13,25 @@ import { LoginSuperadminDto } from './dto/login-superadmin.dto';
 import { LogoutDto } from './dto/superadmin-logout.dto';
 import { SuperadminService } from './superadmin.service';
 
+@UseGuards(RateLimitGuard)
+@RateLimit({ maxRequests: 3, windowMs: 15 * 60 * 1000 })
 @Controller('superadmin')
 export class SuperadminController {
   constructor(private readonly superadminService: SuperadminService) {}
 
   @Post()
-  @UseGuards(RateLimitGuard)
-  @RateLimit({ maxRequests: 3, windowMs: 15 * 60 * 1000 })
   @ApiCreateSuperadmin()
   async create(@Body() createSuperadminDto: CreateSuperadminDto) {
     return this.superadminService.createSuperAdmin(createSuperadminDto);
   }
 
   @Post('login')
-  @UseGuards(RateLimitGuard)
-  @RateLimit({ maxRequests: 3, windowMs: 15 * 60 * 1000 })
   @ApiLoginSuperadmin()
   async login(@Body() loginSuperadminDto: LoginSuperadminDto) {
     return this.superadminService.login(loginSuperadminDto);
   }
 
   @Post('logout')
-  @UseGuards(RateLimitGuard)
-  @RateLimit({ maxRequests: 3, windowMs: 15 * 60 * 1000 })
   @ApiLogoutSuperadmin()
   async logout(@Body() logoutDto: LogoutDto) {
     return this.superadminService.logout(logoutDto);

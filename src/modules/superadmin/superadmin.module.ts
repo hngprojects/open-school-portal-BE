@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
+import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { RateLimitGuard } from '../../common/guards/rate-limit.guard';
-import { SessionModule } from '../session/session.module';
 
 import { SuperAdmin } from './entities/superadmin.entity';
 import { SuperadminModelAction } from './model-actions/superadmin-actions';
+import { SuperadminSessionModule } from './session/superadmin-session.module';
 import { SuperadminController } from './superadmin.controller';
 import { SuperadminService } from './superadmin.service';
 
@@ -16,18 +16,13 @@ import { SuperadminService } from './superadmin.service';
     TypeOrmModule.forFeature([SuperAdmin]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (
-        configService: ConfigService,
-      ): Promise<JwtModuleOptions> => ({
+      useFactory: async (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
-        signOptions: {
-          expiresIn: (configService.get<string>('TOKEN_ACCESS_DURATION') ??
-            '120m') as string,
-        },
+        signOptions: { expiresIn: '15m' },
       }),
       inject: [ConfigService],
     }),
-    SessionModule,
+    SuperadminSessionModule,
   ],
   controllers: [SuperadminController],
   providers: [SuperadminService, SuperadminModelAction, RateLimitGuard],
