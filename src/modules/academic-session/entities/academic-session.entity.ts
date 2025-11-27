@@ -15,8 +15,9 @@ export class AcademicSession extends BaseEntity {
     type: 'varchar',
     length: 50,
     unique: true,
+    nullable: true,
   })
-  academicYear: string;
+  academicYear?: string;
 
   @Column({ type: 'varchar', length: 100 })
   name: string;
@@ -28,7 +29,7 @@ export class AcademicSession extends BaseEntity {
   endDate: Date;
 
   @Column({ name: 'description', type: 'text', nullable: true })
-  description: string;
+  description?: string;
 
   @Column({
     name: 'status',
@@ -42,7 +43,7 @@ export class AcademicSession extends BaseEntity {
     cascade: true,
     eager: true,
   })
-  terms: Term[];
+  terms?: Term[];
 
   @DeleteDateColumn({ name: 'deleted_at', type: 'timestamp with time zone' })
   deletedAt?: Date;
