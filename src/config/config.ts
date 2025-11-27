@@ -52,6 +52,10 @@ export default () => ({
   frontend: {
     url: process.env.FRONTEND_URL,
   },
+  school: {
+    name: process.env.SCHOOL_NAME,
+    logoUrl: process.env.SCHOOL_LOGO_URL,
+  },
 
   isTest(): boolean {
     return process.env.NODE_ENV === 'test';

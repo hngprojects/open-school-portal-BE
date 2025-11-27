@@ -7,13 +7,14 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { FindOptionsWhere, In } from 'typeorm';
 import { Logger } from 'winston';
 
-import config from 'src/config/config';
 import { EmailTemplateID } from 'src/constants/email-constants';
 
 import * as sysMsg from '../../constants/system.messages';
@@ -21,8 +22,6 @@ import { EmailService } from '../email/email.service';
 import { parseCsv } from '../invites/csv-parser';
 import { UserRole } from '../user/entities/user.entity';
 import { UserModelAction } from '../user/model-actions/user-actions';
-
-const { mail, frontend } = config();
 
 import { AcceptInviteDto } from './dto/accept-invite.dto';
 import {
@@ -39,7 +38,7 @@ export class InviteService {
 
   constructor(
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
-
+    private readonly configService: ConfigService,
     private readonly userModelAction: UserModelAction,
     private readonly inviteModelAction: InviteModelAction,
     private readonly emailService: EmailService,
@@ -64,7 +63,7 @@ export class InviteService {
     }
 
     if (invite.accepted) {
-      throw new ConflictException('This invitation has already been used.');
+      throw new ConflictException(sysMsg.EMAIL_ALREADY_EXISTS);
     }
 
     if (new Date() > invite.expires_at) {
@@ -113,7 +112,7 @@ export class InviteService {
 
   async uploadCsv(
     file: Express.Multer.File,
-    selectedType: InviteRole, // admin’s selection
+    selectedType: InviteRole,
   ): Promise<BulkInvitesResponseDto> {
     if (!file) {
       throw new BadRequestException(sysMsg.NO_BULK_UPLOAD_DATA);
@@ -127,7 +126,7 @@ export class InviteService {
       throw new BadRequestException(sysMsg.INVALID_BULK_UPLOAD_FILE);
     }
 
-    // Parse CSV into rows (only email + full_name)
+    // Parse CSV rows
     const rows = await parseCsv<{ email: string; full_name: string }>(
       file.buffer,
     );
@@ -135,6 +134,7 @@ export class InviteService {
     const filteredRows = rows.filter((row) => row.email?.trim());
     const emails = filteredRows.map((row) => row.email.trim().toLowerCase());
 
+    // Check existing invites
     const existing = await this.inviteModelAction.get({
       identifierOptions: { email: In(emails) } as FindOptionsWhere<Invite>,
     });
@@ -158,6 +158,19 @@ export class InviteService {
     );
 
     const createdInvites: InviteUserDto[] = [];
+
+    // Load values from config.ts
+    const frontendUrl = this.configService.get<string>('frontend.url');
+    const schoolName = this.configService.get<string>('school.name');
+    const schoolLogoUrl = this.configService.get<string>('school.logoUrl');
+    const senderEmail = this.configService.get<string>('mail.from.adress');
+    const senderName = this.configService.get<string>('mail.from.name');
+
+    if (!frontendUrl || !schoolName || !schoolLogoUrl) {
+      throw new InternalServerErrorException(
+        'Missing SCHOOL_NAME, SCHOOL_LOGO_URL or FRONTEND_URL in config',
+      );
+    }
 
     for (const row of validRows) {
       const rawToken = crypto.randomBytes(32).toString('hex');
@@ -183,18 +196,24 @@ export class InviteService {
         transactionOptions: { useTransaction: false },
       });
 
-      const inviteLink = `${frontend.url}/accept-invite?token=${rawToken}`;
+      const inviteLink = `${frontendUrl}/accept-invite?token=${rawToken}`;
 
-      // SEND EMAIL using your existing EmailService
+      // Split first name safely
+      const firstName = invite.full_name?.trim()?.split(' ')?.[0] || 'User';
+
+      // SEND EMAIL using nunjucks template
       await this.emailService.sendMail({
-        from: { email: mail.from.address, name: mail.from.name },
+        from: { email: senderEmail, name: senderName },
         to: [{ email: invite.email, name: invite.full_name }],
-        subject: `You are invited! as ${selectedType}`,
+        subject: `You are invited as ${selectedType}`,
         templateNameID: EmailTemplateID.INVITE,
         templateData: {
-          firstName: invite.full_name?.split(' ')[0] || 'User',
+          firstName,
           inviteLink,
           role: invite.role,
+          schoolName,
+          logoUrl: schoolLogoUrl,
+          copyRightYear: new Date().getFullYear(),
         },
       });
 

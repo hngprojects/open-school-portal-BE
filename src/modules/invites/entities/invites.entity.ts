@@ -28,7 +28,7 @@ export class Invite extends BaseEntity {
   @CreateDateColumn()
   invited_at: Date;
 
-  @Column({ type: 'timestamp', nullable: true }) //remeber to change this
+  @Column({ type: 'timestamp', nullable: true })
   expires_at?: Date;
 
   @Column()
@@ -45,7 +45,7 @@ export class Invite extends BaseEntity {
   status: InviteStatus;
 
   @Index()
-  @Column({ nullable: true }) //remember to change this
+  @Column({ nullable: true })
   token_hash?: string;
 
   @Column({ type: 'uuid', nullable: true })
