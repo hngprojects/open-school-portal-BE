@@ -18,10 +18,9 @@ export class CreateRoomDTO {
   @IsString()
   type: string;
 
-  @IsOptional()
   @IsInt()
   @Min(1)
-  capacity?: number;
+  capacity: number;
 
   @IsNotEmpty()
   @IsString()
