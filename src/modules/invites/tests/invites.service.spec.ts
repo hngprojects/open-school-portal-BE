@@ -194,7 +194,7 @@ describe('InviteService', () => {
         .mockResolvedValue(null);
 
       await expect(service.inviteUser(dto)).rejects.toThrow(
-        'An active invitation already exists for this email.',
+        sysMsg.ACTIVE_INVITE_EXISTS,
       );
 
       expect(inviteModelAction.create).not.toHaveBeenCalled();
@@ -224,26 +224,19 @@ describe('InviteService', () => {
       expect(result.email).toBe(mockInvite.email);
     });
 
-    it('should still return success if email sending fails', async () => {
-      // Mock: No existing user/invite
+    it('should throw error and rollback transaction if email sending fails', async () => {
       userModelAction.get.mockResolvedValue(null);
       inviteModelAction.get.mockResolvedValue(null);
-
-      // Mock: Create invite
       inviteModelAction.create.mockResolvedValue(mockInvite);
-
-      // Mock: Email fails
       emailService.sendMail.mockRejectedValue(new Error('Email send failed'));
 
-      const result = await service.inviteUser(dto);
+      await expect(service.inviteUser(dto)).rejects.toThrow(
+        'Email send failed',
+      );
 
-      // Should still return success
-      expect(result).toEqual({
-        id: mockInvite.id,
-        email: mockInvite.email,
-        role: mockInvite.role,
-        full_name: mockInvite.full_name,
-      });
+      // Invite should have been created but transaction will rollback
+      expect(inviteModelAction.create).toHaveBeenCalled();
+      expect(emailService.sendMail).toHaveBeenCalled();
     });
 
     it('should use transaction for invite creation', async () => {

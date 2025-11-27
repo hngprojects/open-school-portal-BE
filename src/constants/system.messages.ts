@@ -141,7 +141,8 @@ export const STREAMS_RETRIEVED = 'Streams retrieved successfully';
 export const INVITE_SENT = 'invite sent';
 export const PENDING_INVITES_FETCHED = 'Pending invites retrieved successfully';
 export const NO_PENDING_INVITES = 'No pending invites found';
-export const INVITE_ALREADY_SENT = 'INVITE_ALREADY_SENT';
+export const INVITE_ALREADY_SENT = 'invite already sent';
+export const ACTIVE_INVITE_EXISTS = 'invite already sent';
 
 //Academic Session
 export const ACADEMIC_SESSION =

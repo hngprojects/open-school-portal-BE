@@ -64,9 +64,7 @@ export class InviteService {
       });
 
       if (existingInvite && new Date() < existingInvite.expires_at) {
-        throw new ConflictException(
-          'An active invitation already exists for this email.',
-        );
+        throw new ConflictException(sysMsg.ACTIVE_INVITE_EXISTS);
       }
 
       // Generate token
@@ -97,24 +95,12 @@ export class InviteService {
       });
 
       // Send invitation email
-      const emailResult = await Promise.allSettled([
-        this.sendInvitationEmail(inviteUserDto, token),
-      ]);
+      await this.sendInvitationEmail(inviteUserDto, token);
 
-      // Log email failure but don't block response
-      if (emailResult[0].status === 'rejected') {
-        this.logger.error('Failed to send invitation email', {
-          error: emailResult[0].reason,
-          invite_id: savedInvite.id,
-          email: inviteUserDto.email,
-        });
-      }
-
-      this.logger.info('User invitation created', {
+      this.logger.info('User invitation created and email sent', {
         invite_id: savedInvite.id,
         email: inviteUserDto.email,
         role: inviteUserDto.role,
-        email_sent: emailResult[0].status === 'fulfilled',
       });
 
       return {
