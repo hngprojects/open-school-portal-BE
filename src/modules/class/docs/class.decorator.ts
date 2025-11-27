@@ -70,3 +70,15 @@ export const DocsGetClassById = () => {
     ApiNotFoundResponse(responses.notFound),
   );
 };
+
+export const DocsGetTotalClasses = () => {
+  const { operation, parameters, responses } =
+    ClassSwagger.endpoints.getTotalClasses;
+  return applyDecorators(
+    ApiOperation(operation),
+    ApiQuery(parameters.sessionId),
+    ApiQuery(parameters.name),
+    ApiQuery(parameters.arm),
+    ApiResponse(responses.ok),
+  );
+};

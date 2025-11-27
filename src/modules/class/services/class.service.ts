@@ -289,4 +289,28 @@ export class ClassService {
       },
     };
   }
+
+  /**
+   * Fetches Total Number of Classes in the System.
+   */
+  async getTotalClasses(
+    sessionId: string,
+    name?: string,
+    arm?: string,
+  ): Promise<{ message: string; total: number }> {
+    const filter: Record<string, unknown> = {
+      academicSession: { id: sessionId },
+    };
+    if (name) filter.name = name;
+    if (arm) filter.arm = arm;
+
+    const { paginationMeta } = await this.classModelAction.list({
+      filterRecordOptions: filter,
+      paginationPayload: { page: 1, limit: 1 },
+    });
+    return {
+      message: sysMsg.TOTAL_CLASSES_FETCHED,
+      total: paginationMeta.total,
+    };
+  }
 }

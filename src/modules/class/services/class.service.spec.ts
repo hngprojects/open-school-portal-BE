@@ -482,4 +482,58 @@ describe('ClassService', () => {
       );
     });
   });
+
+  describe('getTotalClasses', () => {
+    it('should return the total number of classes filtered by sessionId, name, and arm', async () => {
+      // Arrange
+      const sessionId = 'session-uuid-1';
+      const name = 'JSS1';
+      const arm = 'A';
+      const mockTotal = 5;
+
+      // Mock the list method to return the expected paginationMeta
+      classModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { total: mockTotal },
+      });
+
+      // Act
+      const result = await service.getTotalClasses(sessionId, name, arm);
+
+      // Assert
+      expect(classModelAction.list).toHaveBeenCalledWith({
+        filterRecordOptions: {
+          academicSession: { id: sessionId },
+          name,
+          arm,
+        },
+        paginationPayload: { page: 1, limit: 1 },
+      });
+      expect(result).toEqual({
+        message: sysMsg.TOTAL_CLASSES_FETCHED,
+        total: mockTotal,
+      });
+    });
+
+    it('should return zero if no classes match the filter', async () => {
+      // Arrange
+      classModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { total: 0 },
+      });
+
+      // Act
+      const result = await service.getTotalClasses(
+        'session-uuid-2',
+        'JSS9',
+        'B',
+      );
+
+      // Assert
+      expect(result).toEqual({
+        message: sysMsg.TOTAL_CLASSES_FETCHED,
+        total: 0,
+      });
+    });
+  });
 });

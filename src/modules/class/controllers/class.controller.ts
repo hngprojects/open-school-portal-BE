@@ -21,6 +21,7 @@ import {
   DocsGetGroupedClasses,
   DocsUpdateClass,
   DocsGetClassById,
+  DocsGetTotalClasses,
 } from '../docs/class.decorator';
 import {
   CreateClassDto,
@@ -28,6 +29,7 @@ import {
   GroupedClassDto,
   UpdateClassDto,
   ClassResponseDto,
+  GetTotalClassesQueryDto,
 } from '../dto';
 import { GetTeachersQueryDto } from '../dto/get-teachers-query.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
@@ -73,6 +75,17 @@ export class ClassController {
     @Query() query: GetTeachersQueryDto,
   ): Promise<TeacherAssignmentResponseDto[]> {
     return this.classService.getTeachersByClass(classId, query.session_id);
+  }
+
+  // --- GET: TOTAL NUMBER OF CLASSES ---
+  @Get('count')
+  @DocsGetTotalClasses()
+  async getTotalClasses(@Query() query: GetTotalClassesQueryDto) {
+    return this.classService.getTotalClasses(
+      query.sessionId,
+      query.name,
+      query.arm,
+    );
   }
 
   // --- GET: GET CLASS BY ID (ADMIN ONLY) ---
