@@ -25,7 +25,7 @@ export class CreateTimetableDto {
   period_type?: PeriodType;
 
   @IsUUID()
-  stream_id: string;
+  class_id: string;
 
   @IsUUID()
   @IsOptional()
@@ -60,7 +60,7 @@ export class UpdateTimetableDto extends PartialType(CreateTimetableDto) {}
 export class QueryTimetableDto {
   @IsUUID()
   @IsOptional()
-  stream_id?: string;
+  class_id?: string;
 
   @IsUUID()
   @IsOptional()

@@ -16,7 +16,6 @@ import { ClassModule } from './modules/class/class.module';
 import { ContactModule } from './modules/contact/contact.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { DatabaseModule } from './modules/database-setup/database.module';
-import { DepartmentModule } from './modules/department/department.module';
 import { EmailModule } from './modules/email/email.module';
 import { InviteModule } from './modules/invites/invites.module';
 import { ParentModule } from './modules/parent/parent.module';
@@ -69,7 +68,6 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     ClassModule,
     InviteModule,
     AcademicSessionModule,
-    DepartmentModule,
     SubjectModule,
     UploadModule,
     TermModule,

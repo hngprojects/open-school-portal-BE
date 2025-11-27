@@ -138,10 +138,11 @@ export const CLASS_NOT_FOUND = 'Class with the provided ID does not exist';
 export const STREAMS_RETRIEVED = 'Streams retrieved successfully';
 
 // Invites
-export const INVITE_SENT = 'INVITE_SENT';
+export const INVITE_SENT = 'invite sent';
 export const PENDING_INVITES_FETCHED = 'Pending invites retrieved successfully';
 export const NO_PENDING_INVITES = 'No pending invites found';
-export const INVITE_ALREADY_SENT = 'INVITE_ALREADY_SENT';
+export const INVITE_ALREADY_SENT = 'invite already sent';
+export const ACTIVE_INVITE_EXISTS = 'an active invite exist for this user';
 
 //Academic Session
 export const ACADEMIC_SESSION =
@@ -195,14 +196,9 @@ export const ROOM_ASSIGNED_TO_STREAM = 'Room successfully assigned to stream.';
 export const ROOM_CAPACITY_EXCEEDED = 'Stream size exceeds room capacity.';
 export const ROOM_STATUS_UPDATED = 'Room status updated successfully.';
 
-//department
-export const DEPARTMENT_NOT_FOUND = 'Department not found';
-export const DEPARTMENT_CREATED = 'Department created successfully';
-export const DEPARTMENT_ALREADY_EXISTS = 'Department already exists';
-export const DEPARTMENT_UPDATED = 'Department updated successfully';
-export const DEPARTMENT_DELETED = 'Department deleted successfully';
-export const DEPARTMENT_HAS_ASSOCIATED_SUBJECTS =
-  'Cannot delete department with associated subjects';
+// Subject messages
+export const SUBJECT_CREATED = 'Subject created successfully';
+export const SUBJECT_ALREADY_EXISTS = 'Subject already exists';
 
 // School Installation messages
 export const INSTALLATION_COMPLETED =
@@ -222,8 +218,9 @@ export const CLASS_ALREADY_EXIST =
   'A class with the same name and arm already exists in this session.';
 export const CLASS_NAME_EMPTY = 'class name cannot be empty';
 export const CLASS_UPDATED = 'class updated successfully';
-export const CLASS_FETCHED = 'classes fetched successfully';
+export const CLASS_FETCHED = 'class fetched successfully';
 export const NO_CLASS_FOUND = 'no classes found.';
+export const TOTAL_CLASSES_FETCHED = 'total classes fetched successfully';
 
 // Parent messages
 export const PARENT_CREATED = 'Parent created successfully';

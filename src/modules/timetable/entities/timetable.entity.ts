@@ -1,7 +1,7 @@
 import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
-import { Stream } from '../../stream/entities/stream.entity';
+import { Class } from '../../class/entities/class.entity';
 import { Subject } from '../../subject/entities/subject.entity';
 import { Teacher } from '../../teacher/entities/teacher.entity';
 import { DayOfWeek, PeriodType } from '../enums/timetable.enums';
@@ -27,11 +27,11 @@ export class Timetable extends BaseEntity {
   })
   period_type: PeriodType;
 
-  @ManyToOne(() => Stream, { nullable: false })
-  @JoinColumn({ name: 'stream_id' })
-  stream: Stream;
+  @ManyToOne(() => Class, { nullable: false })
+  @JoinColumn({ name: 'class_id' })
+  stream: Class;
 
-  @Column({ name: 'stream_id' })
+  @Column({ name: 'class_id' })
   stream_id: string;
 
   @ManyToOne(() => Subject, { nullable: true })
