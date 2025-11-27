@@ -1,4 +1,4 @@
-import { Entity, Column, ManyToMany, JoinTable } from 'typeorm';
+import { Entity, Column, ManyToMany } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
 import { Subject } from '../../subject/entities/subject.entity';
@@ -9,10 +9,5 @@ export class Department extends BaseEntity {
   name: string;
 
   @ManyToMany(() => Subject, (subject) => subject.departments)
-  @JoinTable({
-    name: 'subject_departments',
-    joinColumn: { name: 'department_id', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'subject_id', referencedColumnName: 'id' },
-  })
   subjects: Subject[];
 }
