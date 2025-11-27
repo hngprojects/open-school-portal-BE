@@ -258,3 +258,20 @@ export const STUDENT_DELETED = 'Student deleted successfully';
 
 // Dashboard messages
 export const DASHBOARD_RESOLVED = 'Dashboard resolved successfully';
+
+// Timetable messages
+export const TIMETABLE_CREATED = 'Timetable created successfully';
+export const TIMETABLE_UPDATED = 'Timetable updated successfully';
+export const TIMETABLE_DELETED = 'Timetable deleted successfully';
+export const TIMETABLE_NOT_FOUND = 'Timetable not found';
+export const TIMETABLE_FETCHED = 'Timetable fetched successfully';
+export const TIMETABLES_FETCHED = 'Timetables fetched successfully';
+export const INVALID_TIME_RANGE = 'Start time must be before end time';
+export const TIMETABLE_OVERLAP_STREAM =
+  'Timetable period overlaps with another period for the same stream on the same day';
+export const TIMETABLE_TEACHER_DOUBLE_BOOKED =
+  'Teacher is already scheduled for another class at this time';
+export const TEACHER_NOT_FOUND = 'Teacher not found';
+export const INVALID_DATE_RANGE_TIMETABLE =
+  'End date must be after effective date';
+export const TIMETABLE_ARCHIVED = 'Timetable archived successfully';
