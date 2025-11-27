@@ -1,8 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
 
-import { DepartmentResponseDto } from '../../department/dto/department-response.dto';
-
 export class SubjectResponseDto {
   @ApiProperty({
     description: 'Subject ID',
@@ -17,13 +15,6 @@ export class SubjectResponseDto {
   })
   @Expose()
   name: string;
-
-  @ApiProperty({
-    description: 'Departments this subject belongs to',
-    type: [DepartmentResponseDto],
-  })
-  @Expose()
-  departments: DepartmentResponseDto[];
 
   @ApiProperty({
     description: 'Created at timestamp',

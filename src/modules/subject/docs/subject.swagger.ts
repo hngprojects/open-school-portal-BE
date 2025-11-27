@@ -30,8 +30,7 @@ export const ApiCreateSubject = () =>
   applyDecorators(
     ApiOperation({
       summary: 'Create Subject',
-      description:
-        'Creates a new subject. Subject name must be unique. Subject must belong to at least one department.',
+      description: 'Creates a new subject. Subject name must be unique.',
     }),
     ApiBody({
       type: CreateSubjectDto,
@@ -41,7 +40,6 @@ export const ApiCreateSubject = () =>
           summary: 'Biology Subject',
           value: {
             name: 'Biology',
-            departmentIds: ['550e8400-e29b-41d4-a716-446655440000'],
           },
         },
       },
@@ -54,10 +52,6 @@ export const ApiCreateSubject = () =>
     ApiResponse({
       status: 409,
       description: 'Subject with this name already exists.',
-    }),
-    ApiResponse({
-      status: 404,
-      description: 'One or more departments not found.',
     }),
     ApiResponse({
       status: 400,

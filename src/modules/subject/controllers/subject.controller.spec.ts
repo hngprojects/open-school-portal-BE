@@ -38,7 +38,6 @@ describe('SubjectController', () => {
   describe('create', () => {
     const createSubjectDto: CreateSubjectDto = {
       name: 'Biology',
-      departmentIds: ['dep-1'],
     };
 
     it('should delegate to SubjectService and return its response', async () => {
