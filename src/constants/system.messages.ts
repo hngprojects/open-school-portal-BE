@@ -223,8 +223,9 @@ export const CLASS_ALREADY_EXIST =
   'A class with the same name and arm already exists in this session.';
 export const CLASS_NAME_EMPTY = 'class name cannot be empty';
 export const CLASS_UPDATED = 'class updated successfully';
-export const CLASS_FETCHED = 'classes fetched successfully';
+export const CLASS_FETCHED = 'class fetched successfully';
 export const NO_CLASS_FOUND = 'no classes found.';
+export const TOTAL_CLASSES_FETCHED = 'total classes fetched successfully';
 
 // Parent messages
 export const PARENT_CREATED = 'Parent created successfully';
