@@ -29,6 +29,7 @@ export const ApiCreateRoom = () =>
             type: 'Laboratory',
             capacity: 30,
             location: 'North Wing',
+            streams: ['uuid-1', 'uuid-2'],
           },
         },
       },

@@ -36,9 +36,9 @@ export class RoomService {
       const newRoom = await this.roomModelAction.create({
         createPayload: {
           name: this.sanitizedName(createRoomDto.name),
-          type: createRoomDto.type,
+          type: this.sanitizedName(createRoomDto.type),
           capacity: createRoomDto.capacity,
-          location: createRoomDto.location,
+          location: this.sanitizedName(createRoomDto.location),
           streams: streamEntities,
         },
         transactionOptions: {
