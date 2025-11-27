@@ -15,7 +15,9 @@ import { EmailService } from '../../email/email.service';
 import { SchoolModelAction } from '../../school/model-actions/school.action';
 import { UserRole } from '../../user/entities/user.entity';
 import { UserModelAction } from '../../user/model-actions/user-actions';
+import * as csvParser from '../csv-parser';
 import { AcceptInviteDto } from '../dto/accept-invite.dto';
+import { InviteRole } from '../dto/invite-user.dto';
 import { InviteStatus } from '../entities/invites.entity';
 import { InviteModelAction } from '../invite.model-action';
 import { InviteService } from '../invites.service';
@@ -26,6 +28,7 @@ interface IMockModelAction {
   get: jest.Mock;
   list: jest.Mock;
   update: jest.Mock;
+  save: jest.Mock;
 }
 
 describe('InviteService', () => {
@@ -44,12 +47,14 @@ describe('InviteService', () => {
     status: InviteStatus.PENDING,
   };
 
+  let moduleRef: TestingModule;
   beforeEach(async () => {
     const mockAction = {
       create: jest.fn(),
       get: jest.fn(),
       list: jest.fn(),
       update: jest.fn(),
+      save: jest.fn(),
     };
 
     const mockLoggerObj = {
@@ -148,6 +153,59 @@ describe('InviteService', () => {
       );
       await expect(service.acceptInvite(dto)).rejects.toThrow(
         sysMsg.TOKEN_EXPIRED,
+      );
+    });
+  });
+
+  // CSV Upload Tests
+
+  describe('uploadCsv', () => {
+    it('should process CSV upload and send invite emails', async () => {
+      const mockFile = {
+        buffer: Buffer.from(
+          'email,full_name\nnew@user.com,New User\nexisting@user.com,Existing User',
+        ),
+        mimetype: 'text/csv',
+        originalname: 'bulk.csv',
+      } as Express.Multer.File;
+
+      // Mock parsed CSV rows
+      const parsedRows = [
+        { email: 'new@user.com', full_name: 'New User' },
+        { email: 'existing@user.com', full_name: 'Existing User' },
+      ];
+
+      // Mock parseCsv util
+
+      jest.spyOn(csvParser, 'parseCsv').mockResolvedValue(parsedRows);
+
+      // Pretend one email already exists
+      inviteModelAction.get.mockResolvedValue([{ email: 'existing@user.com' }]);
+
+      inviteModelAction.create.mockImplementation(({ createPayload }) => ({
+        ...createPayload,
+        id: 'invite-id',
+      }));
+      inviteModelAction.save.mockResolvedValue(undefined);
+
+      const emailService = moduleRef.get<EmailService>(EmailService);
+      (emailService.sendMail as jest.Mock).mockResolvedValue(undefined);
+
+      const result = await service.uploadCsv(mockFile, InviteRole.ADMIN);
+
+      expect(result.status_code).toBe(HttpStatus.OK);
+      expect(result.total_bulk_invites_sent).toBe(1);
+      expect(result.skipped_already_exist_emil_on_csv).toEqual([
+        'existing@user.com',
+      ]);
+      expect(emailService.sendMail).toHaveBeenCalledTimes(1);
+      expect(emailService.sendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: expect.arrayContaining([
+            expect.objectContaining({ email: 'new@user.com' }),
+          ]),
+          subject: expect.stringContaining('ADMIN'),
+        }),
       );
     });
   });
