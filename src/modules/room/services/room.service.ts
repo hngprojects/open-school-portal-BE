@@ -20,7 +20,7 @@ export class RoomService {
   async create(createRoomDto: CreateRoomDTO) {
     const data = await this.datasource.transaction(async (manager) => {
       const existingRoom = await this.findByName(
-        this.sanitizedName(createRoomDto.name),
+        this.sanitizedField(createRoomDto.name),
       );
 
       if (existingRoom) {
@@ -35,10 +35,10 @@ export class RoomService {
 
       const newRoom = await this.roomModelAction.create({
         createPayload: {
-          name: this.sanitizedName(createRoomDto.name),
-          type: this.sanitizedName(createRoomDto.type),
+          name: this.sanitizedField(createRoomDto.name),
+          type: this.sanitizedField(createRoomDto.type),
           capacity: createRoomDto.capacity,
-          location: this.sanitizedName(createRoomDto.location),
+          location: this.sanitizedField(createRoomDto.location),
           streams: streamEntities,
         },
         transactionOptions: {
@@ -98,7 +98,7 @@ export class RoomService {
     return room;
   }
 
-  private sanitizedName(name: string) {
+  private sanitizedField(name: string) {
     return name.trim().toLowerCase();
   }
 }
