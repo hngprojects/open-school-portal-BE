@@ -14,8 +14,8 @@ export class TimetableService {
     return 'returns findAll response';
   }
 
-  async findByStream() {
-    return 'returns findByStream response';
+  async findByClass() {
+    return 'returns findByClass response';
   }
 
   async findByTeacher() {

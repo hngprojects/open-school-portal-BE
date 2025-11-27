@@ -16,9 +16,9 @@ export class TimetableController {
     return this.timetableService.findAll();
   }
 
-  @Get('stream/:stream_id')
-  findByStream() {
-    return this.timetableService.findByStream();
+  @Get('class/:class_id')
+  findByClass() {
+    return this.timetableService.findByClass();
   }
 
   @Get('teacher/:teacher_id')
