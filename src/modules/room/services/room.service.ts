@@ -39,9 +39,6 @@ export class RoomService {
           type: createRoomDto.type,
           capacity: createRoomDto.capacity,
           location: createRoomDto.location,
-          building: createRoomDto.building,
-          floor: createRoomDto.floor,
-          description: createRoomDto.description,
           streams: streamEntities,
         },
         transactionOptions: {

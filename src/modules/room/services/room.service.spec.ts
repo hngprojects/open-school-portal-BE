@@ -6,7 +6,6 @@ import * as sysMsg from '../../../constants/system.messages';
 import { Stream } from '../../stream/entities/stream.entity';
 import { CreateRoomDTO } from '../dto/create-room-dto';
 import { Room } from '../entities/room.entity';
-import { RoomType } from '../enums/room-enum';
 import { RoomModelAction } from '../model-actions/room-model-actions';
 
 import { RoomService } from './room.service';
@@ -77,12 +76,9 @@ describe('RoomService', () => {
   describe('create', () => {
     const dto: CreateRoomDTO = {
       name: '  Main Hall  ',
-      type: RoomType.PHYSICAL,
+      type: 'Laboratory',
       capacity: 120,
       location: 'West Block',
-      building: 'B',
-      floor: '2',
-      description: 'Lecture hall',
       streams: [],
     };
 

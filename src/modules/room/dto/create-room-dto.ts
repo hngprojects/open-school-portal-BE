@@ -1,7 +1,6 @@
 import {
   ArrayNotEmpty,
   IsArray,
-  IsEnum,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -10,16 +9,14 @@ import {
   Min,
 } from 'class-validator';
 
-import { RoomType } from '../enums/room-enum';
-
 export class CreateRoomDTO {
   @IsNotEmpty()
   @IsString()
   name: string;
 
   @IsNotEmpty()
-  @IsEnum(RoomType, { message: 'Type must be a valid room type' })
-  type: RoomType;
+  @IsString()
+  type: string;
 
   @IsOptional()
   @IsInt()
@@ -29,18 +26,6 @@ export class CreateRoomDTO {
   @IsNotEmpty()
   @IsString()
   location: string;
-
-  @IsOptional()
-  @IsString()
-  building?: string;
-
-  @IsOptional()
-  @IsString()
-  floor?: string;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
 
   @IsOptional()
   @IsArray({ message: 'Streams must be provided as an array' })
