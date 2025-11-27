@@ -1,20 +1,25 @@
-import { Entity, Column, OneToMany } from 'typeorm';
+import { Entity, Column, OneToMany, DeleteDateColumn } from 'typeorm';
 
-import { BaseEntity } from '../../../entities/base-entity'; // Assuming BaseEntity path
+import { BaseEntity } from '../../../entities/base-entity';
 import { Term } from '../../academic-term/entities/term.entity';
 
 export enum SessionStatus {
   ACTIVE = 'Active',
-  INACTIVE = 'Inactive',
+  ARCHIVED = 'Archived',
 }
 
 @Entity('academic_sessions')
 export class AcademicSession extends BaseEntity {
-  @Column({ name: 'name', type: 'varchar', length: 100, unique: true })
-  name: string;
-
-  @Column({ name: 'academic_year', type: 'varchar', length: 50 })
+  @Column({
+    name: 'academic_year',
+    type: 'varchar',
+    length: 50,
+    unique: true,
+  })
   academicYear: string;
+
+  @Column({ type: 'varchar', length: 100 })
+  name: string;
 
   @Column({ name: 'start_date', type: 'date' })
   startDate: Date;
@@ -29,7 +34,7 @@ export class AcademicSession extends BaseEntity {
     name: 'status',
     type: 'enum',
     enum: SessionStatus,
-    default: SessionStatus.INACTIVE,
+    default: SessionStatus.ACTIVE,
   })
   status: SessionStatus;
 
@@ -38,4 +43,7 @@ export class AcademicSession extends BaseEntity {
     eager: true,
   })
   terms: Term[];
+
+  @DeleteDateColumn({ name: 'deleted_at', type: 'timestamp with time zone' })
+  deletedAt?: Date;
 }

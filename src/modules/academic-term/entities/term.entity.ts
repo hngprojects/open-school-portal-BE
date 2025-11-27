@@ -1,4 +1,3 @@
-import { IsBoolean, IsNotEmpty, IsString, IsDateString } from 'class-validator';
 import { Column, Entity, ManyToOne, JoinColumn } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
@@ -10,11 +9,14 @@ export enum TermName {
   THIRD = 'Third term',
 }
 
+export enum TermStatus {
+  ACTIVE = 'Active',
+  ARCHIVED = 'Archived',
+}
+
 @Entity('terms')
 export class Term extends BaseEntity {
   @Column({ name: 'session_id', type: 'uuid' })
-  @IsString()
-  @IsNotEmpty()
   sessionId: string;
 
   @ManyToOne(() => AcademicSession, (session) => session.terms, {
@@ -27,18 +29,21 @@ export class Term extends BaseEntity {
     type: 'enum',
     enum: TermName,
   })
-  @IsNotEmpty()
   name: TermName;
 
   @Column({ name: 'start_date', type: 'date' })
-  @IsDateString()
   startDate: Date;
 
   @Column({ name: 'end_date', type: 'date' })
-  @IsDateString()
   endDate: Date;
 
+  @Column({
+    type: 'enum',
+    enum: TermStatus,
+    default: TermStatus.ACTIVE,
+  })
+  status: TermStatus;
+
   @Column({ name: 'is_current', default: false })
-  @IsBoolean()
   isCurrent: boolean;
 }

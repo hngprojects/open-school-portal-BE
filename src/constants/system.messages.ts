@@ -174,6 +174,11 @@ export const ACADEMIC_SESSION_DELETED =
   'Academic session deleted successfully.';
 export const INACTIVE_SESSION_LOCKED =
   'Cannot modify an inactive academic session. Previous sessions are locked to preserve historical data integrity.';
+export const ARCHIVED_SESSION_LOCKED =
+  'Cannot modify an archived academic session. Archived sessions are read-only to preserve historical data.';
+export const ARCHIVED_SESSION_NO_DELETE =
+  'Cannot delete an archived academic session. Archived sessions must be preserved for historical records.';
+export const SESSION_ARCHIVED = 'Academic session archived successfully.';
 // Session management messages
 export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
@@ -266,6 +271,8 @@ export const TERM_DELETED = 'Term deleted successfully';
 export const TERMS_DELETED = 'Terms deleted successfully';
 export const TERM_NOT_FOUND = 'Term not found';
 export const TERM_UPDATE_FAILED = 'Failed to update term';
+export const ARCHIVED_TERM_LOCKED =
+  'Cannot modify an archived term. Archived terms are read-only to preserve historical data.';
 
 // Academic Term - Validation errors
 export const TERM_INVALID_DATE_RANGE = 'End date must be after start date';

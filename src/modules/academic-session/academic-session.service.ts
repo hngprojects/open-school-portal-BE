@@ -3,7 +3,6 @@ import {
   ConflictException,
   HttpStatus,
   Injectable,
-  InternalServerErrorException,
   Logger,
   ForbiddenException,
 } from '@nestjs/common';
@@ -42,29 +41,18 @@ export class AcademicSessionService {
   ) {}
 
   private validateSessionIsModifiable(session: AcademicSession): void {
-    if (session.status !== SessionStatus.ACTIVE) {
-      throw new ForbiddenException(sysMsg.INACTIVE_SESSION_LOCKED);
+    if (session.status === SessionStatus.ARCHIVED) {
+      throw new ForbiddenException(sysMsg.ARCHIVED_SESSION_LOCKED);
     }
   }
 
   async create(
     createSessionDto: CreateAcademicSessionDto,
   ): Promise<ICreateSessionResponse> {
-    // Validate that exactly 3 terms are provided (enforced by DTO but double-check)
-    if (createSessionDto.terms.length !== 3) {
-      throw new BadRequestException('Exactly 3 terms are required.');
-    }
-
     // Auto-assign term names based on array order: [0]=First, [1]=Second, [2]=Third
     const firstTerm = createSessionDto.terms[0];
     const secondTerm = createSessionDto.terms[1];
     const thirdTerm = createSessionDto.terms[2];
-
-    if (!firstTerm || !thirdTerm) {
-      throw new BadRequestException(
-        'Both First term and Third terms are required.',
-      );
-    }
 
     // Session start date is first term start date, end date is third term end date
     const start = new Date(firstTerm.startDate);
@@ -81,19 +69,18 @@ export class AcademicSessionService {
       throw new BadRequestException(sysMsg.INVALID_DATE_RANGE);
     }
 
-    // Generate session name and academic year from start and end year
+    // Generate academic year from start and end year
     const startYear = start.getFullYear();
     const endYear = end.getFullYear();
-    const sessionName = `${startYear}/${endYear}`;
     const academicYear = `${startYear}/${endYear}`;
 
     const existingSession = await this.sessionModelAction.get({
-      identifierOptions: { name: sessionName },
+      identifierOptions: { academicYear: academicYear },
     });
 
     if (existingSession) {
       throw new ConflictException(
-        `Academic session ${sessionName} already exists.`,
+        `Academic session ${academicYear} already exists.`,
       );
     }
 
@@ -124,14 +111,38 @@ export class AcademicSessionService {
 
     // Use transaction to create session and terms together
     const newSession = await this.dataSource.transaction(async (manager) => {
-      // Create the academic session
+      // Get all currently active sessions to archive their terms
+      const activeSessions = await this.sessionModelAction.list({
+        filterRecordOptions: { status: SessionStatus.ACTIVE },
+      });
+
+      // Archive all currently active sessions and their terms (previous session becomes read-only)
+      for (const activeSession of activeSessions.payload) {
+        // Archive the terms of the active session
+        await this.termService.archiveTermsBySessionId(
+          activeSession.id,
+          manager,
+        );
+      }
+
+      // Archive the session itself
+      await this.sessionModelAction.update({
+        updatePayload: { status: SessionStatus.ARCHIVED },
+        identifierOptions: { status: SessionStatus.ACTIVE },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      // Create the academic session as ACTIVE (current session)
       const session = manager.create(AcademicSession, {
-        name: sessionName,
         academicYear: academicYear,
+        name: academicYear, // Set name same as academicYear for backward compatibility
         startDate: start,
         endDate: end,
         description: createSessionDto.description || null,
-        status: SessionStatus.INACTIVE,
+        status: SessionStatus.ACTIVE,
       });
 
       const savedSession = await manager.save(AcademicSession, session);
@@ -159,21 +170,6 @@ export class AcademicSessionService {
     };
   }
 
-  async activeSessions() {
-    const sessions = await this.sessionModelAction.list({
-      filterRecordOptions: { status: SessionStatus.ACTIVE },
-    });
-
-    if (!sessions.payload.length) return null;
-
-    if (sessions.payload.length > 1)
-      throw new InternalServerErrorException(
-        sysMsg.MULTIPLE_ACTIVE_ACADEMIC_SESSION,
-      );
-
-    return sessions.payload[0];
-  }
-
   async findAll(options: IListSessionsOptions = {}) {
     const normalizedPage = Math.max(1, Math.floor(options.page ?? 1));
     const normalizedLimit = Math.max(1, Math.floor(options.limit ?? 20));
@@ -191,56 +187,6 @@ export class AcademicSessionService {
       message: sysMsg.ACADEMIC_SESSION_LIST_SUCCESS,
       data: payload,
       meta: paginationMeta,
-    };
-  }
-
-  async activateSession(sessionId: string) {
-    const session = await this.sessionModelAction.get({
-      identifierOptions: { id: sessionId },
-    });
-
-    if (!session) {
-      throw new BadRequestException(sysMsg.SESSION_NOT_FOUND);
-    }
-
-    const updatedAcademicSession = await this.dataSource.transaction(
-      async (manager) => {
-        // Deactivate all currently active sessions
-        await this.sessionModelAction.update({
-          updatePayload: { status: SessionStatus.INACTIVE },
-          identifierOptions: { status: SessionStatus.ACTIVE },
-          transactionOptions: {
-            useTransaction: true,
-            transaction: manager,
-          },
-        });
-
-        const updateResult = await this.sessionModelAction.update({
-          identifierOptions: { id: sessionId },
-          updatePayload: { status: SessionStatus.ACTIVE },
-          transactionOptions: {
-            useTransaction: true,
-            transaction: manager,
-          },
-        });
-        if (!updateResult) {
-          throw new BadRequestException(
-            `Failed to activate session ${sessionId}. Session may have been deleted.`,
-          );
-        }
-
-        // Fetch the updated session within the transaction
-        const updated = await manager.findOne(AcademicSession, {
-          where: { id: sessionId },
-        });
-
-        return updated;
-      },
-    );
-    return {
-      status_code: HttpStatus.OK,
-      message: sysMsg.ACADEMY_SESSION_ACTIVATED,
-      data: updatedAcademicSession,
     };
   }
 
@@ -269,7 +215,7 @@ export class AcademicSessionService {
       throw new BadRequestException(sysMsg.SESSION_NOT_FOUND);
     }
 
-    // LOCK CHECK: Prevent modification of inactive sessions
+    // LOCK CHECK: Prevent modification of archived sessions
     this.validateSessionIsModifiable(session);
 
     const updatePayload: Partial<AcademicSession> = {};
@@ -308,14 +254,34 @@ export class AcademicSessionService {
       throw new BadRequestException(sysMsg.SESSION_NOT_FOUND);
     }
 
-    // LOCK CHECK: Prevent deletion of inactive sessions (locked for historical data)
-    if (session.status !== SessionStatus.ACTIVE) {
-      throw new ForbiddenException(sysMsg.INACTIVE_SESSION_LOCKED);
+    // LOCK CHECK: Prevent deletion of archived sessions (preserved for historical records)
+    if (session.status === SessionStatus.ARCHIVED) {
+      throw new ForbiddenException(sysMsg.ARCHIVED_SESSION_NO_DELETE);
     }
 
-    await this.sessionModelAction.delete({
-      identifierOptions: { id },
-      transactionOptions: { useTransaction: false },
+    // Soft delete: Archives the session and its terms instead of permanently deleting
+    await this.dataSource.transaction(async (manager) => {
+      // Archive terms first
+      await this.termService.archiveTermsBySessionId(session.id, manager);
+
+      // Archive the session
+      await this.sessionModelAction.update({
+        identifierOptions: { id },
+        updatePayload: { status: SessionStatus.ARCHIVED },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      // Soft delete the session (sets deletedAt timestamp)
+      await this.sessionModelAction.delete({
+        identifierOptions: { id },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
     });
 
     return {

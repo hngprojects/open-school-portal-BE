@@ -9,7 +9,7 @@ import * as sysMsg from '../../constants/system.messages';
 
 import { CreateTermDto } from './dto/create-term.dto';
 import { UpdateTermDto } from './dto/update-term.dto';
-import { Term, TermName } from './entities/term.entity';
+import { Term, TermName, TermStatus } from './entities/term.entity';
 import { TermModelAction } from './model-actions';
 
 @Injectable()
@@ -33,6 +33,7 @@ export class TermService {
           startDate: new Date(dto.startDate),
           endDate: new Date(dto.endDate),
           isCurrent: false,
+          status: TermStatus.ACTIVE,
         },
         transactionOptions: {
           useTransaction: !!manager,
@@ -73,6 +74,11 @@ export class TermService {
 
     if (!termEntity) {
       throw new NotFoundException(sysMsg.TERM_NOT_FOUND);
+    }
+
+    // Prevent modification of archived terms
+    if (termEntity.status === TermStatus.ARCHIVED) {
+      throw new BadRequestException(sysMsg.ARCHIVED_TERM_LOCKED);
     }
 
     // Validation for updating both dates
@@ -124,14 +130,14 @@ export class TermService {
     return updatedTerm;
   }
 
-  // Internal method: Used only by academic-session service or cascade delete
-  // Terms should not be individually deletable as sessions must have exactly 3 terms
-  async deleteTermsBySessionId(
+  // Internal method: Used by academic-session service to archive terms when session is archived
+  async archiveTermsBySessionId(
     sessionId: string,
     manager?: EntityManager,
   ): Promise<void> {
-    await this.termModelAction.delete({
+    await this.termModelAction.update({
       identifierOptions: { sessionId },
+      updatePayload: { status: TermStatus.ARCHIVED },
       transactionOptions: {
         useTransaction: !!manager,
         transaction: manager,
