@@ -1,5 +1,5 @@
 import { IsBoolean, IsNotEmpty, IsString } from 'class-validator';
-import { Column } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
 
@@ -9,6 +9,7 @@ export enum TermName {
   THIRD = 'THIRD',
 }
 
+@Entity('terms')
 export class Term extends BaseEntity {
   @Column()
   @IsString()
