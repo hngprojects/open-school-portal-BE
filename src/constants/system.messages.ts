@@ -196,14 +196,14 @@ export const ROOM_ASSIGNED_TO_STREAM = 'Room successfully assigned to stream.';
 export const ROOM_CAPACITY_EXCEEDED = 'Stream size exceeds room capacity.';
 export const ROOM_STATUS_UPDATED = 'Room status updated successfully.';
 
-//department
-export const DEPARTMENT_NOT_FOUND = 'Department not found';
-export const DEPARTMENT_CREATED = 'Department created successfully';
-export const DEPARTMENT_ALREADY_EXISTS = 'Department already exists';
-export const DEPARTMENT_UPDATED = 'Department updated successfully';
-export const DEPARTMENT_DELETED = 'Department deleted successfully';
-export const DEPARTMENT_HAS_ASSOCIATED_SUBJECTS =
-  'Cannot delete department with associated subjects';
+// Subject messages
+export const SUBJECT_CREATED = 'Subject created successfully';
+export const SUBJECT_ALREADY_EXISTS = 'Subject already exists';
+export const SUBJECTS_RETRIEVED = 'Subjects retrieved successfully';
+export const SUBJECT_RETRIEVED = 'Subject retrieved successfully';
+export const SUBJECT_NOT_FOUND = 'Subject not found';
+export const SUBJECT_UPDATED = 'Subject updated successfully';
+export const SUBJECT_DELETED = 'Subject deleted successfully';
 
 // School Installation messages
 export const INSTALLATION_COMPLETED =
@@ -223,8 +223,9 @@ export const CLASS_ALREADY_EXIST =
   'A class with the same name and arm already exists in this session.';
 export const CLASS_NAME_EMPTY = 'class name cannot be empty';
 export const CLASS_UPDATED = 'class updated successfully';
-export const CLASS_FETCHED = 'classes fetched successfully';
+export const CLASS_FETCHED = 'class fetched successfully';
 export const NO_CLASS_FOUND = 'no classes found.';
+export const TOTAL_CLASSES_FETCHED = 'total classes fetched successfully';
 
 // Parent messages
 export const PARENT_CREATED = 'Parent created successfully';
@@ -254,7 +255,34 @@ export const STUDENT_FETCHED = 'Student fetched successfully';
 export const STUDENTS_FETCHED = 'Students fetched successfully';
 export const STUDENT_NOT_FOUND = 'Student not found';
 export const STUDENT_UPDATED = 'Student updated successfully';
+
+//bulk upload message
+export const BULK_UPLOAD_NO_NEW_EMAILS =
+  'The Users with this email has receievd invite before.';
+export const BULK_UPLOAD_NOT_ALLOWED =
+  'You are not permitted to perform a bulk upload.';
+export const NO_BULK_UPLOAD_DATA = 'No data was provided for bulk upload.';
+export const INVALID_BULK_UPLOAD_FILE =
+  'The uploaded file is invalid or improperly formatted.';
+export const BULK_UPLOAD_SUCCESS = 'Bulk upload completed successfully.';
 export const STUDENT_DELETED = 'Student deleted successfully';
 
 // Dashboard messages
 export const DASHBOARD_RESOLVED = 'Dashboard resolved successfully';
+
+// Timetable messages
+export const TIMETABLE_CREATED = 'Timetable created successfully';
+export const TIMETABLE_UPDATED = 'Timetable updated successfully';
+export const TIMETABLE_DELETED = 'Timetable deleted successfully';
+export const TIMETABLE_NOT_FOUND = 'Timetable not found';
+export const TIMETABLE_FETCHED = 'Timetable fetched successfully';
+export const TIMETABLES_FETCHED = 'Timetables fetched successfully';
+export const INVALID_TIME_RANGE = 'Start time must be before end time';
+export const TIMETABLE_OVERLAP_STREAM =
+  'Timetable period overlaps with another period for the same stream on the same day';
+export const TIMETABLE_TEACHER_DOUBLE_BOOKED =
+  'Teacher is already scheduled for another class at this time';
+export const TEACHER_NOT_FOUND = 'Teacher not found';
+export const INVALID_DATE_RANGE_TIMETABLE =
+  'End date must be after effective date';
+export const TIMETABLE_ARCHIVED = 'Timetable archived successfully';
