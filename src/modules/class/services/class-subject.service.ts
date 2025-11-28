@@ -30,24 +30,25 @@ export class ClassSubjectService {
       filterRecordOptions: {
         class: { id: classId },
       },
+      relations: {
+        subject: true,
+        teacher: true,
+      },
     });
   }
 
   async create(classId: string, subjectIds: string[]) {
     const {
       class: eClass,
-      validSubjects,
       invalidSubjects,
       existingSubjects,
       newSubjects,
     } = await this.validateInputAndReturnData(classId, subjectIds);
 
-    console.log(newSubjects);
-
     if (newSubjects.length === 0)
       return new CreateClassSubjectsResponseDto(
         sysMsg.CLASS_SUBJECTS_CREATED(0),
-        validSubjects,
+        newSubjects,
         existingSubjects,
         invalidSubjects,
       );
@@ -97,7 +98,7 @@ export class ClassSubjectService {
     const subjectsInClass = await this.classSubjectAction.list({
       filterRecordOptions: {
         class: { id: classId },
-        subject: { id: In(subjectIds) },
+        subject: { id: In(validSubjects) },
       },
       relations: {
         subject: true,
@@ -115,7 +116,6 @@ export class ClassSubjectService {
 
     return {
       class: eClass,
-      validSubjects,
       invalidSubjects,
       existingSubjects,
       newSubjects,
