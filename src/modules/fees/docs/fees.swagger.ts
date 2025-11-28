@@ -7,7 +7,7 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 
-import { CreateFeeResponseDto } from '../dto/fees-response';
+import { CreateFeeResponseDto } from '../dto/fees-response.dto';
 import { CreateFeesDto } from '../dto/fees.dto';
 
 export function swaggerCreateFee() {

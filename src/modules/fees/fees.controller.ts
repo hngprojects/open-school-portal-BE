@@ -20,9 +20,10 @@ export class FeesController {
   @swaggerCreateFee()
   async createFee(
     @Body() createFeesDto: CreateFeesDto,
-    @Request() req: { user: { id: string } },
+    @Request() req: { user: { userId: string } },
   ) {
-    const fee = await this.feesService.create(createFeesDto, req.user.id);
+    console.log('User object from request:', req.user);
+    const fee = await this.feesService.create(createFeesDto, req.user.userId);
     return {
       message: sysMsg.FEE_CREATED_SUCCESSFULLY,
       data: fee,
