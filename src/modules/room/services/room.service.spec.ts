@@ -1,10 +1,11 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { DataSource } from 'typeorm';
+import { DataSource, IsNull, Not } from 'typeorm';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { Stream } from '../../stream/entities/stream.entity';
 import { CreateRoomDTO } from '../dto/create-room-dto';
+import { FilterRoomDTO } from '../dto/filter-room-dto';
 import { UpdateRoomDTO } from '../dto/update-room-dto';
 import { Room } from '../entities/room.entity';
 import { RoomModelAction } from '../model-actions/room-model-actions';
@@ -217,19 +218,112 @@ describe('RoomService', () => {
   });
 
   describe('findAll', () => {
-    it('returns a list of rooms', async () => {
+    it('returns a list of rooms with defaults (no filters)', async () => {
       const rooms: Room[] = [{ id: 'r1', name: 'Room 1' } as Room];
-      modelAction.list.mockResolvedValue({ payload: rooms });
 
-      const result = await service.findAll();
+      const filters: FilterRoomDTO = {
+        page: 1,
+        limit: 20,
+        sortOrder: 'ASC',
+      };
+
+      const mockMeta = {
+        page: 1,
+        limit: 20,
+        total: 1,
+        totalPages: 1,
+      };
+
+      modelAction.list.mockResolvedValue({
+        payload: rooms,
+        paginationMeta: mockMeta,
+      });
+
+      const result = await service.findAll(filters);
 
       expect(modelAction.list).toHaveBeenCalledWith({
         relations: { current_class: true },
+        filterRecordOptions: {},
+        paginationPayload: {
+          page: 1,
+          limit: 20,
+        },
+        order: { name: 'ASC' },
       });
+
       expect(result).toEqual({
         message: sysMsg.ROOM_LIST_RETRIEVED_SUCCESSFULLY,
         rooms,
+        meta: {
+          ...filters,
+          ...mockMeta,
+        },
       });
+    });
+
+    it('applies filters (type, isOccupied=true) and custom sort correctly', async () => {
+      const rooms: Room[] = [{ id: 'r1', name: 'Lab 1' } as Room];
+      const filters: FilterRoomDTO = {
+        type: 'Laboratory',
+        isOccupied: true,
+        sortBy: 'capacity',
+        sortOrder: 'DESC',
+        page: 2,
+        limit: 10,
+      };
+
+      const mockMeta = { page: 2, limit: 10 };
+
+      modelAction.list.mockResolvedValue({
+        payload: rooms,
+        paginationMeta: mockMeta,
+      });
+
+      const result = await service.findAll(filters);
+
+      expect(modelAction.list).toHaveBeenCalledWith({
+        relations: { current_class: true },
+        filterRecordOptions: {
+          type: 'Laboratory',
+          current_class: Not(IsNull()),
+        },
+        paginationPayload: {
+          page: 2,
+          limit: 10,
+        },
+        order: { capacity: 'DESC' },
+      });
+
+      expect(result.meta).toEqual(
+        expect.objectContaining({
+          type: 'Laboratory',
+          page: 2,
+          limit: 10,
+        }),
+      );
+    });
+
+    it('filters for empty rooms (isOccupied=false) correctly', async () => {
+      const filters: FilterRoomDTO = {
+        isOccupied: false,
+        page: 1,
+        limit: 20,
+      };
+
+      modelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: {},
+      });
+
+      await service.findAll(filters);
+
+      expect(modelAction.list).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filterRecordOptions: expect.objectContaining({
+            current_class: IsNull(),
+          }),
+        }),
+      );
     });
   });
 
@@ -253,6 +347,57 @@ describe('RoomService', () => {
     it('throws NotFoundException if room does not exist', async () => {
       modelAction.get.mockResolvedValue(null);
       await expect(service.findOne('r1')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('remove', () => {
+    it('deletes a room successfully when it is empty', async () => {
+      const emptyRoom = { id: 'r1', current_class: null } as Room;
+
+      modelAction.get.mockResolvedValue(emptyRoom);
+      modelAction.delete.mockResolvedValue({ raw: [], affected: 1 });
+
+      const result = await service.remove('r1');
+
+      expect(dataSource.transaction).toHaveBeenCalled();
+
+      expect(modelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: 'r1' },
+        relations: { current_class: true },
+      });
+
+      expect(modelAction.delete).toHaveBeenCalledWith({
+        identifierOptions: { id: 'r1' },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: 'MOCK_MANAGER',
+        },
+      });
+
+      expect(result).toEqual({
+        message: sysMsg.ROOM_DELETED_SUCCESSFULLY,
+      });
+    });
+
+    it('throws NotFoundException if room does not exist', async () => {
+      modelAction.get.mockResolvedValue(null);
+
+      await expect(service.remove('r1')).rejects.toThrow(NotFoundException);
+
+      expect(modelAction.delete).not.toHaveBeenCalled();
+    });
+
+    it('throws ConflictException if room is currently occupied by a class', async () => {
+      const occupiedRoom = {
+        id: 'r1',
+        current_class: { id: 'c1', title: 'Math' },
+      } as unknown as Room;
+
+      modelAction.get.mockResolvedValue(occupiedRoom);
+
+      await expect(service.remove('r1')).rejects.toThrow(ConflictException);
+
+      expect(modelAction.delete).not.toHaveBeenCalled();
     });
   });
 });

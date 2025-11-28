@@ -4,6 +4,7 @@ import { DataSource, In } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../constants/system.messages';
+import { Term } from '../academic-term/entities/term.entity';
 import { Class } from '../class/entities/class.entity';
 
 import { CreateFeesDto } from './dto/fees.dto';
@@ -24,6 +25,15 @@ export class FeesService {
 
   async create(createFeesDto: CreateFeesDto, createdBy: string): Promise<Fees> {
     return this.dataSource.transaction(async (manager) => {
+      // Validate term exists
+      const term = await manager.findOne(Term, {
+        where: { id: createFeesDto.term_id },
+      });
+
+      if (!term) {
+        throw new BadRequestException('Invalid term ID');
+      }
+
       // Validate that classes exist
       const classes = await manager.find(Class, {
         where: { id: In(createFeesDto.class_ids) },
@@ -38,7 +48,7 @@ export class FeesService {
         component_name: createFeesDto.component_name,
         description: createFeesDto.description,
         amount: createFeesDto.amount,
-        term: createFeesDto.term,
+        term_id: createFeesDto.term_id,
         created_by: createdBy,
         classes,
       });

@@ -5,11 +5,19 @@ import {
   IsEnum,
   IsNumber,
 } from 'class-validator';
-import { Column, Entity, JoinTable, ManyToMany } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+} from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
+import { Term } from '../../academic-term/entities/term.entity';
 import { Class } from '../../class/entities/class.entity';
-import { FeeStatus, Term } from '../enums/fees.enums';
+import { FeeStatus } from '../enums/fees.enums';
 
 @Entity('fees')
 export class Fees extends BaseEntity {
@@ -28,10 +36,12 @@ export class Fees extends BaseEntity {
   @IsNotEmpty()
   amount: number;
 
-  // TODO: Replace enums with Term table when get all terms endpoint is ready
-  @Column({ type: 'enum', enum: Term })
-  @IsEnum(Term)
+  @Column({ name: 'term_id', type: 'uuid' })
   @IsNotEmpty()
+  term_id: string;
+
+  @ManyToOne(() => Term)
+  @JoinColumn({ name: 'term_id' })
   term: Term;
 
   @ManyToMany(() => Class)

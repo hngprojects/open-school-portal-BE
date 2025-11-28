@@ -9,7 +9,7 @@ import {
   Min,
 } from 'class-validator';
 
-import { Term, FeeStatus } from '../enums/fees.enums';
+import { FeeStatus } from '../enums/fees.enums';
 
 export class CreateFeesDto {
   @IsString()
@@ -25,9 +25,9 @@ export class CreateFeesDto {
   @Min(0)
   amount: number;
 
-  @IsEnum(Term)
+  @IsString()
   @IsNotEmpty()
-  term: Term;
+  term_id: string;
 
   @IsArray()
   @IsString({ each: true })
@@ -50,9 +50,9 @@ export class QueryFeesDto {
   @IsOptional()
   class_id?: string;
 
-  @IsEnum(Term)
+  @IsString()
   @IsOptional()
-  term?: Term;
+  term_id?: string;
 
   @IsString()
   @IsOptional()

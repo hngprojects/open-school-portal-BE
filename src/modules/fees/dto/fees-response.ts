@@ -1,11 +1,17 @@
-import { Term, FeeStatus } from '../enums/fees.enums';
+import { TermName } from '../../academic-term/entities/term.entity';
+import { FeeStatus } from '../enums/fees.enums';
 
 export class FeesResponseDto {
   id: string;
   component_name: string;
   description: string;
   amount: number;
-  term: Term;
+  term: {
+    id: string;
+    name: TermName;
+    startDate: Date;
+    endDate: Date;
+  };
   classes: Array<{
     id: string;
     name: string;
