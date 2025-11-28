@@ -6,3 +6,5 @@ export { GetTeachersQueryDto } from './get-teachers-query.dto';
 export { ListGroupedClassesDto } from './create-class.dto';
 export { GroupedClassDto } from './create-class.dto';
 export { GetTotalClassesQueryDto } from './create-class.dto';
+export * from './assign-teacher-to-class-subject.dto';
+export * from './class-subjects.dto';

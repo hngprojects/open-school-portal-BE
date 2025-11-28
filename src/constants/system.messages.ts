@@ -228,6 +228,13 @@ export const CLASS_FETCHED = 'class fetched successfully';
 export const TOTAL_CLASSES_FETCHED = 'total classes fetched successfully';
 export const CLASSES_NOT_IN_ACTIVE_SESSION =
   'One or more classes are not in the active academic session';
+export const CLASS_SUBJECT_NOT_FOUND = 'Subject not found in class';
+export const CLASS_SUBJECT_ALREADY_HAS_A_TEACHER =
+  'Teacher already assigned to this subject in this class';
+export const TEACHER_NOT_ASSIGNED_TO_SUBJECT =
+  'No teacher is assigned to this subject';
+export const TEACHER_UNASSIGNED_FROM_SUBJECT =
+  'Teacher successfully unassigned from this subject';
 
 // Parent messages
 export const PARENT_CREATED = 'Parent created successfully';
