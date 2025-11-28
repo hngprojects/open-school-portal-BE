@@ -1,0 +1,21 @@
+export enum FeeType {
+  SCHOOL_FEES = 'SCHOOL_FEES',
+  HOSTEL_FEE = 'HOSTEL_FEE',
+  TRANSPORT_FEE = 'TRANSPORT_FEE',
+  EXAMINATION_FEE = 'EXAMINATION_FEE',
+  LIBRARY_FEE = 'LIBRARY_FEE',
+  SPORTS_FEE = 'SPORTS_FEE',
+  OTHER = 'OTHER',
+}
+
+export enum FeeInterval {
+  TERM = 'TERM',
+  SESSION = 'SESSION',
+  ONE_TIME = 'ONE_TIME',
+  MONTHLY = 'MONTHLY',
+}
+
+export enum FeeStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+}
