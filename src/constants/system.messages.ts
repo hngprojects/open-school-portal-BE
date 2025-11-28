@@ -292,7 +292,7 @@ export const TERM_END_BEFORE_START =
   'End date must be after the current start date';
 export const TERM_SEQUENTIAL_INVALID =
   'start date must be after the previous term end date';
-
+export const TERM_ID_INVALID = 'invalid term id';
 // Dashboard messages
 export const DASHBOARD_RESOLVED = 'Dashboard resolved successfully';
 

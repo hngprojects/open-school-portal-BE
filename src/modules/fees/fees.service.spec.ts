@@ -5,8 +5,14 @@ import { DataSource, EntityManager } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../constants/system.messages';
-import { Term, TermName } from '../academic-term/entities/term.entity';
+import {
+  Term,
+  TermName,
+  TermStatus,
+} from '../academic-term/entities/term.entity';
+import { TermModelAction } from '../academic-term/model-actions';
 import { Class } from '../class/entities/class.entity';
+import { ClassModelAction } from '../class/model-actions/class.actions';
 
 import { CreateFeesDto } from './dto/fees.dto';
 import { Fees } from './entities/fees.entity';
@@ -16,6 +22,9 @@ import { FeesModelAction } from './model-action/fees.model-action';
 describe('FeesService', () => {
   let service: FeesService;
   let dataSource: jest.Mocked<DataSource>;
+  let feesModelAction: jest.Mocked<FeesModelAction>;
+  let termModelAction: jest.Mocked<TermModelAction>;
+  let classModelAction: jest.Mocked<ClassModelAction>;
   let logger: Logger;
 
   const mockLogger = {
@@ -33,8 +42,16 @@ describe('FeesService', () => {
     save: jest.fn(),
   };
 
-  const mockFeeModelAction = {
+  const mockFeesModelAction = {
     create: jest.fn(),
+  };
+
+  const mockTermModelAction = {
+    get: jest.fn(),
+  };
+
+  const mockClassModelAction = {
+    find: jest.fn(),
   };
 
   const mockDataSource = {
@@ -47,7 +64,15 @@ describe('FeesService', () => {
         FeesService,
         {
           provide: FeesModelAction,
-          useValue: mockFeeModelAction,
+          useValue: mockFeesModelAction,
+        },
+        {
+          provide: TermModelAction,
+          useValue: mockTermModelAction,
+        },
+        {
+          provide: ClassModelAction,
+          useValue: mockClassModelAction,
         },
         {
           provide: DataSource,
@@ -62,6 +87,9 @@ describe('FeesService', () => {
 
     service = module.get<FeesService>(FeesService);
     dataSource = module.get(DataSource);
+    feesModelAction = module.get(FeesModelAction);
+    termModelAction = module.get(TermModelAction);
+    classModelAction = module.get(ClassModelAction);
     logger = module.get(WINSTON_MODULE_PROVIDER);
   });
 
@@ -80,26 +108,45 @@ describe('FeesService', () => {
 
     const createdBy = 'admin-user-123';
 
-    const mockTerm: Partial<Term> = {
+    const mockTerm: Term = {
       id: 'term-123',
       name: TermName.FIRST,
-    };
+      sessionId: 'session-123',
+      startDate: new Date('2024-01-01'),
+      endDate: new Date('2024-04-30'),
+      status: TermStatus.ACTIVE,
+      isCurrent: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Term;
 
-    const mockClasses: Partial<Class>[] = [
-      { id: 'class-1', name: 'Grade 1' },
-      { id: 'class-2', name: 'Grade 2' },
+    const mockClasses: Class[] = [
+      {
+        id: 'class-1',
+        name: 'Grade 1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as Class,
+      {
+        id: 'class-2',
+        name: 'Grade 2',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as Class,
     ];
 
-    const mockSavedFee: Partial<Fees> = {
+    const mockSavedFee: Fees = {
       id: 'fee-123',
       component_name: 'Tuition Fee',
       description: 'Quarterly tuition fee',
       amount: 5000,
       term_id: 'term-123',
-      term: mockTerm as Term,
+      term: mockTerm,
       created_by: createdBy,
-      classes: mockClasses as Class[],
-    };
+      classes: mockClasses,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Fees;
 
     beforeEach(() => {
       mockDataSource.transaction.mockImplementation(async (callback) => {
@@ -108,29 +155,40 @@ describe('FeesService', () => {
     });
 
     it('should create a fee successfully', async () => {
-      (mockEntityManager.findOne as jest.Mock).mockResolvedValue(mockTerm);
-      (mockEntityManager.find as jest.Mock).mockResolvedValue(mockClasses);
-      (mockEntityManager.create as jest.Mock).mockReturnValue(mockSavedFee);
-      (mockEntityManager.save as jest.Mock).mockResolvedValue(mockSavedFee);
+      mockTermModelAction.get.mockResolvedValue(mockTerm);
+      mockClassModelAction.find.mockResolvedValue({
+        payload: mockClasses,
+        total: mockClasses.length,
+      });
+      mockFeesModelAction.create.mockResolvedValue(mockSavedFee);
 
       const result = await service.create(createFeesDto, createdBy);
 
       expect(dataSource.transaction).toHaveBeenCalledWith(expect.any(Function));
-      expect(mockEntityManager.findOne).toHaveBeenCalledWith(Term, {
-        where: { id: createFeesDto.term_id },
+      expect(termModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: createFeesDto.term_id },
       });
-      expect(mockEntityManager.find).toHaveBeenCalledWith(Class, {
-        where: { id: expect.any(Object) },
+      expect(classModelAction.find).toHaveBeenCalledWith({
+        findOptions: { id: expect.any(Object) },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: mockEntityManager,
+        },
       });
-      expect(mockEntityManager.create).toHaveBeenCalledWith(Fees, {
-        component_name: createFeesDto.component_name,
-        description: createFeesDto.description,
-        amount: createFeesDto.amount,
-        term_id: createFeesDto.term_id,
-        created_by: createdBy,
-        classes: mockClasses,
+      expect(feesModelAction.create).toHaveBeenCalledWith({
+        createPayload: {
+          component_name: createFeesDto.component_name,
+          description: createFeesDto.description,
+          amount: createFeesDto.amount,
+          term_id: createFeesDto.term_id,
+          created_by: createdBy,
+          classes: mockClasses,
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: mockEntityManager,
+        },
       });
-      expect(mockEntityManager.save).toHaveBeenCalledWith(Fees, mockSavedFee);
       expect(logger.info).toHaveBeenCalledWith(
         'Fee component created successfully',
         {
@@ -146,55 +204,69 @@ describe('FeesService', () => {
     });
 
     it('should throw BadRequestException when term does not exist', async () => {
-      (mockEntityManager.findOne as jest.Mock).mockResolvedValue(null);
+      mockTermModelAction.get.mockResolvedValue(null);
 
       await expect(service.create(createFeesDto, createdBy)).rejects.toThrow(
-        new BadRequestException('Invalid term ID'),
+        new BadRequestException(sysMsg.TERM_ID_INVALID),
       );
 
-      expect(mockEntityManager.findOne).toHaveBeenCalledWith(Term, {
-        where: { id: createFeesDto.term_id },
+      expect(termModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: createFeesDto.term_id },
       });
-      expect(mockEntityManager.find).not.toHaveBeenCalled();
-      expect(mockEntityManager.create).not.toHaveBeenCalled();
+      expect(classModelAction.find).not.toHaveBeenCalled();
+      expect(feesModelAction.create).not.toHaveBeenCalled();
       expect(logger.info).not.toHaveBeenCalled();
     });
 
     it('should throw BadRequestException when class IDs are invalid', async () => {
-      (mockEntityManager.findOne as jest.Mock).mockResolvedValue(mockTerm);
-      (mockEntityManager.find as jest.Mock).mockResolvedValue([mockClasses[0]]);
+      mockTermModelAction.get.mockResolvedValue(mockTerm);
+      mockClassModelAction.find.mockResolvedValue({
+        payload: [mockClasses[0]],
+        total: 1,
+      });
 
       await expect(service.create(createFeesDto, createdBy)).rejects.toThrow(
         new BadRequestException(sysMsg.INVALID_CLASS_IDS),
       );
 
-      expect(mockEntityManager.findOne).toHaveBeenCalledWith(Term, {
-        where: { id: createFeesDto.term_id },
+      expect(termModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: createFeesDto.term_id },
       });
-      expect(mockEntityManager.find).toHaveBeenCalledWith(Class, {
-        where: { id: expect.any(Object) },
+      expect(classModelAction.find).toHaveBeenCalledWith({
+        findOptions: { id: expect.any(Object) },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: mockEntityManager,
+        },
       });
-      expect(mockEntityManager.create).not.toHaveBeenCalled();
+      expect(feesModelAction.create).not.toHaveBeenCalled();
       expect(logger.info).not.toHaveBeenCalled();
     });
 
     it('should throw BadRequestException when no classes are found', async () => {
-      (mockEntityManager.findOne as jest.Mock).mockResolvedValue(mockTerm);
-      (mockEntityManager.find as jest.Mock).mockResolvedValue([]);
+      mockTermModelAction.get.mockResolvedValue(mockTerm);
+      mockClassModelAction.find.mockResolvedValue({
+        payload: [],
+        total: 0,
+      });
 
       await expect(service.create(createFeesDto, createdBy)).rejects.toThrow(
         new BadRequestException(sysMsg.INVALID_CLASS_IDS),
       );
 
-      expect(mockEntityManager.find).toHaveBeenCalledWith(Class, {
-        where: { id: expect.any(Object) },
+      expect(classModelAction.find).toHaveBeenCalledWith({
+        findOptions: { id: expect.any(Object) },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: mockEntityManager,
+        },
       });
-      expect(mockEntityManager.create).not.toHaveBeenCalled();
+      expect(feesModelAction.create).not.toHaveBeenCalled();
     });
 
     it('should handle database errors during transaction', async () => {
       const dbError = new Error('Database connection failed');
-      (mockEntityManager.findOne as jest.Mock).mockRejectedValue(dbError);
+      mockTermModelAction.get.mockRejectedValue(dbError);
 
       await expect(service.create(createFeesDto, createdBy)).rejects.toThrow(
         dbError,
@@ -214,14 +286,12 @@ describe('FeesService', () => {
         description: '',
       };
 
-      (mockEntityManager.findOne as jest.Mock).mockResolvedValue(mockTerm);
-      (mockEntityManager.find as jest.Mock).mockResolvedValue(mockClasses);
-      (mockEntityManager.create as jest.Mock).mockReturnValue(
-        savedFeeWithEmptyDesc,
-      );
-      (mockEntityManager.save as jest.Mock).mockResolvedValue(
-        savedFeeWithEmptyDesc,
-      );
+      mockTermModelAction.get.mockResolvedValue(mockTerm);
+      mockClassModelAction.find.mockResolvedValue({
+        payload: mockClasses,
+        total: mockClasses.length,
+      });
+      mockFeesModelAction.create.mockResolvedValue(savedFeeWithEmptyDesc);
 
       const result = await service.create(dtoWithoutDescription, createdBy);
 
@@ -235,10 +305,14 @@ describe('FeesService', () => {
         class_ids: ['class-1'],
       };
 
-      (mockEntityManager.findOne as jest.Mock).mockResolvedValue(mockTerm);
-      (mockEntityManager.find as jest.Mock).mockResolvedValue([mockClasses[0]]);
-      (mockEntityManager.create as jest.Mock).mockReturnValue(mockSavedFee);
-      (mockEntityManager.save as jest.Mock).mockResolvedValue(mockSavedFee);
+      const singleClass = [mockClasses[0]];
+
+      mockTermModelAction.get.mockResolvedValue(mockTerm);
+      mockClassModelAction.find.mockResolvedValue({
+        payload: singleClass,
+        total: 1,
+      });
+      mockFeesModelAction.create.mockResolvedValue(mockSavedFee);
 
       const result = await service.create(singleClassDto, createdBy);
 
