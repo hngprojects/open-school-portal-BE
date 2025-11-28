@@ -1,12 +1,14 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager, In } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
+import { Class } from '../../class/entities/class.entity';
 import { CreateSubjectDto } from '../dto/create-subject.dto';
 import { UpdateSubjectDto } from '../dto/update-subject.dto';
+import { Subject } from '../entities/subject.entity';
 import { SubjectModelAction } from '../model-actions/subject.actions';
 
 import { SubjectService } from './subject.service';
@@ -423,6 +425,160 @@ describe('SubjectService', () => {
       await expect(deletePromise).rejects.toThrow(sysMsg.SUBJECT_NOT_FOUND);
 
       expect(subjectModelActionMock.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('assignClassesToSubject', () => {
+    it('should assign classes to a subject and return correct response', async () => {
+      const subjectId = 'subject-1';
+      const dto = { classIds: ['class-1', 'class-2'] };
+
+      const subject = { id: subjectId, name: 'Biology', arm: 'A' };
+      const classes = [
+        {
+          id: 'class-1',
+          name: 'JSS1',
+          arm: 'A',
+          academicSession: { id: 'session-1', name: '2024/2025' },
+        },
+        {
+          id: 'class-2',
+          name: 'JSS2',
+          arm: 'B',
+          academicSession: { id: 'session-1', name: '2024/2025' },
+        },
+      ];
+
+      // Mock manager and transaction
+      const manager = {
+        findOne: jest
+          .fn()
+          .mockResolvedValueOnce(subject) // subject exists
+          .mockResolvedValueOnce(null) // classSubject does not exist for class-1
+          .mockResolvedValueOnce(null), // classSubject does not exist for class-2
+        find: jest.fn().mockResolvedValue(classes),
+        create: jest.fn(),
+        save: jest.fn(),
+      } as unknown as EntityManager;
+
+      service['dataSource'].transaction = jest.fn(
+        (
+          ...args:
+            | [(manager: EntityManager) => Promise<unknown>]
+            | [unknown, (manager: EntityManager) => Promise<unknown>]
+        ) => {
+          let callback:
+            | ((manager: EntityManager) => Promise<unknown>)
+            | undefined;
+          if (args.length === 1 && typeof args[0] === 'function') {
+            callback = args[0] as (manager: EntityManager) => Promise<unknown>;
+          } else if (args.length === 2 && typeof args[1] === 'function') {
+            callback = args[1] as (manager: EntityManager) => Promise<unknown>;
+          }
+          if (!callback) throw new Error('Unexpected transaction signature');
+          return callback(manager);
+        },
+      );
+
+      const result = await service.assignClassesToSubject(subjectId, dto);
+
+      expect(result).toEqual({
+        message: expect.any(String),
+        id: subjectId,
+        subjectId: subjectId,
+        name: 'Biology',
+        classes: [
+          {
+            id: 'class-1',
+            name: 'JSS1',
+            arm: 'A',
+            academicSession: { id: 'session-1', name: '2024/2025' },
+          },
+          {
+            id: 'class-2',
+            name: 'JSS2',
+            arm: 'B',
+            academicSession: { id: 'session-1', name: '2024/2025' },
+          },
+        ],
+      });
+      expect(manager.findOne).toHaveBeenCalledWith(Subject, {
+        where: { id: subjectId },
+      });
+      expect(manager.find).toHaveBeenCalledWith(Class, {
+        where: { id: In(dto.classIds) },
+        relations: ['academicSession'],
+      });
+      expect(manager.save).toHaveBeenCalledTimes(2);
+    });
+
+    it('should throw NotFoundException if subject does not exist', async () => {
+      const subjectId = 'subject-1';
+      const dto = { classIds: ['class-1'] };
+      const manager = {
+        findOne: jest.fn().mockResolvedValueOnce(null),
+      } as unknown as EntityManager;
+      service['dataSource'].transaction = jest.fn(
+        (
+          ...args:
+            | [(manager: EntityManager) => Promise<unknown>]
+            | [unknown, (manager: EntityManager) => Promise<unknown>]
+        ) => {
+          let callback:
+            | ((manager: EntityManager) => Promise<unknown>)
+            | undefined;
+          if (args.length === 1 && typeof args[0] === 'function') {
+            callback = args[0] as (manager: EntityManager) => Promise<unknown>;
+          } else if (args.length === 2 && typeof args[1] === 'function') {
+            callback = args[1] as (manager: EntityManager) => Promise<unknown>;
+          }
+          if (!callback) throw new Error('Unexpected transaction signature');
+          return callback(manager);
+        },
+      );
+
+      await expect(
+        service.assignClassesToSubject(subjectId, dto),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('should throw NotFoundException if any class does not exist', async () => {
+      const subjectId = 'subject-1';
+      const dto = { classIds: ['class-1', 'class-2'] };
+      const subject = { id: subjectId, name: 'Biology' };
+      const manager = {
+        findOne: jest.fn().mockResolvedValueOnce(subject),
+        find: jest.fn().mockResolvedValue([
+          {
+            id: 'class-1',
+            name: 'JSS1',
+            arm: 'A',
+            academicSession: { id: 'session-1', name: '2024/2025' },
+          },
+        ]), // Only one class found
+      } as unknown as EntityManager;
+
+      service['dataSource'].transaction = jest.fn(
+        (
+          ...args:
+            | [(manager: EntityManager) => Promise<unknown>]
+            | [unknown, (manager: EntityManager) => Promise<unknown>]
+        ) => {
+          let callback:
+            | ((manager: EntityManager) => Promise<unknown>)
+            | undefined;
+          if (args.length === 1 && typeof args[0] === 'function') {
+            callback = args[0] as (manager: EntityManager) => Promise<unknown>;
+          } else if (args.length === 2 && typeof args[1] === 'function') {
+            callback = args[1] as (manager: EntityManager) => Promise<unknown>;
+          }
+          if (!callback) throw new Error('Unexpected transaction signature');
+          return callback(manager);
+        },
+      );
+      await expect(
+        service.assignClassesToSubject(subjectId, dto),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 });

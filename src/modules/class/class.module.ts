@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AcademicSessionModule } from '../academic-session/academic-session.module';
 
 import { ClassController } from './controllers/class.controller';
+import { ClassSubject } from './entities/class-subject.entity';
 import { ClassTeacher } from './entities/class-teacher.entity';
 import { Class } from './entities/class.entity';
 import { ClassTeacherModelAction } from './model-actions/class-teacher.action';
@@ -12,7 +13,7 @@ import { ClassService } from './services/class.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Class, ClassTeacher]),
+    TypeOrmModule.forFeature([Class, ClassTeacher, ClassSubject]),
     AcademicSessionModule,
   ],
   controllers: [ClassController],
