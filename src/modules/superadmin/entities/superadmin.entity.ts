@@ -4,6 +4,10 @@ import { Column, Entity, OneToMany } from 'typeorm';
 import { BaseEntity } from '../../../entities/base-entity';
 import { SuperadminSession } from '../session/entities/superadmin-session.entity';
 
+export enum Role {
+  SUPERADMIN = 'SUPERADMIN',
+}
+
 @Entity('superadmin')
 export class SuperAdmin extends BaseEntity {
   @Column({ type: 'varchar', length: 50 })
@@ -36,6 +40,9 @@ export class SuperAdmin extends BaseEntity {
 
   @Column({ nullable: true, type: 'date' })
   reset_token_expiration: Date;
+
+  @Column({ type: 'enum', enum: Role, default: Role.SUPERADMIN })
+  role: Role;
 
   @OneToMany(() => SuperadminSession, (session) => session.superadmin)
   sessions!: SuperadminSession[];

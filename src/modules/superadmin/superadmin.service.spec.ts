@@ -12,7 +12,7 @@ import * as sysMsg from '../../constants/system.messages';
 import { CreateSuperadminDto } from './dto/create-superadmin.dto';
 import { LoginSuperadminDto } from './dto/login-superadmin.dto';
 import { LogoutDto } from './dto/superadmin-logout.dto';
-import { SuperAdmin } from './entities/superadmin.entity';
+import { Role, SuperAdmin } from './entities/superadmin.entity';
 import { SuperadminModelAction } from './model-actions/superadmin-actions';
 import { SuperadminSessionService } from './session/superadmin-session.service';
 import { SuperadminService } from './superadmin.service';
@@ -104,7 +104,7 @@ describe('SuperadminService', () => {
     };
     const dto = dtoInput as unknown as CreateSuperadminDto;
 
-    it('should create a superadmin and return created data (with password provided)', async () => {
+    it('should create a superadmin and return created data', async () => {
       // model_action.get should indicate no existing record
       mock_model_action_impl.get.mockResolvedValue(null);
 
@@ -136,6 +136,7 @@ describe('SuperadminService', () => {
         reset_token: null,
         reset_token_expiration: null,
         sessions: [],
+        role: Role.SUPERADMIN,
       };
 
       mock_model_action_impl.create.mockResolvedValue(createdEntity);
@@ -143,7 +144,7 @@ describe('SuperadminService', () => {
       const result = await service.createSuperAdmin(dto);
 
       expect(model_action.get).toHaveBeenCalledWith({
-        identifierOptions: { email: dto.email },
+        identifierOptions: { role: Role.SUPERADMIN },
       });
 
       expect(model_action.create).toHaveBeenCalled();
@@ -155,6 +156,45 @@ describe('SuperadminService', () => {
       expect(result).toHaveProperty('status_code');
       expect(result).toHaveProperty('data');
       expect((result.data as Partial<SuperAdmin>).password).toBeUndefined();
+    });
+
+    it('should assign SUPERADMIN role when creating a superadmin', async () => {
+      mock_model_action_impl.get.mockResolvedValue(null);
+      const hashSpy = jest.spyOn(bcrypt, 'hash') as unknown as jest.SpyInstance<
+        Promise<string>,
+        [string | Buffer, string | number]
+      >;
+      hashSpy.mockResolvedValue('hashed_pw');
+      mock_data_source.transaction.mockImplementation(
+        async (cb: (manager: Record<string, unknown>) => Promise<unknown>) => {
+          const result = await cb({} as Record<string, unknown>);
+          return result;
+        },
+      );
+      const createdEntity: SuperAdmin = {
+        id: 'uuid-1',
+        email: dto.email,
+        first_name: dto.first_name,
+        last_name: dto.last_name,
+        password: 'hashed_pw',
+        school_name: 'The Bells University',
+        is_active: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        reset_token: null,
+        reset_token_expiration: null,
+        sessions: [],
+        role: Role.SUPERADMIN,
+      };
+      mock_model_action_impl.create.mockResolvedValue(createdEntity);
+      await service.createSuperAdmin(dto);
+      expect(model_action.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          createPayload: expect.objectContaining({
+            role: Role.SUPERADMIN,
+          }),
+        }),
+      );
     });
 
     it('should throw ConflictException when passwords are not provided', async () => {
@@ -169,12 +209,12 @@ describe('SuperadminService', () => {
       );
     });
 
-    it('should throw ConflictException when email already exists', async () => {
+    it('should throw UnauthorizedException when a superadmin already exists', async () => {
       const existing_super_admin: SuperAdmin = {
         id: 'existing-id',
         first_name: 'Existing',
         last_name: 'User',
-        email: 'existing@example.com',
+        email: 'super@admin.com',
         school_name: 'Existing School',
         password: 'pw',
         reset_token: null,
@@ -183,15 +223,17 @@ describe('SuperadminService', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         sessions: [],
+        role: Role.SUPERADMIN,
       };
+
       mock_model_action_impl.get.mockResolvedValue(existing_super_admin);
 
       await expect(service.createSuperAdmin(dto)).rejects.toThrow(
-        ConflictException,
+        UnauthorizedException,
       );
 
       expect(model_action.get).toHaveBeenCalledWith({
-        identifierOptions: { email: dto.email },
+        identifierOptions: { role: Role.SUPERADMIN },
       });
     });
   });
@@ -217,6 +259,7 @@ describe('SuperadminService', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         sessions: [],
+        role: Role.SUPERADMIN,
       };
 
       mock_model_action_impl.get.mockResolvedValue(superadminEntity);
@@ -226,7 +269,7 @@ describe('SuperadminService', () => {
         bcrypt,
         'compare',
       ) as unknown as jest.SpyInstance<Promise<boolean>, [string, string]>;
-      compareSpy.mockResolvedValue(true as never);
+      compareSpy.mockResolvedValue(true);
 
       mock_jwt_service.signAsync
         .mockResolvedValueOnce('access_token_xyz')
@@ -290,6 +333,7 @@ describe('SuperadminService', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         sessions: [],
+        role: Role.SUPERADMIN,
       };
 
       mock_model_action_impl.get.mockResolvedValue(inactiveSuperadmin);
@@ -313,6 +357,7 @@ describe('SuperadminService', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         sessions: [],
+        role: Role.SUPERADMIN,
       };
 
       mock_model_action_impl.get.mockResolvedValue(superadminEntity);
@@ -322,7 +367,7 @@ describe('SuperadminService', () => {
         bcrypt,
         'compare',
       ) as unknown as jest.SpyInstance<Promise<boolean>, [string, string]>;
-      compareSpy.mockResolvedValue(false as never);
+      compareSpy.mockResolvedValue(false);
 
       await expect(service.login(loginDto)).rejects.toThrow(
         UnauthorizedException,
@@ -348,11 +393,16 @@ describe('SuperadminService', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         sessions: [],
+        role: Role.SUPERADMIN,
       };
 
       mock_model_action_impl.get.mockResolvedValue(superadminEntity);
 
-      jest.spyOn(bcrypt, 'compare').mockResolvedValue(true as never);
+      const compareSpy = jest.spyOn(
+        bcrypt,
+        'compare',
+      ) as unknown as jest.SpyInstance<Promise<boolean>, [string, string]>;
+      compareSpy.mockResolvedValue(true);
 
       mock_jwt_service.signAsync
         .mockResolvedValueOnce('access_token_xyz')

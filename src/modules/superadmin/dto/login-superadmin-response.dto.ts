@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 import * as sysMsg from '../../../constants/system.messages';
+import { Role } from '../entities/superadmin.entity';
 
 export class SuperadminLoginResponseDto {
   @ApiProperty({
@@ -24,6 +25,7 @@ export class SuperadminLoginResponseDto {
       first_name: 'John',
       last_name: 'Doe',
       school_name: 'Example School',
+      role: Role.SUPERADMIN,
       access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
       refresh_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
       session_id: 'session-uuid-1234',

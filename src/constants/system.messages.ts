@@ -386,4 +386,6 @@ export const SUPERADMIN_EMAIL_EXISTS =
 export const SUPERADMIN_PASSWORD_MUST_MATCH =
   'password and confirmation password must match';
 export const SUPERADMIN_CONFLICT_GENERAL_MSG =
-  'Conflict - request cannot be processed. See examples for possible causes.';
+  'conflict - request cannot be processed. See examples for possible causes.';
+export const SUPERADMIN_ALREADY_EXISTS =
+  'a superadmin account already exists. Only one is allowed.';

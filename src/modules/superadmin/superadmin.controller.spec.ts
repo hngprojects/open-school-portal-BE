@@ -6,6 +6,7 @@ import * as sysMsg from '../../constants/system.messages';
 import { CreateSuperadminDto } from './dto/create-superadmin.dto';
 import { LoginSuperadminDto } from './dto/login-superadmin.dto';
 import { LogoutDto } from './dto/superadmin-logout.dto';
+import { Role } from './entities/superadmin.entity';
 import { SuperadminController } from './superadmin.controller';
 import { SuperadminService } from './superadmin.service';
 
@@ -44,11 +45,13 @@ describe('SuperadminController', () => {
   // tests for create endpoint
   describe('create', () => {
     const dto: CreateSuperadminDto = {
-      firstName: 'John',
-      lastName: 'Doe',
+      first_name: 'John',
+      last_name: 'Doe',
       email: 'john@example.com',
       password: 'pass1234',
       confirm_password: 'pass1234',
+      school_name: 'The Bells University',
+      role: Role.SUPERADMIN,
     } as unknown as CreateSuperadminDto;
 
     it('should call service.createSuperAdmin and return its result', async () => {
@@ -66,12 +69,27 @@ describe('SuperadminController', () => {
       expect(result).toEqual(serviceResult);
     });
 
-    it('should propagate errors from the service', async () => {
+    it('should assign SUPERADMIN role when creating a superadmin', async () => {
+      const serviceResult = {
+        message: sysMsg.SUPERADMIN_ACCOUNT_CREATED,
+        status_code: 201,
+        data: { id: 'uuid-1', email: dto.email, role: Role.SUPERADMIN },
+      };
+      mockService.createSuperAdmin.mockResolvedValue(serviceResult);
+      await controller.create(dto);
+      expect(service.createSuperAdmin).toHaveBeenCalledWith(
+        expect.objectContaining({ role: Role.SUPERADMIN }),
+      );
+    });
+
+    it('should propagate UnauthorizedException when a superadmin already exists', async () => {
       mockService.createSuperAdmin.mockRejectedValue(
-        new ConflictException('boom'),
+        new UnauthorizedException(sysMsg.SUPERADMIN_ALREADY_EXISTS),
       );
 
-      await expect(controller.create(dto)).rejects.toThrow(ConflictException);
+      await expect(controller.create(dto)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 
