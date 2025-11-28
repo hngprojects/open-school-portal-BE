@@ -47,4 +47,7 @@ export class Class extends BaseEntity {
 
   @OneToOne(() => Timetable, (timetable) => timetable.class)
   timetable?: Timetable;
+
+  @OneToMany(() => ClassSubject, (cs) => cs.class)
+  classSubjects: ClassSubject[];
 }
