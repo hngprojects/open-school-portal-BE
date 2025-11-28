@@ -213,6 +213,8 @@ export const SUBJECT_NOT_FOUND = 'Subject not found';
 export const SUBJECT_UPDATED = 'Subject updated successfully';
 export const SUBJECT_DELETED = 'Subject deleted successfully';
 export const SUBJECT_REQUIRED_FOR_LESSON = 'Subject is required for lessons';
+export const CLASSES_ASSIGNED_TO_SUBJECT =
+  'Classes successfully assigned to subject';
 
 // School Installation messages
 export const INSTALLATION_COMPLETED =
@@ -235,6 +237,8 @@ export const CLASS_UPDATED = 'class updated successfully';
 export const CLASS_FETCHED = 'class fetched successfully';
 export const TOTAL_CLASSES_FETCHED = 'total classes fetched successfully';
 export const INVALID_CLASS_IDS = 'One or more class IDs are invalid';
+export const CLASSES_NOT_IN_ACTIVE_SESSION =
+  'One or more classes are not in the active academic session';
 
 // Parent messages
 export const PARENT_CREATED = 'Parent created successfully';
