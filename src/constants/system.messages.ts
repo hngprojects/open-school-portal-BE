@@ -221,7 +221,6 @@ export const CLASS_ALREADY_EXIST =
 export const CLASS_NAME_EMPTY = 'class name cannot be empty';
 export const CLASS_UPDATED = 'class updated successfully';
 export const CLASS_FETCHED = 'class fetched successfully';
-export const NO_CLASS_FOUND = 'no classes found.';
 export const TOTAL_CLASSES_FETCHED = 'total classes fetched successfully';
 
 // Parent messages
@@ -266,6 +265,9 @@ export const STUDENT_DELETED = 'Student deleted successfully';
 
 // Dashboard messages
 export const DASHBOARD_RESOLVED = 'Dashboard resolved successfully';
+
+// Teacher messages
+export const INVALID_TEACHER_ID = 'Invalid teacher ID provided';
 
 // Timetable messages
 export const TIMETABLE_CREATED = 'Timetable created successfully';
