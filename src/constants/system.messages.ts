@@ -254,6 +254,16 @@ export const STUDENT_FETCHED = 'Student fetched successfully';
 export const STUDENTS_FETCHED = 'Students fetched successfully';
 export const STUDENT_NOT_FOUND = 'Student not found';
 export const STUDENT_UPDATED = 'Student updated successfully';
+
+//bulk upload message
+export const BULK_UPLOAD_NO_NEW_EMAILS =
+  'The Users with this email has receievd invite before.';
+export const BULK_UPLOAD_NOT_ALLOWED =
+  'You are not permitted to perform a bulk upload.';
+export const NO_BULK_UPLOAD_DATA = 'No data was provided for bulk upload.';
+export const INVALID_BULK_UPLOAD_FILE =
+  'The uploaded file is invalid or improperly formatted.';
+export const BULK_UPLOAD_SUCCESS = 'Bulk upload completed successfully.';
 export const STUDENT_DELETED = 'Student deleted successfully';
 
 // Dashboard messages
