@@ -223,6 +223,7 @@ export const CLASS_UPDATED = 'class updated successfully';
 export const CLASS_FETCHED = 'class fetched successfully';
 export const NO_CLASS_FOUND = 'no classes found.';
 export const TOTAL_CLASSES_FETCHED = 'total classes fetched successfully';
+export const INVALID_CLASS_IDS = 'One or more class IDs are invalid';
 
 // Parent messages
 export const PARENT_CREATED = 'Parent created successfully';
@@ -283,3 +284,14 @@ export const TEACHER_NOT_FOUND = 'Teacher not found';
 export const INVALID_DATE_RANGE_TIMETABLE =
   'End date must be after effective date';
 export const TIMETABLE_ARCHIVED = 'Timetable archived successfully';
+
+// Fees messages
+export const FEE_CREATED_SUCCESSFULLY = 'Fee component created successfully';
+export const FEES_RETRIEVED_SUCCESSFULLY =
+  'Fee components retrieved successfully';
+export const FEE_RETRIEVED_SUCCESSFULLY =
+  'Fee component retrieved successfully';
+export const FEE_UPDATED_SUCCESSFULLY = 'Fee component updated successfully';
+export const FEE_STATUS_UPDATED_SUCCESSFULLY =
+  'Fee component status updated successfully';
+export const FEE_NOT_FOUND = 'Fees component not found';
