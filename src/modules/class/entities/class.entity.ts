@@ -15,6 +15,7 @@ import { Stream } from '../../stream/entities/stream.entity';
 import { Timetable } from '../../timetable/entities/timetable.entity';
 
 import { ClassStudent } from './class-student.entity';
+import { ClassSubject } from './class-subject.entity';
 import { ClassTeacher } from './class-teacher.entity';
 
 @Unique(['name', 'arm', 'academicSession'])
