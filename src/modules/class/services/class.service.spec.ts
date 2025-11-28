@@ -380,6 +380,7 @@ describe('ClassService', () => {
             academicSession: mockAcademicSession,
             teacher_assignment: [],
             streams: [],
+            classSubjects: [],
             createdAt: new Date(),
             updatedAt: new Date(),
           },

@@ -17,6 +17,6 @@ import { ClassService } from './services/class.service';
   ],
   controllers: [ClassController],
   providers: [ClassService, ClassModelAction, ClassTeacherModelAction],
-  exports: [ClassModelAction, ClassTeacherModelAction],
+  exports: [ClassModelAction, ClassTeacherModelAction, ClassService],
 })
 export class ClassModule {}

@@ -283,3 +283,15 @@ export const TEACHER_NOT_FOUND = 'Teacher not found';
 export const INVALID_DATE_RANGE_TIMETABLE =
   'End date must be after effective date';
 export const TIMETABLE_ARCHIVED = 'Timetable archived successfully';
+
+// Subject-Class Assignment messages
+export const SUBJECT_ASSIGNED_TO_CLASS =
+  'Subject successfully assigned to class';
+export const SUBJECT_ALREADY_ASSIGNED_TO_CLASS =
+  'Subject is already assigned to this class';
+export const SUBJECT_REMOVED_FROM_CLASS =
+  'Subject assignment successfully removed from class';
+export const CLASS_SUBJECTS_RETRIEVED =
+  'Subjects for the class retrieved successfully';
+export const SUBJECT_CLASSES_RETRIEVED =
+  'Classes for the subject retrieved successfully';

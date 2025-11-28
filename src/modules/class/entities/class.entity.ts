@@ -10,6 +10,7 @@ import {
 
 import { BaseEntity } from '../../../entities/base-entity';
 import { AcademicSession } from '../../academic-session/entities/academic-session.entity';
+import { ClassSubject } from '../../class-subject/entities/class-subject.entity';
 import { Room } from '../../room/entities/room.entity';
 import { Stream } from '../../stream/entities/stream.entity';
 
@@ -39,4 +40,7 @@ export class Class extends BaseEntity {
 
   @OneToMany(() => Stream, (stream) => stream.class)
   streams: Stream[];
+
+  @OneToMany(() => ClassSubject, (classSubject) => classSubject.class)
+  classSubjects: ClassSubject[];
 }

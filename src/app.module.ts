@@ -13,6 +13,7 @@ import { LoggingInterceptor } from './middleware/logging.interceptor';
 import { AcademicSessionModule } from './modules/academic-session/academic-session.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ClassModule } from './modules/class/class.module';
+import { ClassSubjectModule } from './modules/class-subject/class-subject.module';
 import { ContactModule } from './modules/contact/contact.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { DatabaseModule } from './modules/database-setup/database.module';
@@ -79,6 +80,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     DatabaseModule,
     TimetableModule,
     TeacherSubjectModule,
+    ClassSubjectModule,
   ],
   controllers: [AppController],
   providers: [
