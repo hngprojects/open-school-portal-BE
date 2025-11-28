@@ -4,8 +4,8 @@ import {
   JoinColumn,
   ManyToOne,
   OneToMany,
-  OneToOne,
   Unique,
+  OneToOne,
 } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
@@ -13,7 +13,9 @@ import { AcademicSession } from '../../academic-session/entities/academic-sessio
 import { ClassSubject } from '../../class-subject/entities/class-subject.entity';
 import { Room } from '../../room/entities/room.entity';
 import { Stream } from '../../stream/entities/stream.entity';
+import { Timetable } from '../../timetable/entities/timetable.entity';
 
+import { ClassSubject } from './class-subject.entity';
 import { ClassTeacher } from './class-teacher.entity';
 
 @Unique(['name', 'arm', 'academicSession'])
@@ -42,5 +44,9 @@ export class Class extends BaseEntity {
   streams: Stream[];
 
   @OneToMany(() => ClassSubject, (classSubject) => classSubject.class)
+  @OneToOne(() => Timetable, (timetable) => timetable.class)
+  timetable?: Timetable;
+
+  @OneToMany(() => ClassSubject, (cs) => cs.class)
   classSubjects: ClassSubject[];
 }
