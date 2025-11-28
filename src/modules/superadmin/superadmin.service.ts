@@ -126,7 +126,7 @@ export class SuperadminService {
     );
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException(sysMsg.INVALID_CREDENTIALS);
+      throw new UnauthorizedException(sysMsg.SUPERADMIN_INVALID_PASSWORD);
     }
 
     const tokens = await this.generateTokens(superadmin.id, superadmin.email);

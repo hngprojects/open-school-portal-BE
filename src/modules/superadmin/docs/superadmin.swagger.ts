@@ -15,30 +15,12 @@ export const ApiCreateSuperadmin = () => {
       type: SuperadminCreateResponseDto,
     }),
     ApiResponse({
+      status: HttpStatus.UNAUTHORIZED,
+      description: sysMsg.SUPERADMIN_ALREADY_EXISTS,
+    }),
+    ApiResponse({
       status: HttpStatus.CONFLICT,
-      description: sysMsg.SUPERADMIN_CONFLICT_GENERAL_MSG,
-      content: {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        'application/json': {
-          // eslint-enable-next-line @typescript-eslint/naming-convention
-          examples: {
-            passwordsRequired: {
-              summary: 'Passwords required',
-              value: {
-                statusCode: HttpStatus.CONFLICT,
-                message: sysMsg.SUPERADMIN_PASSWORDS_REQUIRED,
-              },
-            },
-            emailExists: {
-              summary: 'Email already exists',
-              value: {
-                statusCode: HttpStatus.CONFLICT,
-                message: sysMsg.SUPERADMIN_EMAIL_EXISTS,
-              },
-            },
-          },
-        },
-      },
+      description: sysMsg.SUPERADMIN_PASSWORDS_REQUIRED,
     }),
     ApiResponse({
       status: HttpStatus.TOO_MANY_REQUESTS,
@@ -56,34 +38,28 @@ export const ApiLoginSuperadmin = () => {
       type: SuperadminLoginResponseDto,
     }),
     ApiResponse({
-      status: HttpStatus.CONFLICT,
-      description: sysMsg.SUPERADMIN_CONFLICT_GENERAL_MSG,
-      content: {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        'application/json': {
-          // eslint-enable-next-line @typescript-eslint/naming-convention
-          examples: {
-            invalidCredentials: {
-              summary: 'Invalid credentials',
-              value: {
-                statusCode: HttpStatus.CONFLICT,
-                message: sysMsg.INVALID_CREDENTIALS,
-              },
-            },
-            userInActive: {
-              summary: 'Account inactive',
-              value: {
-                statusCode: HttpStatus.CONFLICT,
-                message: sysMsg.USER_INACTIVE,
-              },
-            },
-            inValidPassword: {
-              summary: 'Incorrect password',
-              value: {
-                statusCode: HttpStatus.CONFLICT,
-                message: sysMsg.SUPERADMIN_INVALID_PASSWORD,
-              },
-            },
+      status: HttpStatus.UNAUTHORIZED,
+      description: sysMsg.INVALID_CREDENTIALS,
+      examples: {
+        invalid_credentials: {
+          summary: 'invalid credentials',
+          value: {
+            status_code: HttpStatus.UNAUTHORIZED,
+            message: sysMsg.INVALID_CREDENTIALS,
+          },
+        },
+        user_inactive: {
+          summary: 'superadmin account inactive',
+          value: {
+            status_code: HttpStatus.UNAUTHORIZED,
+            message: sysMsg.USER_INACTIVE,
+          },
+        },
+        invalid_password: {
+          summary: 'invalid password',
+          value: {
+            status_code: HttpStatus.UNAUTHORIZED,
+            message: sysMsg.SUPERADMIN_INVALID_PASSWORD,
           },
         },
       },
