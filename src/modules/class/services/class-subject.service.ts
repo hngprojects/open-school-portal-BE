@@ -1,10 +1,11 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { DataSource } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { SubjectModelAction } from '../../subject/model-actions/subject.actions';
+import { CreateClassSubjectsResponseDto } from '../dto';
 import { ClassModelAction, ClassSubjectModelAction } from '../model-actions';
 
 @Injectable()
@@ -20,7 +21,7 @@ export class ClassSubjectService {
     this.logger = baseLogger.child({ context: ClassSubjectService.name });
   }
 
-  async getClassSubjects(classId: string) {
+  async list(classId: string) {
     const eClass = await this.classModelAction.get({
       identifierOptions: { id: classId },
     });
@@ -32,61 +33,92 @@ export class ClassSubjectService {
     });
   }
 
-  // async assignSubjectsToClass(classId: string, subjectIds: string[]) {
-  //   await this.dataSource.transaction(async (manager) => {
-  //     for (const subject of foundSubjects.payload) {
-  //       await this.classSubjectAction.create({
-  //         createPayload: {
-  //           class: eClass,
-  //           subject,
-  //         },
-  //         transactionOptions: {
-  //           useTransaction: true,
-  //           transaction: manager,
-  //         },
-  //       });
-  //     }
-  //   });
-  // }
+  async create(classId: string, subjectIds: string[]) {
+    const {
+      class: eClass,
+      validSubjects,
+      invalidSubjects,
+      existingSubjects,
+      newSubjects,
+    } = await this.validateInputAndReturnData(classId, subjectIds);
 
-  // removeSubjectsFromClass(classId: string, subjectIds: string[]) {
-  //   const eClass = await this.classModelAction.get({
-  //     identifierOptions: { id: classId },
-  //   });
-  //   if (!eClass) throw new NotFoundException(sysMsg.CLASS_NOT_FOUND);
-  //   const foundSubjects = await this.subjectModelAction.find({
-  //     findOptions: {},
-  //   });
-  // }
+    console.log(newSubjects);
 
-  // private async validateInputAndReturnData(
-  //   classId: string,
-  //   subjectIds: string[],
-  // ) {
-  //   const eClass = await this.classModelAction.get({
-  //     identifierOptions: { id: classId },
-  //   });
-  //   if (!eClass) throw new NotFoundException(sysMsg.CLASS_NOT_FOUND);
+    if (newSubjects.length === 0)
+      return new CreateClassSubjectsResponseDto(
+        sysMsg.CLASS_SUBJECTS_CREATED(0),
+        validSubjects,
+        existingSubjects,
+        invalidSubjects,
+      );
 
-  //   const foundSubjects = await this.subjectModelAction.find({
-  //     findOptions: {
-  //       id: In(subjectIds),
-  //     },
-  //     transactionOptions: { useTransaction: false },
-  //   });
+    await this.dataSource.transaction(async (manager) => {
+      await this.classSubjectAction.createMany({
+        createPayloads: newSubjects.map((subjectId) => ({
+          class: eClass,
+          subject: { id: subjectId },
+        })),
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+    });
 
-  //   const subjectsAlreadyAddedToClass = await this.classSubjectAction.find({
-  //     findOptions: {
-  //       class: { id: classId },
-  //       subject: { id: In(subjectIds) },
-  //     },
-  //     transactionOptions: { useTransaction: false },
-  //   });
+    return new CreateClassSubjectsResponseDto(
+      sysMsg.CLASS_SUBJECTS_CREATED(newSubjects.length),
+      newSubjects,
+      existingSubjects,
+      invalidSubjects,
+    );
+  }
 
-  //   return {
-  //     class,
-  //     validSubjects,
-  //     subjectsAlreadyAddedToClass,
-  //   }
-  // }
+  private async validateInputAndReturnData(
+    classId: string,
+    subjectIds: string[],
+  ) {
+    const eClass = await this.classModelAction.get({
+      identifierOptions: { id: classId },
+    });
+    if (!eClass) throw new NotFoundException(sysMsg.CLASS_NOT_FOUND);
+
+    const subjects = await this.subjectModelAction.find({
+      findOptions: {
+        id: In(subjectIds),
+      },
+      transactionOptions: { useTransaction: false },
+    });
+
+    const foundSet = new Set(subjects.payload.map((s) => s.id));
+
+    const validSubjects = subjectIds.filter((id) => foundSet.has(id));
+    const invalidSubjects = subjectIds.filter((id) => !foundSet.has(id));
+
+    const subjectsInClass = await this.classSubjectAction.list({
+      filterRecordOptions: {
+        class: { id: classId },
+        subject: { id: In(subjectIds) },
+      },
+      relations: {
+        subject: true,
+      },
+    });
+
+    const classSubjectsSet = new Set(
+      subjectsInClass.payload.map((s) => s.subject.id),
+    );
+    const existingSubjects = subjectIds.filter((id) =>
+      classSubjectsSet.has(id),
+    );
+
+    const newSubjects = validSubjects.filter((id) => !classSubjectsSet.has(id));
+
+    return {
+      class: eClass,
+      validSubjects,
+      invalidSubjects,
+      existingSubjects,
+      newSubjects,
+    };
+  }
 }

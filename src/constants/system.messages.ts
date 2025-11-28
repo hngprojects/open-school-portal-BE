@@ -225,6 +225,9 @@ export const CLASS_UPDATED = 'class updated successfully';
 export const CLASS_FETCHED = 'class fetched successfully';
 export const TOTAL_CLASSES_FETCHED = 'total classes fetched successfully';
 
+export const CLASS_SUBJECTS_CREATED = (total: number) =>
+  `${total} subjects created.`;
+
 // Parent messages
 export const PARENT_CREATED = 'Parent created successfully';
 export const PARENT_UPDATED = 'Parent updated successfully';

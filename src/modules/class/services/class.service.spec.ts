@@ -382,6 +382,7 @@ describe('ClassService', () => {
             academicSession: mockAcademicSession,
             teacher_assignment: [],
             streams: [],
+            subject_assignment: [],
             createdAt: new Date(),
             updatedAt: new Date(),
           },
