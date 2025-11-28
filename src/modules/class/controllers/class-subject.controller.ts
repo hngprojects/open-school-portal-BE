@@ -17,18 +17,19 @@ import {
   DocsCreateClassSubjects,
   DocsListClassSubjects,
 } from '../docs/class-subject.decorator';
+import { ClassSubjectSwagger } from '../docs/class-subject.swagger';
 import { CreateClassSubjectRequestDto } from '../dto';
 import { ClassSubjectService } from '../services/class-subject.service';
 
-@ApiTags('Classes')
+@ApiTags(ClassSubjectSwagger.tags[0])
 @Controller('classes/:id/subjects')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ClassSubjectController {
   constructor(private readonly classStudentService: ClassSubjectService) {}
 
-  // --- POST: CREATE CLASS (ADMIN ONLY) ---
-  @Post('')
+  // --- POST: CREATE CLASS SUBJECTS (ADMIN ONLY) ---
+  @Post()
   @DocsCreateClassSubjects()
   @Roles(UserRole.ADMIN)
   async create(
@@ -38,8 +39,8 @@ export class ClassSubjectController {
     return this.classStudentService.create(id, subjectIds);
   }
 
-  // --- GET: GROUPED CLASSES ---
-  @Get('')
+  // --- GET: LIST CLASS SUBJECTS ---
+  @Get()
   @DocsListClassSubjects()
   async list(@Param('id', ParseUUIDPipe) id: string) {
     return this.classStudentService.list(id);
