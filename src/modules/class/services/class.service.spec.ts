@@ -384,6 +384,7 @@ describe('ClassService', () => {
             streams: [],
             createdAt: new Date(),
             updatedAt: new Date(),
+            classSubjects: [],
           },
         ],
         paginationMeta: {},
