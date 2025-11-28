@@ -385,7 +385,6 @@ describe('ClassService', () => {
             classSubjects: [],
             createdAt: new Date(),
             updatedAt: new Date(),
-            classSubjects: [],
           },
         ],
         paginationMeta: {},
