@@ -33,6 +33,6 @@ export class SuperAdmin extends BaseEntity {
   @Column({ nullable: true, type: 'varchar' })
   reset_token: string;
 
-  @Column({ nullable: true, type: 'date' })
+  @Column({ nullable: true, type: 'timestamp with time zone' })
   reset_token_expiration: Date;
 }

@@ -78,4 +78,7 @@ export default () => ({
   isProduction(): boolean {
     return process.env.NODE_ENV === 'production';
   },
+  hash: {
+    salt: process.env.HASH_SALT || '10',
+  },
 });

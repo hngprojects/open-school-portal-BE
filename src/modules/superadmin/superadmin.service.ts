@@ -69,7 +69,8 @@ export class SuperadminService {
       throw new ConflictException(sysMsg.SUPERADMIN_EMAIL_EXISTS);
     }
 
-    const passwordHash: string = await bcrypt.hash(password, 10);
+    const { hash } = config();
+    const password_hash: string = await bcrypt.hash(password, hash.salt);
 
     const createdSuperadmin = await this.dataSource.transaction(
       async (manager) => {
@@ -77,8 +78,8 @@ export class SuperadminService {
           createPayload: {
             ...restData,
             email,
-            password: passwordHash,
-            is_active: createSuperadminDto.school_name ? true : false,
+            password: password_hash,
+            is_active: true,
           },
           transactionOptions: { useTransaction: true, transaction: manager },
         });
