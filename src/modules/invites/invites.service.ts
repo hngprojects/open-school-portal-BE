@@ -7,22 +7,28 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { DataSource, FindOptionsWhere } from 'typeorm';
+import { DataSource, FindOptionsWhere, In } from 'typeorm';
 import { Logger } from 'winston';
 
 import { EmailTemplateID } from '../../constants/email-constants';
 import * as sysMsg from '../../constants/system.messages';
 import { EmailService } from '../email/email.service';
 import { EmailPayload } from '../email/email.types';
+import { parseCsv } from '../invites/csv-parser';
 import { UserRole } from '../user/entities/user.entity';
 import { UserModelAction } from '../user/model-actions/user-actions';
 
 import { AcceptInviteDto } from './dto/accept-invite.dto';
-import { InviteUserDto } from './dto/invite-user.dto';
+import {
+  InviteUserDto,
+  InviteRole,
+  BulkInvitesResponseDto,
+} from './dto/invite-user.dto';
 import { Invite, InviteStatus } from './entities/invites.entity';
 import { InviteModelAction } from './invite.model-action';
 
@@ -32,12 +38,11 @@ export class InviteService {
 
   constructor(
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
-    private readonly dataSource: DataSource,
-
+    private readonly configService: ConfigService,
     private readonly userModelAction: UserModelAction,
     private readonly inviteModelAction: InviteModelAction,
     private readonly emailService: EmailService,
-    private readonly configService: ConfigService,
+    private readonly dataSource: DataSource,
   ) {
     this.logger = baseLogger.child({ context: InviteService.name });
   }
@@ -121,7 +126,7 @@ export class InviteService {
       this.configService.get<string>('app.logo_url') ||
       'https://via.placeholder.com/100';
 
-    const invite_link = `${frontend_url}/accept-invite?token=${token}`;
+    const invite_link = `${frontend_url}/reset-password?token=${token}`;
     const first_name = inviteDto.full_name?.split(' ')[0] || 'User';
 
     const emailPayload: EmailPayload = {
@@ -204,6 +209,132 @@ export class InviteService {
         email: newUser.email,
         role: newUser.role,
       },
+    };
+  }
+
+  async uploadCsv(
+    file: Express.Multer.File,
+    selectedType: InviteRole,
+  ): Promise<BulkInvitesResponseDto> {
+    if (!file) {
+      throw new BadRequestException(sysMsg.NO_BULK_UPLOAD_DATA);
+    }
+
+    if (file.mimetype !== 'text/csv') {
+      throw new BadRequestException(sysMsg.BULK_UPLOAD_NOT_ALLOWED);
+    }
+
+    if (!file.originalname.endsWith('.csv')) {
+      throw new BadRequestException(sysMsg.INVALID_BULK_UPLOAD_FILE);
+    }
+
+    // ✅ Changed: parseCsv now expects full_name before email
+    const rows = await parseCsv<{ email: string; full_name: string }>(
+      file.buffer,
+    );
+
+    const filteredRows = rows.filter((row) => row.email?.trim());
+    const emails = filteredRows.map((row) => row.email.trim().toLowerCase());
+
+    const existing = await this.inviteModelAction.get({
+      identifierOptions: { email: In(emails) } as FindOptionsWhere<Invite>,
+    });
+
+    const existingEmails = new Set(
+      Array.isArray(existing)
+        ? existing.map((invite) => invite.email.toLowerCase())
+        : [existing?.email?.toLowerCase()],
+    );
+
+    const validRows = filteredRows.filter(
+      (row) => !existingEmails.has(row.email.trim().toLowerCase()),
+    );
+
+    if (validRows.length === 0) {
+      throw new BadRequestException(sysMsg.BULK_UPLOAD_NO_NEW_EMAILS);
+    }
+
+    const skippedRows = filteredRows.filter((row) =>
+      existingEmails.has(row.email.trim().toLowerCase()),
+    );
+
+    const createdInvites: InviteUserDto[] = [];
+
+    const frontendUrl = this.configService.get<string>('frontend.url');
+    const schoolName =
+      this.configService.get<string>('school.name') || 'School Base';
+    const schoolLogoUrl =
+      this.configService.get<string>('school.logoUrl') ||
+      'https://via.placeholder.com/100';
+    const senderEmail = this.configService.get<string>('mail.from.address');
+    const senderName = this.configService.get<string>('mail.from.name');
+
+    if (!frontendUrl || !schoolName || !schoolLogoUrl) {
+      throw new InternalServerErrorException(
+        'Missing SCHOOL_NAME, SCHOOL_LOGO_URL or FRONTEND_URL in config',
+      );
+    }
+
+    // ✅ Changed: wrap invite creation + email sending in a transaction
+    await this.dataSource.transaction(async (manager) => {
+      for (const row of validRows) {
+        const rawToken = crypto.randomBytes(32).toString('hex');
+        const hashedToken = crypto
+          .createHash('sha256')
+          .update(rawToken)
+          .digest('hex');
+
+        const invite = await this.inviteModelAction.create({
+          createPayload: {
+            email: row.email.trim().toLowerCase(),
+            full_name: row.full_name?.trim(),
+            role: selectedType,
+            token_hash: hashedToken,
+            status: InviteStatus.PENDING,
+            accepted: false,
+          },
+          transactionOptions: { useTransaction: true, transaction: manager }, // ✅ Changed: use transaction manager
+        });
+
+        await this.inviteModelAction.save({
+          entity: invite,
+          transactionOptions: { useTransaction: true, transaction: manager }, // ✅ Changed: use transaction manager
+        });
+
+        const inviteLink = `${frontendUrl}/reset-password?token=${rawToken}`;
+        const firstName = invite.full_name?.trim()?.split(' ')?.[0] || 'User';
+
+        // ✅ Changed: email sending is inside transaction — if this fails, DB rolls back
+        await this.emailService.sendMail({
+          from: { email: senderEmail, name: senderName },
+          to: [{ email: invite.email, name: invite.full_name }],
+          subject: `You are invited as ${selectedType}`,
+          templateNameID: EmailTemplateID.INVITE,
+          templateData: {
+            first_name: firstName,
+            invite_link: inviteLink,
+            role: invite.role,
+            school_name: schoolName,
+            logo_url: schoolLogoUrl,
+            copyRightYear: new Date().getFullYear(),
+          },
+        });
+
+        createdInvites.push({
+          email: invite.email,
+          role: selectedType,
+          full_name: invite.full_name,
+        });
+      }
+    });
+
+    return {
+      status_code: HttpStatus.OK,
+      message: sysMsg.BULK_UPLOAD_SUCCESS,
+      total_bulk_invites_sent: createdInvites.length,
+      data: createdInvites,
+      skipped_already_exist_emil_on_csv: skippedRows.map((r) => r.email),
+      document_type: selectedType,
     };
   }
 }

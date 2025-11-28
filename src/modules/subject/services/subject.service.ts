@@ -1,4 +1,9 @@
-import { ConflictException, Inject, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
@@ -6,8 +11,13 @@ import { Logger } from 'winston';
 import * as sysMsg from '../../../constants/system.messages';
 import { CreateSubjectDto } from '../dto/create-subject.dto';
 import { SubjectResponseDto } from '../dto/subject-response.dto';
+import { UpdateSubjectDto } from '../dto/update-subject.dto';
 import { Subject } from '../entities/subject.entity';
-import { IBaseResponse } from '../interface/types';
+import {
+  IBaseResponse,
+  IPaginatedResponse,
+  IPaginationMeta,
+} from '../interface/types';
 import { SubjectModelAction } from '../model-actions/subject.actions';
 
 @Injectable()
@@ -50,6 +60,128 @@ export class SubjectService {
       return {
         message: sysMsg.SUBJECT_CREATED,
         data: this.mapToResponseDto(newSubject),
+      };
+    });
+  }
+
+  // FIND ALL SUBJECTS
+  async findAll(
+    page = 1,
+    limit = 20,
+  ): Promise<IPaginatedResponse<SubjectResponseDto>> {
+    const { payload, paginationMeta } = await this.subjectModelAction.list({
+      paginationPayload: { page, limit },
+    });
+
+    const subjects = Object.values(payload).map((subject) =>
+      this.mapToResponseDto(subject),
+    );
+
+    // Ensure pagination meta has all required fields
+    const pagination: IPaginationMeta = {
+      total: paginationMeta?.total ?? 0,
+      page: paginationMeta?.page ?? page,
+      limit: paginationMeta?.limit ?? limit,
+      total_pages: paginationMeta?.total_pages,
+      has_next: paginationMeta?.has_next,
+      has_previous: paginationMeta?.has_previous,
+    };
+
+    return {
+      message: sysMsg.SUBJECTS_RETRIEVED,
+      data: subjects,
+      pagination,
+    };
+  }
+
+  // FIND SUBJECT BY ID
+  async findOne(id: string): Promise<IBaseResponse<SubjectResponseDto>> {
+    const subject = await this.subjectModelAction.get({
+      identifierOptions: { id },
+    });
+
+    if (!subject) {
+      throw new NotFoundException(sysMsg.SUBJECT_NOT_FOUND);
+    }
+
+    return {
+      message: sysMsg.SUBJECT_RETRIEVED,
+      data: this.mapToResponseDto(subject),
+    };
+  }
+
+  // UPDATE SUBJECT
+  async update(
+    id: string,
+    updateSubjectDto: UpdateSubjectDto,
+  ): Promise<IBaseResponse<SubjectResponseDto>> {
+    return this.dataSource.transaction(async (manager) => {
+      // Check if subject exists
+      const existingSubject = await this.subjectModelAction.get({
+        identifierOptions: { id },
+      });
+
+      if (!existingSubject) {
+        throw new NotFoundException(sysMsg.SUBJECT_NOT_FOUND);
+      }
+
+      // If name is being updated, check for conflicts
+      if (
+        updateSubjectDto.name &&
+        updateSubjectDto.name !== existingSubject.name
+      ) {
+        const conflictingSubject = await this.subjectModelAction.get({
+          identifierOptions: { name: updateSubjectDto.name },
+        });
+
+        if (conflictingSubject && conflictingSubject.id !== id) {
+          throw new ConflictException(sysMsg.SUBJECT_ALREADY_EXISTS);
+        }
+      }
+
+      // Update subject
+      const updatedSubject = await this.subjectModelAction.update({
+        identifierOptions: { id },
+        updatePayload: {
+          ...(updateSubjectDto.name && { name: updateSubjectDto.name }),
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      return {
+        message: sysMsg.SUBJECT_UPDATED,
+        data: this.mapToResponseDto(updatedSubject),
+      };
+    });
+  }
+
+  // DELETE SUBJECT
+  async remove(id: string): Promise<IBaseResponse<void>> {
+    return this.dataSource.transaction(async (manager) => {
+      // Check if subject exists
+      const existingSubject = await this.subjectModelAction.get({
+        identifierOptions: { id },
+      });
+
+      if (!existingSubject) {
+        throw new NotFoundException(sysMsg.SUBJECT_NOT_FOUND);
+      }
+
+      // Delete subject
+      await this.subjectModelAction.delete({
+        identifierOptions: { id },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      return {
+        message: sysMsg.SUBJECT_DELETED,
+        data: undefined,
       };
     });
   }

@@ -1,9 +1,14 @@
 import {
   Body,
   Controller,
+  Delete,
+  Get,
   HttpCode,
   HttpStatus,
+  Param,
+  Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 
@@ -15,8 +20,14 @@ import {
   ApiSubjectTags,
   ApiSubjectBearerAuth,
   ApiCreateSubject,
+  ApiFindAllSubjects,
+  ApiFindOneSubject,
+  ApiUpdateSubject,
+  ApiDeleteSubject,
 } from '../docs/subject.swagger';
 import { CreateSubjectDto } from '../dto/create-subject.dto';
+import { ListSubjectsDto } from '../dto/list-subjects.dto';
+import { UpdateSubjectDto } from '../dto/update-subject.dto';
 import { SubjectService } from '../services/subject.service';
 
 @Controller('subjects')
@@ -32,5 +43,35 @@ export class SubjectController {
   @ApiCreateSubject()
   create(@Body() createSubjectDto: CreateSubjectDto) {
     return this.subjectService.create(createSubjectDto);
+  }
+
+  @Get()
+  @HttpCode(HttpStatus.OK)
+  @ApiFindAllSubjects()
+  findAll(@Query() query: ListSubjectsDto) {
+    return this.subjectService.findAll(query.page, query.limit);
+  }
+
+  @Patch(':id')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiUpdateSubject()
+  update(@Param('id') id: string, @Body() updateSubjectDto: UpdateSubjectDto) {
+    return this.subjectService.update(id, updateSubjectDto);
+  }
+
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiFindOneSubject()
+  findOne(@Param('id') id: string) {
+    return this.subjectService.findOne(id);
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiDeleteSubject()
+  remove(@Param('id') id: string) {
+    return this.subjectService.remove(id);
   }
 }

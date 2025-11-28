@@ -131,8 +131,6 @@ export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
 
 // Streams
-export const INVALID_STREAM_IDS =
-  'One or more provided Stream IDs are invalid.';
 export const STREAM_NOT_FOUND = 'Stream with the provided ID does not exist';
 export const CLASS_NOT_FOUND = 'Class with the provided ID does not exist';
 export const STREAMS_RETRIEVED = 'Streams retrieved successfully';
@@ -175,6 +173,15 @@ export const ACADEMIC_SESSION_DELETED =
   'Academic session deleted successfully.';
 export const INACTIVE_SESSION_LOCKED =
   'Cannot modify an inactive academic session. Previous sessions are locked to preserve historical data integrity.';
+export const ARCHIVED_SESSION_LOCKED =
+  'Cannot modify an archived academic session. Archived sessions are read-only to preserve historical data.';
+export const ARCHIVED_SESSION_NO_DELETE =
+  'Cannot delete an archived academic session. Archived sessions must be preserved for historical records.';
+export const ACTIVE_SESSION_NO_DELETE =
+  'Cannot delete an active academic session. Please archive the session first before deletion.';
+export const SESSION_ARCHIVED = 'Academic session archived successfully.';
+export const ONGOING_SESSION_EXISTS =
+  'Cannot create a new session while an ongoing session exists. Please wait for the current session to end.';
 // Session management messages
 export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
@@ -192,13 +199,19 @@ export const ROOM_UPDATED_SUCCESSFULLY = 'Room updated successfully.';
 export const ROOM_DELETED_SUCCESSFULLY = 'Room deleted successfully.';
 export const ROOM_NOT_FOUND = 'Room not found.';
 export const INVALID_ROOM_ID = 'Invalid room ID provided.';
-export const ROOM_ASSIGNED_TO_STREAM = 'Room successfully assigned to stream.';
-export const ROOM_CAPACITY_EXCEEDED = 'Stream size exceeds room capacity.';
+export const ROOM_ASSIGNED_TO_CLASS = 'Room successfully assigned to class.';
 export const ROOM_STATUS_UPDATED = 'Room status updated successfully.';
+export const CANNOT_DELETE_OCCUPIED_ROOM =
+  'Cannot delete a room that has an active class.';
 
 // Subject messages
 export const SUBJECT_CREATED = 'Subject created successfully';
 export const SUBJECT_ALREADY_EXISTS = 'Subject already exists';
+export const SUBJECTS_RETRIEVED = 'Subjects retrieved successfully';
+export const SUBJECT_RETRIEVED = 'Subject retrieved successfully';
+export const SUBJECT_NOT_FOUND = 'Subject not found';
+export const SUBJECT_UPDATED = 'Subject updated successfully';
+export const SUBJECT_DELETED = 'Subject deleted successfully';
 
 // School Installation messages
 export const INSTALLATION_COMPLETED =
@@ -219,7 +232,6 @@ export const CLASS_ALREADY_EXIST =
 export const CLASS_NAME_EMPTY = 'class name cannot be empty';
 export const CLASS_UPDATED = 'class updated successfully';
 export const CLASS_FETCHED = 'class fetched successfully';
-export const NO_CLASS_FOUND = 'no classes found.';
 export const TOTAL_CLASSES_FETCHED = 'total classes fetched successfully';
 
 // Parent messages
@@ -250,7 +262,57 @@ export const STUDENT_FETCHED = 'Student fetched successfully';
 export const STUDENTS_FETCHED = 'Students fetched successfully';
 export const STUDENT_NOT_FOUND = 'Student not found';
 export const STUDENT_UPDATED = 'Student updated successfully';
+
+//bulk upload message
+export const BULK_UPLOAD_NO_NEW_EMAILS =
+  'The Users with this email have received an invite before.';
+export const BULK_UPLOAD_NOT_ALLOWED =
+  'You are not permitted to perform a bulk upload.';
+export const NO_BULK_UPLOAD_DATA = 'No data was provided for bulk upload.';
+export const INVALID_BULK_UPLOAD_FILE =
+  'The uploaded file is invalid or improperly formatted.';
+export const BULK_UPLOAD_SUCCESS = 'Bulk upload completed successfully.';
 export const STUDENT_DELETED = 'Student deleted successfully';
+
+// Academic Term messages
+export const TERM_RETRIEVED = 'Term(s) retrieved successfully';
+export const TERM_UPDATED = 'Term updated successfully';
+export const TERM_NOT_FOUND = 'Term not found';
+export const TERM_UPDATE_FAILED = 'Failed to update term';
+export const ARCHIVED_TERM_LOCKED =
+  'Cannot modify an archived term. Archived terms are read-only to preserve historical data.';
+
+// Academic Term - Validation errors
+export const TERM_INVALID_DATE_RANGE = 'end date must be after start date';
+export const TERM_START_AFTER_END =
+  'Start date must be before the current end date';
+export const TERM_END_BEFORE_START =
+  'End date must be after the current start date';
+export const TERM_SEQUENTIAL_INVALID =
+  'start date must be after the previous term end date';
 
 // Dashboard messages
 export const DASHBOARD_RESOLVED = 'Dashboard resolved successfully';
+
+// Teacher messages
+export const INVALID_TEACHER_ID = 'Invalid teacher ID provided';
+
+// Timetable messages
+export const TIMETABLE_CREATED = 'Timetable created successfully';
+export const TIMETABLE_UPDATED = 'Timetable updated successfully';
+export const TIMETABLE_DELETED = 'Timetable deleted successfully';
+export const TIMETABLE_NOT_FOUND = 'Timetable not found';
+export const TIMETABLE_FETCHED = 'Timetable fetched successfully';
+export const TIMETABLES_FETCHED = 'Timetables fetched successfully';
+export const INVALID_TIME_RANGE = 'Start time must be before end time';
+export const TIMETABLE_OVERLAP_STREAM =
+  'Timetable period overlaps with another period for the same stream on the same day';
+export const TIMETABLE_TEACHER_DOUBLE_BOOKED =
+  'Teacher is already scheduled for another class at this time';
+export const TEACHER_NOT_FOUND = 'Teacher not found';
+export const INVALID_DATE_RANGE_TIMETABLE =
+  'End date must be after effective date';
+export const TIMETABLE_ARCHIVED = 'Timetable archived successfully';
+export const SUBJECT_REQUIRED_FOR_LESSON = 'Subject is required for lessons';
+export const TIMETABLE_INTERNAL_OVERLAP =
+  'Timetable contains overlapping schedules.';
