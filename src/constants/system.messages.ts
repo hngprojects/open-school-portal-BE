@@ -344,3 +344,35 @@ export const FEE_UPDATED_SUCCESSFULLY = 'Fee component updated successfully';
 export const FEE_STATUS_UPDATED_SUCCESSFULLY =
   'Fee component status updated successfully';
 export const FEE_NOT_FOUND = 'Fees component not found';
+
+// Grade messages
+export const GRADE_SUBMISSION_CREATED = 'Grade submission created successfully';
+export const GRADE_SUBMISSION_UPDATED = 'Grade submission updated successfully';
+export const GRADE_SUBMISSION_NOT_FOUND = 'Grade submission not found';
+export const GRADE_SUBMISSION_EXISTS =
+  'A grade submission already exists for this class, subject, and term';
+export const GRADE_CREATED = 'Grade created successfully';
+export const GRADE_UPDATED = 'Grade updated successfully';
+export const GRADE_SUBMITTED = 'Grades submitted for approval successfully';
+export const GRADE_APPROVED = 'Grades approved successfully';
+export const GRADE_REJECTED = 'Grades rejected';
+export const GRADE_UNLOCKED = 'Grades unlocked for editing';
+export const GRADE_NOT_FOUND = 'Grade not found';
+export const GRADES_FETCHED = 'Grades fetched successfully';
+export const GRADE_ALREADY_APPROVED =
+  'Cannot modify an approved grade submission';
+export const GRADE_ALREADY_SUBMITTED =
+  'Cannot modify a submitted grade submission. Wait for admin review.';
+export const GRADE_NOT_SUBMITTED =
+  'Grade submission must be submitted before approval';
+export const GRADE_INCOMPLETE_SCORES =
+  'All students must have complete CA and exam scores before submission';
+export const GRADE_INVALID_STATUS_TRANSITION =
+  'Invalid status transition for grade submission';
+export const GRADE_TEACHER_NOT_ASSIGNED =
+  'You are not assigned to teach this subject for this class';
+export const TEACHER_PROFILE_NOT_FOUND =
+  'Teacher profile not found. Please ensure your account is properly linked to a teacher profile.';
+export const UNAUTHORIZED_GRADE_ACCESS =
+  'You are not authorized to access this grade submission';
+export const INVALID_SCORE_RANGE = 'Score must be within the allowed range';

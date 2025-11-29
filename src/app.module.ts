@@ -19,6 +19,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { DatabaseModule } from './modules/database-setup/database.module';
 import { EmailModule } from './modules/email/email.module';
 import { FeesModule } from './modules/fees/fees.module';
+import { GradeModule } from './modules/grade/grade.module';
 import { InviteModule } from './modules/invites/invites.module';
 import { ParentModule } from './modules/parent/parent.module';
 import { RoomModule } from './modules/room/room.module';
@@ -80,6 +81,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     TimetableModule,
     TeacherSubjectModule,
     FeesModule,
+    GradeModule,
   ],
   controllers: [AppController],
   providers: [
