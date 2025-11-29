@@ -9,10 +9,12 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 
+import { DeactivateFeeDto } from '../dto/deactivate-fee.dto';
 import {
   CreateFeeResponseDto,
   FeesListResponseDto,
   FeesResponseDto,
+  DeactivateFeeResponseDto,
 } from '../dto/fees-response.dto';
 import { CreateFeesDto, UpdateFeesDto } from '../dto/fees.dto';
 
@@ -129,6 +131,46 @@ export function swaggerGetAFee() {
     ApiResponse({
       status: 400,
       description: 'Invalid feeComponentId supplied',
+    }),
+  );
+}
+
+// docs/fees.swagger.ts - Add this function
+export function swaggerDeactivateFee() {
+  return applyDecorators(
+    ApiTags('Fees'),
+    ApiOperation({
+      summary: 'Deactivate a fee component',
+      description:
+        'Deactivate (soft-delete) a fee component so it is no longer used in billing operations. Only admins can perform this action.',
+    }),
+    ApiBearerAuth(),
+    ApiBody({ type: DeactivateFeeDto }),
+    ApiParam({
+      name: 'id',
+      description: 'The ID of the fee component to deactivate',
+      example: 'f1e2d3c4-b5a6-7890-1234-567890abcdef',
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Fee component deactivated successfully',
+      type: DeactivateFeeResponseDto,
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'Bad request - Fee component is already inactive',
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'Unauthorized - Invalid or missing token',
+    }),
+    ApiResponse({
+      status: 403,
+      description: 'Forbidden - User is not an admin',
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Not found - Fee component not found',
     }),
   );
 }
