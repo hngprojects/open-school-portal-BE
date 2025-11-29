@@ -3,15 +3,18 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AcademicSessionModule } from '../academic-session/academic-session.module';
 import { StudentModule } from '../student/student.module';
+import { TeachersModule } from '../teacher/teacher.module';
 
+import { ClassSubjectController } from './controllers/class-subject.controller';
 import { ClassController } from './controllers/class.controller';
-import { ClassStudent } from './entities/class-student.entity';
-import { ClassSubject } from './entities/class-subject.entity';
-import { ClassTeacher } from './entities/class-teacher.entity';
-import { Class } from './entities/class.entity';
-import { ClassStudentModelAction } from './model-actions/class-student.action';
-import { ClassTeacherModelAction } from './model-actions/class-teacher.action';
-import { ClassModelAction } from './model-actions/class.actions';
+import { Class, ClassStudent, ClassTeacher, ClassSubject } from './entities';
+import {
+  ClassModelAction,
+  ClassTeacherModelAction,
+  ClassStudentModelAction,
+  ClassSubjectModelAction,
+} from './model-actions';
+import { ClassSubjectService } from './services/class-subject.service';
 import { ClassService } from './services/class.service';
 
 @Module({
@@ -19,14 +22,17 @@ import { ClassService } from './services/class.service';
     TypeOrmModule.forFeature([Class, ClassTeacher, ClassSubject, ClassStudent]),
     AcademicSessionModule,
     StudentModule,
+    TeachersModule,
   ],
-  controllers: [ClassController],
+  controllers: [ClassController, ClassSubjectController],
   providers: [
     ClassService,
     ClassModelAction,
     ClassTeacherModelAction,
     ClassStudentModelAction,
+    ClassSubjectModelAction,
+    ClassSubjectService,
   ],
-  exports: [ClassModelAction, ClassTeacherModelAction, ClassStudentModelAction],
+  exports: [ClassModelAction, ClassTeacherModelAction],
 })
 export class ClassModule {}
