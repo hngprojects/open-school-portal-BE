@@ -243,7 +243,11 @@ export class FeesService {
 
   // fees.service.ts - Fix the deactivate method
 
-  async deactivate(id: string, deactivatedBy: string): Promise<Fees> {
+  async deactivate(
+    id: string,
+    deactivatedBy: string,
+    reason?: string,
+  ): Promise<Fees> {
     // Find the fee component - get method doesn't need transactionOptions
     const fee = await this.feesModelAction.get({
       identifierOptions: { id },
@@ -277,6 +281,7 @@ export class FeesService {
       fee_id: id,
       component_name: fee.component_name,
       deactivated_by: deactivatedBy,
+      reason,
       previous_status: fee.status,
       new_status: FeeStatus.INACTIVE,
     });

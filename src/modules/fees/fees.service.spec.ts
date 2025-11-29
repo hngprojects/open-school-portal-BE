@@ -868,9 +868,12 @@ describe('FeesService', () => {
 
   // fees.service.spec.ts - Fix test expectations
 
+  // In the deactivate describe block, update the tests:
+
   describe('deactivate', () => {
     const feeId = 'fee-123';
     const deactivatedBy = 'admin-user-123';
+    const reason = 'No longer applicable';
 
     it('should deactivate an active fee successfully', async () => {
       const activeFee = { ...mockFee, status: FeeStatus.ACTIVE };
@@ -879,7 +882,7 @@ describe('FeesService', () => {
       mockFeesModelAction.get.mockResolvedValue(activeFee);
       mockFeesModelAction.update.mockResolvedValue(inactiveFee);
 
-      const result = await service.deactivate(feeId, deactivatedBy);
+      const result = await service.deactivate(feeId, deactivatedBy, reason);
 
       // get should be called WITHOUT transactionOptions
       expect(feesModelAction.get).toHaveBeenCalledWith({
@@ -900,6 +903,41 @@ describe('FeesService', () => {
         expect.objectContaining({
           fee_id: feeId,
           deactivated_by: deactivatedBy,
+          reason: reason,
+          previous_status: FeeStatus.ACTIVE,
+          new_status: FeeStatus.INACTIVE,
+        }),
+      );
+      expect(result.status).toBe(FeeStatus.INACTIVE);
+    });
+
+    it('should deactivate an active fee without reason', async () => {
+      const activeFee = { ...mockFee, status: FeeStatus.ACTIVE };
+      const inactiveFee = { ...mockFee, status: FeeStatus.INACTIVE };
+
+      mockFeesModelAction.get.mockResolvedValue(activeFee);
+      mockFeesModelAction.update.mockResolvedValue(inactiveFee);
+
+      const result = await service.deactivate(feeId, deactivatedBy);
+
+      expect(feesModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: feeId },
+      });
+
+      expect(feesModelAction.update).toHaveBeenCalledWith({
+        identifierOptions: { id: feeId },
+        updatePayload: { status: FeeStatus.INACTIVE },
+        transactionOptions: {
+          useTransaction: false,
+        },
+      });
+
+      expect(logger.info).toHaveBeenCalledWith(
+        'Fee component deactivated successfully',
+        expect.objectContaining({
+          fee_id: feeId,
+          deactivated_by: deactivatedBy,
+          reason: undefined, // reason should be undefined when not provided
           previous_status: FeeStatus.ACTIVE,
           new_status: FeeStatus.INACTIVE,
         }),
@@ -912,7 +950,7 @@ describe('FeesService', () => {
 
       mockFeesModelAction.get.mockResolvedValue(inactiveFee);
 
-      const result = await service.deactivate(feeId, deactivatedBy);
+      const result = await service.deactivate(feeId, deactivatedBy, reason);
 
       // get should be called WITHOUT transactionOptions
       expect(feesModelAction.get).toHaveBeenCalledWith({
@@ -933,9 +971,9 @@ describe('FeesService', () => {
     it('should throw NotFoundException when fee does not exist', async () => {
       mockFeesModelAction.get.mockResolvedValue(null);
 
-      await expect(service.deactivate(feeId, deactivatedBy)).rejects.toThrow(
-        new NotFoundException(sysMsg.FEE_NOT_FOUND),
-      );
+      await expect(
+        service.deactivate(feeId, deactivatedBy, reason),
+      ).rejects.toThrow(new NotFoundException(sysMsg.FEE_NOT_FOUND));
 
       expect(feesModelAction.update).not.toHaveBeenCalled();
     });

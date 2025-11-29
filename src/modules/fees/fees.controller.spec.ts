@@ -13,7 +13,8 @@ import {
 } from '../academic-term/entities/term.entity';
 import { UserRole } from '../shared/enums';
 
-import { CreateFeesDto, QueryFeesDto } from './dto/fees.dto';
+import { DeactivateFeeDto } from './dto/deactivate-fee.dto';
+import { CreateFeesDto, QueryFeesDto, UpdateFeesDto } from './dto/fees.dto';
 import { Fees } from './entities/fees.entity';
 import { FeeStatus } from './enums/fees.enums';
 import { FeesController } from './fees.controller';
@@ -31,11 +32,21 @@ describe('FeesController', () => {
     class_ids: ['c5d4e3f2-g1h0-9876-5432-10abcdef9876'],
   };
 
+  const mockUpdateFeesDto: UpdateFeesDto = {
+    component_name: 'Updated Fee',
+    amount: 600,
+  };
+
+  const mockDeactivateFeeDto: DeactivateFeeDto = {
+    reason: 'No longer applicable',
+  };
+
   const mockUser = {
     user: {
       userId: 'user-123',
     },
   };
+
   const mockTerm: Term = {
     id: 'term-123',
     sessionId: 'session-456',
@@ -80,6 +91,8 @@ describe('FeesController', () => {
           useValue: {
             create: jest.fn(),
             findAll: jest.fn(),
+            update: jest.fn(),
+            deactivate: jest.fn(),
           },
         },
       ],
@@ -281,28 +294,6 @@ describe('FeesController', () => {
       await expect(
         controller.createFee(mockCreateFeesDto, mockUser),
       ).rejects.toThrow(validationError);
-    });
-  });
-
-  describe('Guards and Decorators', () => {
-    it('should have JwtAuthGuard applied', () => {
-      const guards = Reflect.getMetadata('__guards__', FeesController);
-      expect(guards).toBeDefined();
-    });
-
-    it('should have RolesGuard applied', () => {
-      const guards = Reflect.getMetadata('__guards__', FeesController);
-      expect(guards).toBeDefined();
-    });
-
-    it('should require ADMIN role for createFee', () => {
-      const roles = Reflect.getMetadata('roles', controller.createFee);
-      expect(roles).toContain(UserRole.ADMIN);
-    });
-
-    it('should have correct route path', () => {
-      const path = Reflect.getMetadata('path', FeesController);
-      expect(path).toBe('fees');
     });
   });
 
@@ -513,87 +504,106 @@ describe('FeesController', () => {
     });
   });
 
-  // fees.controller.spec.ts - Fix the controller test
+  describe('updateFee', () => {
+    it('should update a fee successfully', async () => {
+      service.update.mockResolvedValue(mockFee);
 
-  describe('FeesController', () => {
-    let controller: FeesController;
-    let service: FeesService;
+      const result = await controller.updateFee('fee-123', mockUpdateFeesDto);
 
-    const mockUser = {
-      user: {
-        userId: 'user-123',
-      },
-    };
-
-    const mockDeactivateFeeDto = {
-      reason: 'No longer applicable',
-    };
-
-    const mockFee: Fees = {
-      id: 'fee-789',
-      component_name: 'Tuition Fee',
-      amount: 500,
-      description: 'Tuition fee for semester',
-      term_id: 'term-123',
-      term: {} as Term,
-      classes: [],
-      status: FeeStatus.ACTIVE,
-      created_by: 'user-123',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    beforeEach(async () => {
-      const module: TestingModule = await Test.createTestingModule({
-        controllers: [FeesController],
-        providers: [
-          {
-            provide: FeesService,
-            useValue: {
-              create: jest.fn(),
-              deactivate: jest.fn(), // Make sure this is included
-            },
-          },
-        ],
-      }).compile();
-
-      controller = module.get<FeesController>(FeesController);
-      service = module.get<FeesService>(FeesService);
+      expect(service.update).toHaveBeenCalledWith('fee-123', mockUpdateFeesDto);
+      expect(result).toEqual({
+        message: sysMsg.FEE_UPDATED_SUCCESSFULLY,
+        fee: mockFee,
+      });
     });
 
-    describe('deactivateFee', () => {
-      it('should deactivate a fee successfully', async () => {
-        // Use jest.spyOn to ensure the method is properly mocked
-        jest.spyOn(service, 'deactivate').mockResolvedValue(mockFee);
+    it('should handle fee not found during update', async () => {
+      const notFoundError = new NotFoundException(sysMsg.FEE_NOT_FOUND);
+      service.update.mockRejectedValue(notFoundError);
 
-        const result = await controller.deactivateFee(
-          'fee-123',
-          mockDeactivateFeeDto,
-          mockUser,
-        );
+      await expect(
+        controller.updateFee('invalid-id', mockUpdateFeesDto),
+      ).rejects.toThrow(notFoundError);
+    });
+  });
 
-        expect(service.deactivate).toHaveBeenCalledWith(
-          'fee-123',
-          mockUser.user.userId,
-        );
-        expect(result).toEqual({
-          message: sysMsg.FEE_DEACTIVATED_SUCCESSFULLY,
-          data: mockFee,
-        });
+  describe('deactivateFee', () => {
+    it('should deactivate a fee successfully', async () => {
+      service.deactivate.mockResolvedValue(mockFee);
+
+      const result = await controller.deactivateFee(
+        'fee-123',
+        mockDeactivateFeeDto,
+        mockUser,
+      );
+
+      expect(service.deactivate).toHaveBeenCalledWith(
+        'fee-123',
+        mockUser.user.userId,
+        mockDeactivateFeeDto.reason,
+      );
+      expect(result).toEqual({
+        message: sysMsg.FEE_DEACTIVATED_SUCCESSFULLY,
+        data: mockFee,
       });
+    });
 
-      it('should handle fee not found', async () => {
-        const notFoundError = new NotFoundException(sysMsg.FEE_NOT_FOUND);
-        jest.spyOn(service, 'deactivate').mockRejectedValue(notFoundError);
+    it('should handle fee not found', async () => {
+      const notFoundError = new NotFoundException(sysMsg.FEE_NOT_FOUND);
+      service.deactivate.mockRejectedValue(notFoundError);
 
-        await expect(
-          controller.deactivateFee(
-            'invalid-id',
-            mockDeactivateFeeDto,
-            mockUser,
-          ),
-        ).rejects.toThrow(notFoundError);
-      });
+      await expect(
+        controller.deactivateFee('invalid-id', mockDeactivateFeeDto, mockUser),
+      ).rejects.toThrow(notFoundError);
+    });
+
+    it('should call deactivate without reason when not provided', async () => {
+      const deactivateDtoWithoutReason = {};
+      service.deactivate.mockResolvedValue(mockFee);
+
+      await controller.deactivateFee(
+        'fee-123',
+        deactivateDtoWithoutReason as DeactivateFeeDto,
+        mockUser,
+      );
+
+      expect(service.deactivate).toHaveBeenCalledWith(
+        'fee-123',
+        mockUser.user.userId,
+        undefined,
+      );
+    });
+  });
+
+  describe('Guards and Decorators', () => {
+    it('should have JwtAuthGuard applied', () => {
+      const guards = Reflect.getMetadata('__guards__', FeesController);
+      expect(guards).toBeDefined();
+    });
+
+    it('should have RolesGuard applied', () => {
+      const guards = Reflect.getMetadata('__guards__', FeesController);
+      expect(guards).toBeDefined();
+    });
+
+    it('should require ADMIN role for createFee', () => {
+      const roles = Reflect.getMetadata('roles', controller.createFee);
+      expect(roles).toContain(UserRole.ADMIN);
+    });
+
+    it('should require ADMIN role for updateFee', () => {
+      const roles = Reflect.getMetadata('roles', controller.updateFee);
+      expect(roles).toContain(UserRole.ADMIN);
+    });
+
+    it('should require ADMIN role for deactivateFee', () => {
+      const roles = Reflect.getMetadata('roles', controller.deactivateFee);
+      expect(roles).toContain(UserRole.ADMIN);
+    });
+
+    it('should have correct route path', () => {
+      const path = Reflect.getMetadata('path', FeesController);
+      expect(path).toBe('fees');
     });
   });
 });
