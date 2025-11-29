@@ -18,6 +18,7 @@ import { UserRole } from '../shared/enums';
 
 import {
   swaggerCreateFee,
+  swaggerGetAFee,
   swaggerGetAllFees,
   swaggerUpdateFee,
 } from './docs/fees.swagger';
@@ -49,6 +50,16 @@ export class FeesController {
     const result = await this.feesService.findAll(queryDto);
     return {
       message: sysMsg.FEES_RETRIEVED_SUCCESSFULLY,
+      ...result,
+    };
+  }
+
+  @Get(':id')
+  @swaggerGetAFee()
+  async getFeeById(@Param('id') id: string) {
+    const result = await this.feesService.findOne(id);
+    return {
+      message: sysMsg.FEE_RETRIEVED_SUCCESSFULLY,
       ...result,
     };
   }

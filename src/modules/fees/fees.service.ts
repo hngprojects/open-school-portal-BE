@@ -165,6 +165,19 @@ export class FeesService {
     };
   }
 
+  async findOne(id: string) {
+    const existingFee = await this.feesModelAction.get({
+      identifierOptions: { id },
+      relations: { classes: true, term: true },
+    });
+
+    if (!existingFee) {
+      throw new NotFoundException(sysMsg.FEE_NOT_FOUND);
+    }
+
+    return existingFee;
+  }
+
   async update(id: string, updateFeesDto: UpdateFeesDto): Promise<Fees> {
     return this.dataSource.transaction(async (manager) => {
       const existingFee = await this.feesModelAction.get({
