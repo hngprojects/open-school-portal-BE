@@ -399,6 +399,12 @@ export class GradeSubmissionService {
     if (!submission)
       throw new NotFoundException(sysMsg.GRADE_SUBMISSION_NOT_FOUND);
 
+    if (submission.status === GradeSubmissionStatus.APPROVED)
+      throw new BadRequestException(sysMsg.GRADE_ALREADY_APPROVED);
+
+    if (submission.status === GradeSubmissionStatus.REJECTED)
+      throw new BadRequestException(sysMsg.GRADE_ALREADY_REJECTED);
+
     if (submission.status !== GradeSubmissionStatus.SUBMITTED)
       throw new BadRequestException(sysMsg.GRADE_NOT_SUBMITTED);
 
@@ -429,6 +435,12 @@ export class GradeSubmissionService {
 
     if (!submission)
       throw new NotFoundException(sysMsg.GRADE_SUBMISSION_NOT_FOUND);
+
+    if (submission.status === GradeSubmissionStatus.APPROVED)
+      throw new BadRequestException(sysMsg.GRADE_ALREADY_APPROVED);
+
+    if (submission.status === GradeSubmissionStatus.REJECTED)
+      throw new BadRequestException(sysMsg.GRADE_ALREADY_REJECTED);
 
     if (submission.status !== GradeSubmissionStatus.SUBMITTED)
       throw new BadRequestException(sysMsg.GRADE_NOT_SUBMITTED);
