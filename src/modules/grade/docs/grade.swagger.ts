@@ -1,7 +1,10 @@
 import { applyDecorators } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
+  ApiNotFoundResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiQuery,
@@ -219,6 +222,40 @@ export function getStudentsForClassDocs() {
     ApiResponse({
       status: 403,
       description: 'Forbidden - teacher not assigned to this subject/class',
+    }),
+  );
+}
+
+export function approveSubmissionDocs() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: 'Approve a grade submission',
+      description:
+        'Approve a grade submission by Admin. All grades must be complete.',
+    }),
+    ApiOkResponse({
+      description: 'Grade submission approved successfully',
+    }),
+    ApiNotFoundResponse({
+      description: 'Submission not found',
+    }),
+  );
+}
+
+export function rejectSubmissionDocs() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: 'Reject a grade submission',
+      description:
+        'Reject a grade submission by Admin. All grades must be complete.',
+    }),
+    ApiNotFoundResponse({
+      description: 'Submission not found',
+    }),
+    ApiBadRequestResponse({
+      description: 'Bad request - incomplete grades',
     }),
   );
 }
