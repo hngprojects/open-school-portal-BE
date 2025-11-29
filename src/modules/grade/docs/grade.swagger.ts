@@ -251,6 +251,7 @@ export function getStudentGradesDocs() {
       status: 404,
       description: 'Student not found',
     }),
+  );
 }
 
 export function approveSubmissionDocs() {

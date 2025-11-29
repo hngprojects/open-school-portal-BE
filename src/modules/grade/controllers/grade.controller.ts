@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -16,20 +17,11 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { UserRole } from '../../shared/enums';
 import {
-  createGradeSubmissionDocs,
-  getStudentsForClassDocs,
-  getSubmissionDocs,
   GradeSwagger,
-  listTeacherSubmissionsDocs,
-  submitForApprovalDocs,
   updateGradeDocs,
   getStudentGradesDocs,
 } from '../docs/grade.swagger';
-import {
-  CreateGradeSubmissionDto,
-  ListGradeSubmissionsDto,
-  UpdateGradeDto,
-} from '../dto';
+import { UpdateGradeDto } from '../dto';
 import { GradeService } from '../services/grade.service';
 
 interface IRequestWithUser extends Request {

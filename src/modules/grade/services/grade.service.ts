@@ -10,22 +10,11 @@ import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
-import { Class, ClassSubject, ClassStudent } from '../../class/entities';
 import { UserRole } from '../../shared/enums';
 import { StudentModelAction } from '../../student/model-actions';
-import {
-  CreateGradeSubmissionDto,
-  GradeResponseDto,
-  GradeSubmissionResponseDto,
-  ListGradeSubmissionsDto,
-  UpdateGradeDto,
-} from '../dto';
-import {
-  Grade, 
-  GradeSubmission,
-  GradeSubmissionStatus,
-} from '../entities';
-import { GradeModelAction, GradeSubmissionModelAction } from '../model-actions';
+import { GradeResponseDto, UpdateGradeDto } from '../dto';
+import { Grade, GradeSubmissionStatus } from '../entities';
+import { GradeModelAction } from '../model-actions';
 
 @Injectable()
 export class GradeService {
@@ -45,6 +34,7 @@ export class GradeService {
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
     private readonly gradeModelAction: GradeModelAction,
     private readonly dataSource: DataSource,
+    private readonly studentModelAction: StudentModelAction,
   ) {
     this.logger = baseLogger.child({ context: GradeService.name });
   }
@@ -59,27 +49,6 @@ export class GradeService {
       }
     }
     return 'F';
-  }
-
-  /**
-   * Verify teacher is assigned to the subject/class
-   */
-  private async verifyTeacherSubjectAssignment(
-    teacherId: string,
-    subjectId: string,
-    classId: string,
-  ): Promise<boolean> {
-    const classSubject = await this.dataSource
-      .getRepository(ClassSubject)
-      .findOne({
-        where: {
-          class: { id: classId },
-          subject: { id: subjectId },
-          teacher: { id: teacherId },
-        },
-      });
-
-    return !!classSubject;
   }
 
   /**
@@ -238,54 +207,6 @@ export class GradeService {
       message: sysMsg.GRADES_FETCHED,
       data: transformedGrades,
     };
-  }
-
-  /**
-   * Transform submission to response DTO
-   */
-  private transformToResponse(
-    submission: GradeSubmission,
-    grades: Grade[],
-  ): GradeSubmissionResponseDto {
-    return {
-      id: submission.id,
-      teacher: submission.teacher
-        ? {
-            id: submission.teacher.id,
-            name: `${submission.teacher.user?.first_name || ''} ${submission.teacher.user?.last_name || ''}`.trim(),
-            title: submission.teacher.title,
-          }
-        : null,
-      class: submission.class
-        ? {
-            id: submission.class.id,
-            name: submission.class.name,
-            arm: submission.class.arm,
-          }
-        : null,
-      subject: submission.subject
-        ? {
-            id: submission.subject.id,
-            name: submission.subject.name,
-          }
-        : null,
-      term: submission.term
-        ? {
-            id: submission.term.id,
-            name: submission.term.name,
-          }
-        : null,
-      status: submission.status,
-      student_count: grades.length,
-      submitted_at: submission.submitted_at,
-      reviewed_at: submission.reviewed_at,
-      rejection_reason: submission.rejection_reason,
-      grades: grades.map((grade) =>
-        this.transformGradeToResponse(grade, grade.student),
-      ),
-      created_at: submission.createdAt,
-      updated_at: submission.updatedAt,
-    } as GradeSubmissionResponseDto;
   }
 
   /**

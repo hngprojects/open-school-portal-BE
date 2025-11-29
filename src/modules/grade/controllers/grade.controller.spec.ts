@@ -85,32 +85,6 @@ describe('GradeController', () => {
     });
   });
 
-  describe('getStudentsForClass', () => {
-    it('should get students for a class', async () => {
-      const students = [
-        { id: 'student-1', name: 'John Doe', registration_number: 'STU-001' },
-      ];
-      const expectedResult = {
-        message: sysMsg.STUDENTS_FETCHED,
-        data: students,
-      };
-
-      gradeService.getStudentsForClass.mockResolvedValue(students);
-
-      const result = await controller.getStudentsForClass(
-        mockRequest as unknown as IRequestWithUser,
-        mockClassId,
-        mockSubjectId,
-      );
-
-      expect(result).toEqual(expectedResult);
-      expect(gradeService.getStudentsForClass).toHaveBeenCalledWith(
-        mockClassId,
-        mockTeacherId,
-        mockSubjectId,
-      );
-    });
-  });
   describe('getStudentGrades', () => {
     it('should get grades for a student', async () => {
       const studentId = 'student-uuid-456';
