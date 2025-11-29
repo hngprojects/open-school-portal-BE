@@ -6,6 +6,8 @@ import {
   Query,
   UseGuards,
   Request,
+  Patch,
+  Param,
 } from '@nestjs/common';
 
 import * as sysMsg from '../../constants/system.messages';
@@ -14,8 +16,12 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserRole } from '../shared/enums';
 
-import { swaggerCreateFee, swaggerGetAllFees } from './docs/fees.swagger';
-import { CreateFeesDto, QueryFeesDto } from './dto/fees.dto';
+import {
+  swaggerCreateFee,
+  swaggerGetAllFees,
+  swaggerUpdateFee,
+} from './docs/fees.swagger';
+import { CreateFeesDto, QueryFeesDto, UpdateFeesDto } from './dto/fees.dto';
 import { FeesService } from './fees.service';
 
 @Controller('fees')
@@ -48,6 +54,20 @@ export class FeesController {
       page: result.page,
       limit: result.limit,
       totalPages: result.totalPages,
+    };
+  }
+
+  @Patch(':id')
+  @Roles(UserRole.ADMIN)
+  @swaggerUpdateFee()
+  async updateFee(
+    @Param('id') id: string,
+    @Body() updateFeesDto: UpdateFeesDto,
+  ) {
+    const fee = await this.feesService.update(id, updateFeesDto);
+    return {
+      message: sysMsg.FEE_UPDATED_SUCCESSFULLY,
+      fee,
     };
   }
 }
