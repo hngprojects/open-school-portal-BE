@@ -245,7 +245,7 @@ describe('AuthController', () => {
       };
 
       mockAuthService.googleLogin.mockRejectedValue(
-        new UnauthorizedException('Invalid Google token'),
+        new UnauthorizedException(sysMsg.INVALID_GOOGLE_TOKEN),
       );
 
       await expect(controller.googleLogin(googleLoginDto)).rejects.toThrow(

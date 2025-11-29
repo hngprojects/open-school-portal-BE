@@ -408,7 +408,7 @@ export class AuthService {
     const payload = ticket.getPayload();
 
     if (!payload) {
-      throw new UnauthorizedException('Invalid Google token');
+      throw new UnauthorizedException(sysMsg.INVALID_GOOGLE_TOKEN);
     }
 
     const { email, sub: googleId, given_name, family_name, picture } = payload;
@@ -427,9 +427,7 @@ export class AuthService {
     } else {
       // User does not exist, check for invite
       if (!inviteToken) {
-        throw new ForbiddenException(
-          'Registration is by invitation only. Please provide an invite token.',
-        );
+        throw new ForbiddenException(sysMsg.REGISTRATION_INVITE_ONLY);
       }
 
       // Verify invite
@@ -459,9 +457,7 @@ export class AuthService {
 
       // Critical: Check if invite email matches Google email
       if (invite.email.toLowerCase() !== email.toLowerCase()) {
-        throw new ConflictException(
-          'The email associated with this invite does not match your Google email.',
-        );
+        throw new ConflictException(sysMsg.INVITE_EMAIL_MISMATCH);
       }
 
       // Create new user

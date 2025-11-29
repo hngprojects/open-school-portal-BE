@@ -444,6 +444,19 @@ describe('AuthService', () => {
       expect(result).toHaveProperty('access_token');
     });
 
+    it('should throw UnauthorizedException if Google token is invalid', async () => {
+      // Mock OAuth2Client
+      (OAuth2Client as unknown as jest.Mock).mockImplementation(() => ({
+        verifyIdToken: jest.fn().mockResolvedValue({
+          getPayload: jest.fn().mockReturnValue(null),
+        }),
+      }));
+
+      await expect(service.googleLogin('invalid-token')).rejects.toThrow(
+        sysMSG.INVALID_GOOGLE_TOKEN,
+      );
+    });
+
     it('should update existing user with google_id if missing', async () => {
       const existingUser = {
         id: 'user-id-123',
@@ -483,7 +496,7 @@ describe('AuthService', () => {
       }));
 
       await expect(service.googleLogin(mockGoogleToken)).rejects.toThrow(
-        'Registration is by invitation only',
+        sysMSG.REGISTRATION_INVITE_ONLY,
       );
     });
 
@@ -519,9 +532,7 @@ describe('AuthService', () => {
 
       await expect(
         service.googleLogin(mockGoogleToken, mockInviteToken),
-      ).rejects.toThrow(
-        'The email associated with this invite does not match your Google email.',
-      );
+      ).rejects.toThrow(sysMSG.INVITE_EMAIL_MISMATCH);
     });
 
     it('should create new user and accept invite if valid', async () => {
