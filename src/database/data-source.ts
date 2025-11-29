@@ -15,7 +15,7 @@ const dataSource = new DataSource({
   database: database.name,
   entities: [__dirname + '/**/*.entity.{ts,js}'],
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
-  synchronize: true,
+  synchronize: false,
   migrationsRun: false,
   migrationsTableName: 'migrations',
   ssl: database.ssl ? { rejectUnauthorized: false } : false,

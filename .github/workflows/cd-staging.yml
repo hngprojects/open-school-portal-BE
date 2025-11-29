@@ -36,6 +36,7 @@ jobs:
             pm2 stop osp-be-staging
             git pull origin staging
             npm install
+            npm run migration:run 2>&1 | tee migration-log-staging.txt
             npm run build
             pm2 restart osp-be-staging --update-env
           EOF
