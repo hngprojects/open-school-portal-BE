@@ -241,8 +241,20 @@ export class FeesService {
     });
   }
 
-  // fees.service.ts - Fix the deactivate method
+  async findOne(id: string) {
+    const existingFee = await this.feesModelAction.get({
+      identifierOptions: { id },
+      relations: { classes: true, term: true },
+    });
 
+    if (!existingFee) {
+      throw new NotFoundException(sysMsg.FEE_NOT_FOUND);
+    }
+
+    return existingFee;
+  }
+
+  // fees.service.ts - Fix the deactivate method
   async deactivate(
     id: string,
     deactivatedBy: string,

@@ -17,8 +17,9 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserRole } from '../shared/enums';
 
 import {
-  swaggerGetAllFees,
   swaggerCreateFee,
+  swaggerGetAFee,
+  swaggerGetAllFees,
   swaggerDeactivateFee,
   swaggerUpdateFee,
 } from './docs/fees.swagger';
@@ -85,6 +86,16 @@ export class FeesController {
     return {
       message: sysMsg.FEE_UPDATED_SUCCESSFULLY,
       fee,
+    };
+  }
+
+  @Get(':id')
+  @swaggerGetAFee()
+  async getFeeById(@Param('id') id: string) {
+    const result = await this.feesService.findOne(id);
+    return {
+      message: sysMsg.FEE_RETRIEVED_SUCCESSFULLY,
+      ...result,
     };
   }
 }

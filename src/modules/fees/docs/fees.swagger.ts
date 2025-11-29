@@ -13,6 +13,7 @@ import { DeactivateFeeDto } from '../dto/deactivate-fee.dto';
 import {
   CreateFeeResponseDto,
   FeesListResponseDto,
+  FeesResponseDto,
   DeactivateFeeResponseDto,
 } from '../dto/fees-response.dto';
 import { CreateFeesDto, UpdateFeesDto } from '../dto/fees.dto';
@@ -100,6 +101,36 @@ export function swaggerUpdateFee() {
     ApiResponse({
       status: 404,
       description: 'Fee component not found',
+    }),
+  );
+}
+
+export function swaggerGetAFee() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Get a single fee component',
+      description:
+        'Retrieve a specific fee component by its ID. Returns details such as name, amount, type, and metadata about the fee component.',
+    }),
+    ApiBearerAuth(),
+    ApiParam({
+      name: 'id',
+      required: true,
+      type: String,
+      description: 'The ID of the fee component to retrieve',
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Fee component retrieved successfully',
+      type: FeesResponseDto,
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Fee component not found',
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'Invalid feeComponentId supplied',
     }),
   );
 }
