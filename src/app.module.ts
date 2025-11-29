@@ -18,6 +18,8 @@ import { ContactModule } from './modules/contact/contact.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { DatabaseModule } from './modules/database-setup/database.module';
 import { EmailModule } from './modules/email/email.module';
+import { FeesModule } from './modules/fees/fees.module';
+import { GradeModule } from './modules/grade/grade.module';
 import { InviteModule } from './modules/invites/invites.module';
 import { ParentModule } from './modules/parent/parent.module';
 import { RoomModule } from './modules/room/room.module';
@@ -32,7 +34,6 @@ import { TimetableModule } from './modules/timetable/timetable.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { UserModule } from './modules/user/user.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
-
 @Module({
   imports: [
     LoggerModule,
@@ -79,6 +80,8 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     DatabaseModule,
     TimetableModule,
     TeacherSubjectModule,
+    FeesModule,
+    GradeModule,
   ],
   controllers: [AppController],
   providers: [

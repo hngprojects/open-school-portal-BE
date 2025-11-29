@@ -212,6 +212,9 @@ export const SUBJECT_RETRIEVED = 'Subject retrieved successfully';
 export const SUBJECT_NOT_FOUND = 'Subject not found';
 export const SUBJECT_UPDATED = 'Subject updated successfully';
 export const SUBJECT_DELETED = 'Subject deleted successfully';
+export const SUBJECT_REQUIRED_FOR_LESSON = 'Subject is required for lessons';
+export const CLASSES_ASSIGNED_TO_SUBJECT =
+  'Classes successfully assigned to subject';
 
 // School Installation messages
 export const INSTALLATION_COMPLETED =
@@ -233,6 +236,21 @@ export const CLASS_NAME_EMPTY = 'class name cannot be empty';
 export const CLASS_UPDATED = 'class updated successfully';
 export const CLASS_FETCHED = 'class fetched successfully';
 export const TOTAL_CLASSES_FETCHED = 'total classes fetched successfully';
+export const INVALID_CLASS_IDS = 'One or more class IDs are invalid';
+export const CLASSES_NOT_IN_ACTIVE_SESSION =
+  'One or more classes are not in the active academic session';
+export const CLASS_SUBJECT_NOT_FOUND = 'Subject not found in class';
+export const CLASS_SUBJECTS_FETCHED_SUCCESSFUL =
+  'Class subjects fetched successfully';
+export const CLASS_SUBJECT_ALREADY_HAS_A_TEACHER =
+  'Teacher already assigned to this subject in this class';
+export const TEACHER_NOT_ASSIGNED_TO_SUBJECT =
+  'No teacher is assigned to this subject';
+export const TEACHER_UNASSIGNED_FROM_SUBJECT =
+  'Teacher successfully unassigned from this subject';
+export const CLASS_DELETED = 'Class deleted successfully';
+export const CANNOT_DELETE_PAST_SESSION_CLASS =
+  'Only classes from the active session can be deleted.';
 
 // Parent messages
 export const PARENT_CREATED = 'Parent created successfully';
@@ -290,7 +308,7 @@ export const TERM_END_BEFORE_START =
   'End date must be after the current start date';
 export const TERM_SEQUENTIAL_INVALID =
   'start date must be after the previous term end date';
-
+export const TERM_ID_INVALID = 'invalid term id';
 // Dashboard messages
 export const DASHBOARD_RESOLVED = 'Dashboard resolved successfully';
 
@@ -313,6 +331,48 @@ export const TEACHER_NOT_FOUND = 'Teacher not found';
 export const INVALID_DATE_RANGE_TIMETABLE =
   'End date must be after effective date';
 export const TIMETABLE_ARCHIVED = 'Timetable archived successfully';
-export const SUBJECT_REQUIRED_FOR_LESSON = 'Subject is required for lessons';
 export const TIMETABLE_INTERNAL_OVERLAP =
   'Timetable contains overlapping schedules.';
+
+// Fees messages
+export const FEE_CREATED_SUCCESSFULLY = 'Fee component created successfully';
+export const FEES_RETRIEVED_SUCCESSFULLY =
+  'Fee components retrieved successfully';
+export const FEE_RETRIEVED_SUCCESSFULLY =
+  'Fee component retrieved successfully';
+export const FEE_UPDATED_SUCCESSFULLY = 'Fee component updated successfully';
+export const FEE_STATUS_UPDATED_SUCCESSFULLY =
+  'Fee component status updated successfully';
+export const FEE_NOT_FOUND = 'Fees component not found';
+
+// Grade messages
+export const GRADE_SUBMISSION_CREATED = 'Grade submission created successfully';
+export const GRADE_SUBMISSION_UPDATED = 'Grade submission updated successfully';
+export const GRADE_SUBMISSION_NOT_FOUND = 'Grade submission not found';
+export const GRADE_SUBMISSION_EXISTS =
+  'A grade submission already exists for this class, subject, and term';
+export const GRADE_CREATED = 'Grade created successfully';
+export const GRADE_UPDATED = 'Grade updated successfully';
+export const GRADE_SUBMITTED = 'Grades submitted for approval successfully';
+export const GRADE_APPROVED = 'Grades approved successfully';
+export const GRADE_REJECTED = 'Grades rejected';
+export const GRADE_UNLOCKED = 'Grades unlocked for editing';
+export const GRADE_NOT_FOUND = 'Grade not found';
+export const GRADES_FETCHED = 'Grades fetched successfully';
+export const GRADE_ALREADY_APPROVED =
+  'Cannot modify an approved grade submission';
+export const GRADE_ALREADY_SUBMITTED =
+  'Cannot modify a submitted grade submission. Wait for admin review.';
+export const GRADE_NOT_SUBMITTED =
+  'Grade submission must be submitted before approval';
+export const GRADE_INCOMPLETE_SCORES =
+  'All students must have complete CA and exam scores before submission';
+export const GRADE_INVALID_STATUS_TRANSITION =
+  'Invalid status transition for grade submission';
+export const GRADE_TEACHER_NOT_ASSIGNED =
+  'You are not assigned to teach this subject for this class';
+export const TEACHER_PROFILE_NOT_FOUND =
+  'Teacher profile not found. Please ensure your account is properly linked to a teacher profile.';
+export const UNAUTHORIZED_GRADE_ACCESS =
+  'You are not authorized to access this grade submission';
+export const INVALID_SCORE_RANGE = 'Score must be within the allowed range';
