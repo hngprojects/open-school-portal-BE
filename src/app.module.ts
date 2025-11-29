@@ -28,13 +28,13 @@ import { SessionModule } from './modules/session/session.module';
 import { StreamModule } from './modules/stream/stream.module';
 import { StudentModule } from './modules/student/student.module';
 import { SubjectModule } from './modules/subject/subject.module';
+import { SuperadminModule } from './modules/superadmin/superadmin.module';
 import { TeachersModule } from './modules/teacher/teacher.module';
 import { TeacherSubjectModule } from './modules/teacher-subject/teacher-subject.module';
 import { TimetableModule } from './modules/timetable/timetable.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { UserModule } from './modules/user/user.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
-
 @Module({
   imports: [
     LoggerModule,
@@ -83,6 +83,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     TeacherSubjectModule,
     FeesModule,
     GradeModule,
+    SuperadminModule,
   ],
   controllers: [AppController],
   providers: [
