@@ -5,14 +5,18 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
+import { EmailTemplateID } from 'src/constants/email-constants';
+
 import config from '../../config/config';
 import * as sysMsg from '../../constants/system.messages';
+import { EmailService } from '../email/email.service';
 
 import { CreateSuperadminDto } from './dto/create-superadmin.dto';
 import { LoginSuperadminDto } from './dto/login-superadmin.dto';
@@ -30,6 +34,8 @@ export class SuperadminService {
     private readonly dataSource: DataSource,
     private readonly jwtService: JwtService,
     private readonly superadminSessionService: SuperadminSessionService,
+    private readonly emailService: EmailService,
+    private readonly configService: ConfigService,
   ) {
     this.logger = logger.child({ context: SuperadminService.name });
   }
@@ -53,6 +59,23 @@ export class SuperadminService {
       access_token: accessToken,
       refresh_token: refreshToken,
     };
+  }
+
+  private async sendWelcomeEmail(userName: string, email: string) {
+    await this.emailService.sendMail({
+      to: [{ email: email, name: userName }],
+      subject: 'Welcome to Open School Portal',
+      templateNameID: EmailTemplateID.SUPERADMIN_WELCOME,
+      templateData: {
+        first_name: userName,
+        school_name: 'Open School Portal',
+        logo_url: 'https://staging.schoolbase.africa/assets/logo.svg',
+        role: Role.SUPERADMIN,
+        invite_link: `
+          ${this.configService.get<string>('frontend.superadmin_login_url')}
+          `,
+      },
+    });
   }
 
   async createSuperAdmin(createSuperadminDto: CreateSuperadminDto) {
@@ -90,6 +113,11 @@ export class SuperadminService {
     );
 
     if (createdSuperadmin.password) delete createdSuperadmin.password;
+
+    await this.sendWelcomeEmail(
+      createdSuperadmin.first_name,
+      createdSuperadmin.email,
+    );
 
     this.logger.info(sysMsg.SUPERADMIN_ACCOUNT_CREATED);
 

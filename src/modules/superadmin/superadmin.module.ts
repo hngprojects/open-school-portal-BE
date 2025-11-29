@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { RateLimitGuard } from '../../common/guards/rate-limit.guard';
+import { EmailModule } from '../email/email.module';
 
 import { SuperAdmin } from './entities/superadmin.entity';
 import { SuperadminModelAction } from './model-actions/superadmin-actions';
@@ -23,6 +24,7 @@ import { SuperadminService } from './superadmin.service';
       inject: [ConfigService],
     }),
     SuperadminSessionModule,
+    EmailModule,
   ],
   controllers: [SuperadminController],
   providers: [SuperadminService, SuperadminModelAction, RateLimitGuard],

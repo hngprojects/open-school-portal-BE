@@ -55,6 +55,7 @@ export default () => ({
 
   frontend: {
     url: process.env.FRONTEND_URL,
+    superadmin_login_url: process.env.SUPERADMIN_LOGIN_URL,
   },
   school: {
     name: process.env.SCHOOL_NAME,
