@@ -323,6 +323,7 @@ export class ClassService {
       id: classEntity.id,
       name: classEntity.name,
       arm: classEntity.arm,
+      is_deleted: classEntity.is_deleted,
       academicSession: {
         id: classEntity.academicSession.id,
         name: classEntity.academicSession.name,
