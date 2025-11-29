@@ -1,4 +1,5 @@
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -8,6 +9,7 @@ import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../constants/system.messages';
+import { EmailService } from '../email/email.service';
 
 import { CreateSuperadminDto } from './dto/create-superadmin.dto';
 import { LoginSuperadminDto } from './dto/login-superadmin.dto';
@@ -48,6 +50,14 @@ describe('SuperadminService', () => {
     revokeSession: jest.fn(),
   };
 
+  const mock_email_service = {
+    sendMail: jest.fn(),
+  };
+
+  const mock_config_service = {
+    get: jest.fn().mockReturnValue('some-mock-value'),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -75,6 +85,14 @@ describe('SuperadminService', () => {
         {
           provide: SuperadminSessionService,
           useValue: mock_superadmin_session_service,
+        },
+        {
+          provide: EmailService,
+          useValue: mock_email_service,
+        },
+        {
+          provide: ConfigService,
+          useValue: mock_config_service,
         },
       ],
     }).compile();
@@ -133,6 +151,7 @@ describe('SuperadminService', () => {
         role: Role.SUPERADMIN,
       };
       mock_model_action_impl.create.mockResolvedValue(createdEntity);
+      mock_email_service.sendMail.mockResolvedValue(undefined);
       await service.createSuperAdmin(dto);
       expect(model_action.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -394,6 +413,14 @@ describe('SuperadminService', () => {
             {
               provide: SuperadminSessionService,
               useValue: null,
+            },
+            {
+              provide: EmailService,
+              useValue: mock_email_service,
+            },
+            {
+              provide: ConfigService,
+              useValue: mock_config_service,
             },
           ],
         }).compile();
