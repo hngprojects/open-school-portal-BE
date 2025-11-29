@@ -171,8 +171,6 @@ export const ACADEMIC_SESSION_UPDATED =
   'Academic session updated successfully.';
 export const ACADEMIC_SESSION_DELETED =
   'Academic session deleted successfully.';
-export const INACTIVE_SESSION_LOCKED =
-  'Cannot modify an inactive academic session. Previous sessions are locked to preserve historical data integrity.';
 export const ARCHIVED_SESSION_LOCKED =
   'Cannot modify an archived academic session. Archived sessions are read-only to preserve historical data.';
 export const ARCHIVED_SESSION_NO_DELETE =
@@ -180,8 +178,6 @@ export const ARCHIVED_SESSION_NO_DELETE =
 export const ACTIVE_SESSION_NO_DELETE =
   'Cannot delete an active academic session. Please archive the session first before deletion.';
 export const SESSION_ARCHIVED = 'Academic session archived successfully.';
-export const ONGOING_SESSION_EXISTS =
-  'Cannot create a new session while an ongoing session exists. Please wait for the current session to end.';
 // Session management messages
 export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
@@ -272,6 +268,8 @@ export const DATABASE_ALREADY_CONFIGURED =
 export const DATABASE_CONFIGURATION_FAILED = 'Database configuration failed';
 export const DATABASE_CONFIGURATION_SUCCESS =
   'Database configuration successful';
+export const DATABASE_CONFIGURATION_UPDATED =
+  'Database configuration updated successfully';
 // Student messages
 export const STUDENT_CREATED = 'Student created successfully';
 export const STUDENT_EMAIL_CONFLICT = `Student with email already exists.`;
@@ -301,14 +299,10 @@ export const ARCHIVED_TERM_LOCKED =
   'Cannot modify an archived term. Archived terms are read-only to preserve historical data.';
 
 // Academic Term - Validation errors
-export const TERM_INVALID_DATE_RANGE = 'end date must be after start date';
-export const TERM_START_AFTER_END =
-  'Start date must be before the current end date';
-export const TERM_END_BEFORE_START =
-  'End date must be after the current start date';
+export const TERM_INVALID_DATE_RANGE = 'end date must be after start date.';
 export const TERM_SEQUENTIAL_INVALID =
-  'start date must be after the previous term end date';
-export const TERM_ID_INVALID = 'invalid term id';
+  'Start date must be after the previous term end date.';
+export const TERM_ID_INVALID = 'Invalid term ID.';
 // Dashboard messages
 export const DASHBOARD_RESOLVED = 'Dashboard resolved successfully';
 
@@ -361,6 +355,8 @@ export const GRADE_NOT_FOUND = 'Grade not found';
 export const GRADES_FETCHED = 'Grades fetched successfully';
 export const GRADE_ALREADY_APPROVED =
   'Cannot modify an approved grade submission';
+export const GRADE_ALREADY_REJECTED =
+  'Cannot approve a rejected grade submission';
 export const GRADE_ALREADY_SUBMITTED =
   'Cannot modify a submitted grade submission. Wait for admin review.';
 export const GRADE_NOT_SUBMITTED =
@@ -376,3 +372,19 @@ export const TEACHER_PROFILE_NOT_FOUND =
 export const UNAUTHORIZED_GRADE_ACCESS =
   'You are not authorized to access this grade submission';
 export const INVALID_SCORE_RANGE = 'Score must be within the allowed range';
+export const FEE_DEACTIVATED_SUCCESSFULLY =
+  'Fee component deactivated successfully';
+export const FEE_ALREADY_INACTIVE = 'Fee component is already inactive';
+// Superadmin messages
+export const SUPERADMIN_ACCOUNT_CREATED = 'superadmin account created';
+export const SUPERADMIN_PASSWORDS_REQUIRED =
+  'password and confirmation password are required';
+export const SUPERADMIN_INVALID_PASSWORD = 'invalid password';
+export const SUPERADMIN_EMAIL_EXISTS =
+  'superadmin with this email already exists';
+export const SUPERADMIN_PASSWORD_MUST_MATCH =
+  'password and confirmation password must match';
+export const SUPERADMIN_CONFLICT_GENERAL_MSG =
+  'conflict - request cannot be processed. See examples for possible causes.';
+export const SUPERADMIN_ALREADY_EXISTS =
+  'a superadmin account already exists. Only one is allowed.';

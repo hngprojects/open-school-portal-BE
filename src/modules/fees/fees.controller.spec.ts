@@ -1,3 +1,4 @@
+import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import * as sysMsg from '../../constants/system.messages';
@@ -12,7 +13,8 @@ import {
 } from '../academic-term/entities/term.entity';
 import { UserRole } from '../shared/enums';
 
-import { CreateFeesDto } from './dto/fees.dto';
+import { DeactivateFeeDto } from './dto/deactivate-fee.dto';
+import { CreateFeesDto, QueryFeesDto, UpdateFeesDto } from './dto/fees.dto';
 import { Fees } from './entities/fees.entity';
 import { FeeStatus } from './enums/fees.enums';
 import { FeesController } from './fees.controller';
@@ -30,11 +32,21 @@ describe('FeesController', () => {
     class_ids: ['c5d4e3f2-g1h0-9876-5432-10abcdef9876'],
   };
 
+  const mockUpdateFeesDto: UpdateFeesDto = {
+    component_name: 'Updated Fee',
+    amount: 600,
+  };
+
+  const mockDeactivateFeeDto: DeactivateFeeDto = {
+    reason: 'No longer applicable',
+  };
+
   const mockUser = {
     user: {
       userId: 'user-123',
     },
   };
+
   const mockTerm: Term = {
     id: 'term-123',
     sessionId: 'session-456',
@@ -78,6 +90,9 @@ describe('FeesController', () => {
           provide: FeesService,
           useValue: {
             create: jest.fn(),
+            findAll: jest.fn(),
+            update: jest.fn(),
+            deactivate: jest.fn(),
           },
         },
       ],
@@ -282,6 +297,284 @@ describe('FeesController', () => {
     });
   });
 
+  describe('getAllFees', () => {
+    const mockQueryDto: QueryFeesDto = {
+      page: 1,
+      limit: 20,
+    };
+
+    const mockFeesResult = {
+      fees: [mockFee],
+      total: 1,
+      page: 1,
+      limit: 20,
+      totalPages: 1,
+    };
+
+    it('should be defined', () => {
+      expect(controller.getAllFees).toBeDefined();
+    });
+
+    it('should successfully retrieve all fees', async () => {
+      service.findAll.mockResolvedValue(mockFeesResult);
+
+      const result = await controller.getAllFees(mockQueryDto);
+
+      expect(service.findAll).toHaveBeenCalledWith(mockQueryDto);
+      expect(service.findAll).toHaveBeenCalledTimes(1);
+      expect(result).toEqual({
+        message: sysMsg.FEES_RETRIEVED_SUCCESSFULLY,
+        fees: mockFeesResult.fees,
+        total: mockFeesResult.total,
+        page: mockFeesResult.page,
+        limit: mockFeesResult.limit,
+        totalPages: mockFeesResult.totalPages,
+      });
+    });
+
+    it('should pass query parameters to service', async () => {
+      const queryWithFilters: QueryFeesDto = {
+        status: FeeStatus.ACTIVE,
+        class_id: 'class-123',
+        term_id: 'term-123',
+        search: 'tuition',
+        page: 2,
+        limit: 10,
+      };
+
+      service.findAll.mockResolvedValue({
+        ...mockFeesResult,
+        page: 2,
+        limit: 10,
+      });
+
+      await controller.getAllFees(queryWithFilters);
+
+      expect(service.findAll).toHaveBeenCalledWith(queryWithFilters);
+    });
+
+    it('should return correct response structure', async () => {
+      service.findAll.mockResolvedValue(mockFeesResult);
+
+      const result = await controller.getAllFees(mockQueryDto);
+
+      expect(result).toHaveProperty('message');
+      expect(result).toHaveProperty('fees');
+      expect(result).toHaveProperty('total');
+      expect(result).toHaveProperty('page');
+      expect(result).toHaveProperty('limit');
+      expect(result).toHaveProperty('totalPages');
+      expect(result.message).toBe(sysMsg.FEES_RETRIEVED_SUCCESSFULLY);
+    });
+
+    it('should handle empty results', async () => {
+      const emptyResult = {
+        fees: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 0,
+      };
+
+      service.findAll.mockResolvedValue(emptyResult);
+
+      const result = await controller.getAllFees(mockQueryDto);
+
+      expect(result.fees).toEqual([]);
+      expect(result.total).toBe(0);
+      expect(result.totalPages).toBe(0);
+    });
+
+    it('should handle pagination correctly', async () => {
+      const paginatedResult = {
+        fees: [mockFee],
+        total: 50,
+        page: 3,
+        limit: 10,
+        totalPages: 5,
+      };
+
+      service.findAll.mockResolvedValue(paginatedResult);
+
+      const queryDto: QueryFeesDto = {
+        page: 3,
+        limit: 10,
+      };
+
+      const result = await controller.getAllFees(queryDto);
+
+      expect(result.page).toBe(3);
+      expect(result.limit).toBe(10);
+      expect(result.totalPages).toBe(5);
+      expect(result.total).toBe(50);
+    });
+
+    it('should propagate service errors', async () => {
+      const serviceError = new Error('Database connection failed');
+      service.findAll.mockRejectedValue(serviceError);
+
+      await expect(controller.getAllFees(mockQueryDto)).rejects.toThrow(
+        serviceError,
+      );
+
+      expect(service.findAll).toHaveBeenCalledWith(mockQueryDto);
+    });
+
+    it('should handle filtering by status', async () => {
+      const queryDto: QueryFeesDto = {
+        status: FeeStatus.INACTIVE,
+        page: 1,
+        limit: 20,
+      };
+
+      service.findAll.mockResolvedValue(mockFeesResult);
+
+      await controller.getAllFees(queryDto);
+
+      expect(service.findAll).toHaveBeenCalledWith(queryDto);
+    });
+
+    it('should handle filtering by class_id', async () => {
+      const queryDto: QueryFeesDto = {
+        class_id: 'class-123',
+        page: 1,
+        limit: 20,
+      };
+
+      service.findAll.mockResolvedValue(mockFeesResult);
+
+      await controller.getAllFees(queryDto);
+
+      expect(service.findAll).toHaveBeenCalledWith(queryDto);
+    });
+
+    it('should handle filtering by term_id', async () => {
+      const queryDto: QueryFeesDto = {
+        term_id: 'term-123',
+        page: 1,
+        limit: 20,
+      };
+
+      service.findAll.mockResolvedValue(mockFeesResult);
+
+      await controller.getAllFees(queryDto);
+
+      expect(service.findAll).toHaveBeenCalledWith(queryDto);
+    });
+
+    it('should handle search query', async () => {
+      const queryDto: QueryFeesDto = {
+        search: 'library',
+        page: 1,
+        limit: 20,
+      };
+
+      service.findAll.mockResolvedValue(mockFeesResult);
+
+      await controller.getAllFees(queryDto);
+
+      expect(service.findAll).toHaveBeenCalledWith(queryDto);
+    });
+
+    it('should handle multiple filters combined', async () => {
+      const queryDto: QueryFeesDto = {
+        status: FeeStatus.ACTIVE,
+        class_id: 'class-123',
+        term_id: 'term-123',
+        search: 'tuition',
+        page: 1,
+        limit: 20,
+      };
+
+      service.findAll.mockResolvedValue(mockFeesResult);
+
+      await controller.getAllFees(queryDto);
+
+      expect(service.findAll).toHaveBeenCalledWith(queryDto);
+    });
+
+    it('should use default pagination when not provided', async () => {
+      const queryDto: QueryFeesDto = {};
+
+      service.findAll.mockResolvedValue(mockFeesResult);
+
+      await controller.getAllFees(queryDto);
+
+      expect(service.findAll).toHaveBeenCalledWith(queryDto);
+    });
+  });
+
+  describe('updateFee', () => {
+    it('should update a fee successfully', async () => {
+      service.update.mockResolvedValue(mockFee);
+
+      const result = await controller.updateFee('fee-123', mockUpdateFeesDto);
+
+      expect(service.update).toHaveBeenCalledWith('fee-123', mockUpdateFeesDto);
+      expect(result).toEqual({
+        message: sysMsg.FEE_UPDATED_SUCCESSFULLY,
+        fee: mockFee,
+      });
+    });
+
+    it('should handle fee not found during update', async () => {
+      const notFoundError = new NotFoundException(sysMsg.FEE_NOT_FOUND);
+      service.update.mockRejectedValue(notFoundError);
+
+      await expect(
+        controller.updateFee('invalid-id', mockUpdateFeesDto),
+      ).rejects.toThrow(notFoundError);
+    });
+  });
+
+  describe('deactivateFee', () => {
+    it('should deactivate a fee successfully', async () => {
+      service.deactivate.mockResolvedValue(mockFee);
+
+      const result = await controller.deactivateFee(
+        'fee-123',
+        mockDeactivateFeeDto,
+        mockUser,
+      );
+
+      expect(service.deactivate).toHaveBeenCalledWith(
+        'fee-123',
+        mockUser.user.userId,
+        mockDeactivateFeeDto.reason,
+      );
+      expect(result).toEqual({
+        message: sysMsg.FEE_DEACTIVATED_SUCCESSFULLY,
+        data: mockFee,
+      });
+    });
+
+    it('should handle fee not found', async () => {
+      const notFoundError = new NotFoundException(sysMsg.FEE_NOT_FOUND);
+      service.deactivate.mockRejectedValue(notFoundError);
+
+      await expect(
+        controller.deactivateFee('invalid-id', mockDeactivateFeeDto, mockUser),
+      ).rejects.toThrow(notFoundError);
+    });
+
+    it('should call deactivate without reason when not provided', async () => {
+      const deactivateDtoWithoutReason = {};
+      service.deactivate.mockResolvedValue(mockFee);
+
+      await controller.deactivateFee(
+        'fee-123',
+        deactivateDtoWithoutReason as DeactivateFeeDto,
+        mockUser,
+      );
+
+      expect(service.deactivate).toHaveBeenCalledWith(
+        'fee-123',
+        mockUser.user.userId,
+        undefined,
+      );
+    });
+  });
+
   describe('Guards and Decorators', () => {
     it('should have JwtAuthGuard applied', () => {
       const guards = Reflect.getMetadata('__guards__', FeesController);
@@ -295,6 +588,16 @@ describe('FeesController', () => {
 
     it('should require ADMIN role for createFee', () => {
       const roles = Reflect.getMetadata('roles', controller.createFee);
+      expect(roles).toContain(UserRole.ADMIN);
+    });
+
+    it('should require ADMIN role for updateFee', () => {
+      const roles = Reflect.getMetadata('roles', controller.updateFee);
+      expect(roles).toContain(UserRole.ADMIN);
+    });
+
+    it('should require ADMIN role for deactivateFee', () => {
+      const roles = Reflect.getMetadata('roles', controller.deactivateFee);
       expect(roles).toContain(UserRole.ADMIN);
     });
 
