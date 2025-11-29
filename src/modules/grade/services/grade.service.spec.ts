@@ -34,7 +34,7 @@ describe('GradeService', () => {
   const mockSubmissionId = 'submission-uuid-123';
   const mockGradeId = 'grade-uuid-123';
 
-  const mockTeacherSubjectRepo = {
+  const mockClassSubjectRepo = {
     findOne: jest.fn(),
   };
 
@@ -74,7 +74,7 @@ describe('GradeService', () => {
         {
           provide: DataSource,
           useValue: {
-            getRepository: jest.fn().mockReturnValue(mockTeacherSubjectRepo),
+            getRepository: jest.fn().mockReturnValue(mockClassSubjectRepo),
             transaction: jest.fn((callback) => callback({})),
           },
         },
@@ -103,7 +103,7 @@ describe('GradeService', () => {
     };
 
     it('should create a grade submission successfully', async () => {
-      mockTeacherSubjectRepo.findOne.mockResolvedValue({ id: 'assignment-1' });
+      mockClassSubjectRepo.findOne.mockResolvedValue({ id: 'assignment-1' });
       gradeSubmissionModelAction.get.mockResolvedValue(null);
       (gradeSubmissionModelAction.create as jest.Mock).mockResolvedValue({
         id: mockSubmissionId,
@@ -135,7 +135,7 @@ describe('GradeService', () => {
     });
 
     it('should throw ForbiddenException if teacher not assigned to subject', async () => {
-      mockTeacherSubjectRepo.findOne.mockResolvedValue(null);
+      mockClassSubjectRepo.findOne.mockResolvedValue(null);
 
       await expect(
         service.createSubmission(mockTeacherId, createDto),
@@ -143,7 +143,7 @@ describe('GradeService', () => {
     });
 
     it('should throw BadRequestException if submission already exists', async () => {
-      mockTeacherSubjectRepo.findOne.mockResolvedValue({ id: 'assignment-1' });
+      mockClassSubjectRepo.findOne.mockResolvedValue({ id: 'assignment-1' });
       (gradeSubmissionModelAction.get as jest.Mock).mockResolvedValue({
         id: 'existing-submission',
       });

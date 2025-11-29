@@ -1,10 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { Class } from '../class/entities/class.entity';
+import { Term } from '../academic-term/entities/term.entity';
+import { Class, ClassSubject, ClassStudent } from '../class/entities';
 import { StudentModule } from '../student/student.module';
-import { TeacherSubject } from '../teacher-subject/entities/teacher-subject.entity';
-import { Term } from '../term/entities/term.entity';
 
 import { GradeController } from './controllers/grade.controller';
 import { Grade, GradeSubmission } from './entities';
@@ -16,7 +15,8 @@ import { GradeService } from './services/grade.service';
     TypeOrmModule.forFeature([
       Grade,
       GradeSubmission,
-      TeacherSubject,
+      ClassSubject,
+      ClassStudent,
       Term,
       Class,
     ]),

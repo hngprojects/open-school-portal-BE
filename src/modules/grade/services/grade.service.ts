@@ -11,9 +11,8 @@ import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
-import { Class } from '../../class/entities/class.entity';
+import { Class, ClassSubject, ClassStudent } from '../../class/entities';
 import { StudentModelAction } from '../../student/model-actions';
-import { TeacherSubject } from '../../teacher-subject/entities/teacher-subject.entity';
 import {
   CreateGradeSubmissionDto,
   GradeResponseDto,
@@ -72,18 +71,17 @@ export class GradeService {
     subjectId: string,
     classId: string,
   ): Promise<boolean> {
-    const teacherSubject = await this.dataSource
-      .getRepository(TeacherSubject)
+    const classSubject = await this.dataSource
+      .getRepository(ClassSubject)
       .findOne({
         where: {
-          teacher_id: teacherId,
-          subject_id: subjectId,
-          class_id: classId,
-          is_active: true,
+          class: { id: classId },
+          subject: { id: subjectId },
+          teacher: { id: teacherId },
         },
       });
 
-    return !!teacherSubject;
+    return !!classSubject;
   }
 
   /**
@@ -169,6 +167,27 @@ export class GradeService {
         grades.push(grade);
       }
 
+      // Fetch the submission with all relations loaded using transaction manager
+      const submissionWithRelations = await manager
+        .getRepository(GradeSubmission)
+        .findOne({
+          where: { id: submission.id },
+          relations: {
+            teacher: { user: true },
+            class: true,
+            subject: true,
+            term: true,
+          },
+        });
+
+      // Fetch grades with student relations loaded using transaction manager
+      const gradesWithRelations = await manager.getRepository(Grade).find({
+        where: { submission_id: submission.id },
+        relations: {
+          student: { user: true },
+        },
+      });
+
       this.logger.info(sysMsg.GRADE_SUBMISSION_CREATED, {
         submissionId: submission.id,
         teacherId,
@@ -177,7 +196,10 @@ export class GradeService {
         studentCount: grades.length,
       });
 
-      return this.transformToResponse(submission, grades);
+      return this.transformToResponse(
+        submissionWithRelations || submission,
+        gradesWithRelations || grades,
+      );
     });
   }
 
@@ -382,8 +404,7 @@ export class GradeService {
 
   /**
    * Get students for a class (for grade entry)
-   * Note: This queries students directly by class. If students have a direct class_id field,
-   * this will work directly. Otherwise, it queries through the class relationship.
+   * Queries students through ClassStudent relationship
    */
   async getStudentsForClass(
     classId: string,
@@ -410,24 +431,23 @@ export class GradeService {
       throw new NotFoundException(sysMsg.CLASS_NOT_FOUND);
     }
 
-    // Query students directly by class
-    // If Student entity has a direct class_id field, use that
-    // Otherwise, query through the relationship that exists
-    const students = await this.studentModelAction['repository']
-      .createQueryBuilder('student')
+    // Query students through ClassStudent relationship
+    const classStudents = await this.dataSource
+      .getRepository(ClassStudent)
+      .createQueryBuilder('classStudent')
+      .leftJoinAndSelect('classStudent.student', 'student')
       .leftJoinAndSelect('student.user', 'user')
-      .leftJoin('student.stream', 'stream')
-      .leftJoin('stream.class', 'class')
-      .where('class.id = :classId', { classId })
-      .andWhere('student.is_deleted = false')
+      .where('classStudent.class.id = :classId', { classId })
+      .andWhere('classStudent.is_active = :isActive', { isActive: true })
+      .andWhere('student.is_deleted = :isDeleted', { isDeleted: false })
       .orderBy('user.last_name', 'ASC')
       .addOrderBy('user.first_name', 'ASC')
       .getMany();
 
-    return students.map((student) => ({
-      id: student.id,
-      name: `${student.user.first_name} ${student.user.last_name}`,
-      registration_number: student.registration_number,
+    return classStudents.map((cs) => ({
+      id: cs.student.id,
+      name: `${cs.student.user.first_name} ${cs.student.user.last_name}`,
+      registration_number: cs.student.registration_number,
     }));
   }
 

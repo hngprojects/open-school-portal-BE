@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -14,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 
+import * as sysMsg from '../../../constants/system.messages';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -37,6 +39,7 @@ import { GradeService } from '../services/grade.service';
 interface IRequestWithUser extends Request {
   user: {
     id: string;
+    userId: string;
     teacher_id?: string;
     roles: UserRole[];
   };
@@ -57,6 +60,9 @@ export class GradeController {
     @Body() createDto: CreateGradeSubmissionDto,
   ) {
     const teacherId = req.user.teacher_id;
+    if (!teacherId) {
+      throw new BadRequestException(sysMsg.TEACHER_PROFILE_NOT_FOUND);
+    }
     return this.gradeService.createSubmission(teacherId, createDto);
   }
 
@@ -68,6 +74,9 @@ export class GradeController {
     @Query() listDto: ListGradeSubmissionsDto,
   ) {
     const teacherId = req.user.teacher_id;
+    if (!teacherId) {
+      throw new BadRequestException(sysMsg.TEACHER_PROFILE_NOT_FOUND);
+    }
     return this.gradeService.listTeacherSubmissions(teacherId, listDto);
   }
 
@@ -92,6 +101,9 @@ export class GradeController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     const teacherId = req.user.teacher_id;
+    if (!teacherId) {
+      throw new BadRequestException(sysMsg.TEACHER_PROFILE_NOT_FOUND);
+    }
     return this.gradeService.submitForApproval(teacherId, id);
   }
 
@@ -104,6 +116,9 @@ export class GradeController {
     @Body() updateDto: UpdateGradeDto,
   ) {
     const teacherId = req.user.teacher_id;
+    if (!teacherId) {
+      throw new BadRequestException(sysMsg.TEACHER_PROFILE_NOT_FOUND);
+    }
     return this.gradeService.updateGrade(teacherId, gradeId, updateDto);
   }
 
@@ -116,6 +131,17 @@ export class GradeController {
     @Query('subject_id', ParseUUIDPipe) subjectId: string,
   ) {
     const teacherId = req.user.teacher_id;
-    return this.gradeService.getStudentsForClass(classId, teacherId, subjectId);
+    if (!teacherId) {
+      throw new BadRequestException(sysMsg.TEACHER_PROFILE_NOT_FOUND);
+    }
+    const students = await this.gradeService.getStudentsForClass(
+      classId,
+      teacherId,
+      subjectId,
+    );
+    return {
+      message: sysMsg.STUDENTS_FETCHED,
+      data: students,
+    };
   }
 }

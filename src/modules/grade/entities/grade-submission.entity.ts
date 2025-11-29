@@ -2,10 +2,10 @@ import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
 import { AcademicSession } from '../../academic-session/entities/academic-session.entity';
+import { Term } from '../../academic-term/entities/term.entity';
 import { Class } from '../../class/entities/class.entity';
 import { Subject } from '../../subject/entities/subject.entity';
 import { Teacher } from '../../teacher/entities/teacher.entity';
-import { Term } from '../../term/entities/term.entity';
 import { User } from '../../user/entities/user.entity';
 
 import { Grade } from './grade.entity';

@@ -371,6 +371,8 @@ export const GRADE_INVALID_STATUS_TRANSITION =
   'Invalid status transition for grade submission';
 export const GRADE_TEACHER_NOT_ASSIGNED =
   'You are not assigned to teach this subject for this class';
+export const TEACHER_PROFILE_NOT_FOUND =
+  'Teacher profile not found. Please ensure your account is properly linked to a teacher profile.';
 export const UNAUTHORIZED_GRADE_ACCESS =
   'You are not authorized to access this grade submission';
 export const INVALID_SCORE_RANGE = 'Score must be within the allowed range';

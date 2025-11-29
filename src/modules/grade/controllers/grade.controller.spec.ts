@@ -16,6 +16,7 @@ import { GradeController } from './grade.controller';
 interface IRequestWithUser extends Request {
   user: {
     id: string;
+    userId: string;
     teacher_id?: string;
     roles: UserRole[];
   };
@@ -34,6 +35,7 @@ describe('GradeController', () => {
   const mockRequest = {
     user: {
       id: 'user-uuid-123',
+      userId: 'user-uuid-123',
       teacher_id: mockTeacherId,
       roles: [UserRole.TEACHER],
     },
@@ -42,6 +44,7 @@ describe('GradeController', () => {
   const mockAdminRequest = {
     user: {
       id: 'admin-uuid-123',
+      userId: 'admin-uuid-123',
       roles: [UserRole.ADMIN],
     },
   };
