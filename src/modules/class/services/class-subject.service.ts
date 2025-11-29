@@ -80,8 +80,12 @@ export class ClassSubjectService {
         useTransaction: false,
       },
     });
+    classSubject.teacher_assignment_date = new Date();
+
     return {
-      message: sysMsg.TEACHER_ASSIGNED,
+      message: sysMsg.TEACHER_ASSIGNED_TO_CLASS_SUBJECT,
+      ...classSubject,
+      teacher,
     };
   }
 

@@ -229,6 +229,8 @@ export const CLASS_OR_TEACHER_OR_SESSION_NOT_FOUND =
 export const CLASS_ALREADY_HAS_TEACHER =
   'class already has a teacher assigned for this session';
 export const TEACHER_ASSIGNED = 'teacher successfully assigned to the class';
+export const TEACHER_ASSIGNED_TO_CLASS_SUBJECT =
+  'Teacher assigned to subject in class successfully';
 export const CLASS_CREATED = 'Class successfully created.';
 export const CLASS_ALREADY_EXIST =
   'A class with the same name and arm already exists in this session.';

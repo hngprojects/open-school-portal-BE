@@ -6,6 +6,7 @@ import {
   Post,
   Body,
   UseGuards,
+  Delete,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
@@ -55,7 +56,7 @@ export class ClassSubjectController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @DocsUnassignTeacherFromSubject()
-  @Post(':subjectId/unassign-teacher')
+  @Delete(':subjectId/unassign-teacher')
   @DocsAssignTeacherToSubject()
   async unassignTeacher(
     @Param('classId', ParseUUIDPipe) classId: string,
