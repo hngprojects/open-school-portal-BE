@@ -4,8 +4,9 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { DataSource, In } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../constants/system.messages';
@@ -26,6 +27,8 @@ export class FeesService {
     private readonly termModelAction: TermModelAction,
     private readonly classModelAction: ClassModelAction,
     private readonly dataSource: DataSource,
+    @InjectRepository(Fees)
+    private readonly feesRepository: Repository<Fees>,
     @Inject(WINSTON_MODULE_PROVIDER) logger: Logger,
   ) {
     this.logger = logger.child({ context: FeesService.name });
@@ -104,7 +107,7 @@ export class FeesService {
     const skip = (page - 1) * limit;
 
     // Use query builder for complex filtering, especially for many-to-many class relationship
-    const queryBuilder = this.feesModelAction['repository']
+    const queryBuilder = this.feesRepository
       .createQueryBuilder('fee')
       .leftJoinAndSelect('fee.term', 'term')
       .leftJoinAndSelect('fee.classes', 'classes')

@@ -1,5 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource, EntityManager, SelectQueryBuilder } from 'typeorm';
 import { Logger } from 'winston';
@@ -45,11 +46,12 @@ describe('FeesService', () => {
 
   const mockFeesModelAction = {
     create: jest.fn(),
-    repository: {
-      createQueryBuilder: jest.fn(),
-    },
     get: jest.fn(),
     save: jest.fn(),
+  };
+
+  const mockFeesRepository = {
+    createQueryBuilder: jest.fn(),
   };
 
   const mockTermModelAction = {
@@ -83,6 +85,10 @@ describe('FeesService', () => {
         {
           provide: DataSource,
           useValue: mockDataSource,
+        },
+        {
+          provide: getRepositoryToken(Fees),
+          useValue: mockFeesRepository,
         },
         {
           provide: WINSTON_MODULE_PROVIDER,
@@ -402,7 +408,7 @@ describe('FeesService', () => {
         getMany: jest.fn(),
       } as unknown as jest.Mocked<SelectQueryBuilder<Fees>>;
 
-      mockFeesModelAction.repository.createQueryBuilder = jest
+      mockFeesRepository.createQueryBuilder = jest
         .fn()
         .mockReturnValue(mockQueryBuilder);
     });
@@ -418,9 +424,7 @@ describe('FeesService', () => {
 
       const result = await service.findAll(queryDto);
 
-      expect(
-        mockFeesModelAction.repository.createQueryBuilder,
-      ).toHaveBeenCalledWith('fee');
+      expect(mockFeesRepository.createQueryBuilder).toHaveBeenCalledWith('fee');
       expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
         'fee.term',
         'term',

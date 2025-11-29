@@ -49,11 +49,7 @@ export class FeesController {
     const result = await this.feesService.findAll(queryDto);
     return {
       message: sysMsg.FEES_RETRIEVED_SUCCESSFULLY,
-      fees: result.fees,
-      total: result.total,
-      page: result.page,
-      limit: result.limit,
-      totalPages: result.totalPages,
+      ...result,
     };
   }
 
