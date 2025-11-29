@@ -11,6 +11,7 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 
+import * as sysMsg from '../../../constants/system.messages';
 import {
   CreateGradeSubmissionDto,
   GradeResponseDto,
@@ -18,7 +19,6 @@ import {
   UpdateGradeDto,
 } from '../dto';
 import { GradeSubmissionStatus } from '../entities/grade-submission.entity';
-
 export const GradeSwagger = {
   tags: ['Grades'],
 };
@@ -235,10 +235,13 @@ export function approveSubmissionDocs() {
         'Approve a grade submission by Admin. All grades must be complete.',
     }),
     ApiOkResponse({
-      description: 'Grade submission approved successfully',
+      description: sysMsg.GRADE_APPROVED,
+    }),
+    ApiBadRequestResponse({
+      description: `${sysMsg.GRADE_ALREADY_APPROVED} || ${sysMsg.GRADE_ALREADY_REJECTED} || ${sysMsg.GRADE_NOT_SUBMITTED}`,
     }),
     ApiNotFoundResponse({
-      description: 'Submission not found',
+      description: sysMsg.GRADE_SUBMISSION_NOT_FOUND,
     }),
   );
 }
@@ -252,10 +255,13 @@ export function rejectSubmissionDocs() {
         'Reject a grade submission by Admin. All grades must be complete.',
     }),
     ApiNotFoundResponse({
-      description: 'Submission not found',
+      description: sysMsg.GRADE_SUBMISSION_NOT_FOUND,
+    }),
+    ApiOkResponse({
+      description: sysMsg.GRADE_REJECTED,
     }),
     ApiBadRequestResponse({
-      description: 'Bad request - incomplete grades',
+      description: `${sysMsg.GRADE_ALREADY_APPROVED} || ${sysMsg.GRADE_ALREADY_REJECTED} || ${sysMsg.GRADE_NOT_SUBMITTED}`,
     }),
   );
 }
