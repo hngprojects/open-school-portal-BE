@@ -28,6 +28,7 @@ export class EmailService {
       maxConnections: 5,
     });
   }
+
   /**
    * Compiles an email template using Nunjucks.
    * @param templateName The filename of the template (e.g., "welcome.njk")
