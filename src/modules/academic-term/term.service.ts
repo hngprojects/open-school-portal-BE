@@ -334,7 +334,6 @@ export class TermService {
     // Fetch the active term directly
     const { payload: activeTerms } = await this.termModelAction.list({
       filterRecordOptions: { status: TermStatus.ACTIVE },
-      relations: { academicSession: true },
     });
 
     if (activeTerms.length === 0) {
