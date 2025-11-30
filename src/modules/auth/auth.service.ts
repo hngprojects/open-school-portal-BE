@@ -508,8 +508,6 @@ export class AuthService {
       );
     }
 
-    this.logger.info(`User logged in with Google: ${user.email}`);
-
     return {
       message: sysMsg.LOGIN_SUCCESS,
       user: {
