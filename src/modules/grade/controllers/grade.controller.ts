@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -15,15 +16,21 @@ import { Roles } from '../../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { UserRole } from '../../shared/enums';
-import { GradeSwagger, updateGradeDocs } from '../docs/grade.swagger';
+import {
+  GradeSwagger,
+  updateGradeDocs,
+  getStudentGradesDocs,
+} from '../docs/grade.swagger';
 import { UpdateGradeDto } from '../dto';
-import { GradeService } from '../services';
+import { GradeService } from '../services/grade.service';
 
 interface IRequestWithUser extends Request {
   user: {
     id: string;
     userId: string;
     teacher_id?: string;
+    student_id?: string;
+    parent_id?: string;
     roles: UserRole[];
   };
 }
@@ -47,5 +54,15 @@ export class GradeController {
       throw new BadRequestException(sysMsg.TEACHER_PROFILE_NOT_FOUND);
     }
     return this.gradeService.updateGrade(teacherId, gradeId, updateDto);
+  }
+
+  @Get('student/:studentId')
+  @getStudentGradesDocs()
+  @Roles(UserRole.STUDENT, UserRole.PARENT)
+  async getStudentGrades(
+    @Req() req: IRequestWithUser,
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+  ) {
+    return this.gradeService.getStudentGrades(studentId, req.user);
   }
 }
