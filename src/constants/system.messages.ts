@@ -140,6 +140,7 @@ export const INVITE_SENT = 'invite sent';
 export const PENDING_INVITES_FETCHED = 'Pending invites retrieved successfully';
 export const NO_PENDING_INVITES = 'No pending invites found';
 export const INVITE_ALREADY_SENT = 'invite already sent';
+export const INVITES_FETCHED = 'invites fetched successfully';
 export const ACTIVE_INVITE_EXISTS = 'an active invite exist for this user';
 
 //Academic Session

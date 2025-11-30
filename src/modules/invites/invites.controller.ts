@@ -8,6 +8,7 @@ import {
   UploadedFile,
   UseGuards,
   Query,
+  Get,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -19,8 +20,9 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserRole } from '../shared/enums';
 
 import { csvUploadDocs } from './docs/csv-swagger-doc';
-import { ApiInviteTags } from './docs/invite.swagger';
+import { ApiInviteTags, ApiListInvites } from './docs/invite.swagger';
 import { AcceptInviteDto } from './dto/accept-invite.dto';
+import { InviteQueryDto } from './dto/get-invites.dto';
 import { InviteRole, InviteUserDto } from './dto/invite-user.dto';
 import { InviteService } from './invites.service';
 
@@ -38,6 +40,22 @@ export class InvitesController {
     return {
       message: sysMsg.INVITE_SENT,
       data: result,
+    };
+  }
+
+  // --- GET: LIST ALL INVITES (ADMIN ONLY) ---
+  @Get()
+  @Roles(UserRole.ADMIN)
+  @ApiListInvites()
+  async listInvites(@Query() query: InviteQueryDto) {
+    const { data, total, page, limit, total_pages } =
+      await this.inviteService.findAll(query);
+
+    return {
+      message: sysMsg.INVITES_FETCHED,
+      status_code: HttpStatus.OK,
+      data,
+      meta: { total, page, limit, totalPages: total_pages },
     };
   }
 
