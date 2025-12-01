@@ -10,9 +10,10 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { DataSource, FindOptionsWhere, In } from 'typeorm';
+import { DataSource, FindOptionsWhere, In, Repository } from 'typeorm';
 import { Logger } from 'winston';
 
 import { EmailTemplateID } from '../../constants/email-constants';
@@ -24,6 +25,7 @@ import { UserRole } from '../user/entities/user.entity';
 import { UserModelAction } from '../user/model-actions/user-actions';
 
 import { AcceptInviteDto } from './dto/accept-invite.dto';
+import { InviteQueryDto } from './dto/get-invites.dto';
 import {
   InviteUserDto,
   InviteRole,
@@ -43,6 +45,9 @@ export class InviteService {
     private readonly inviteModelAction: InviteModelAction,
     private readonly emailService: EmailService,
     private readonly dataSource: DataSource,
+    // Keep repository for complex queries and employment ID generation
+    @InjectRepository(Invite)
+    private readonly inviteRepository: Repository<Invite>,
   ) {
     this.logger = baseLogger.child({ context: InviteService.name });
   }
@@ -209,6 +214,116 @@ export class InviteService {
         email: newUser.email,
         role: newUser.role,
       },
+    };
+  }
+
+  async findAll(query: InviteQueryDto) {
+    const {
+      page = 1,
+      limit = 20,
+      status,
+      role,
+      email,
+      invited_from,
+      invited_to,
+      expires_after,
+      expires_before,
+      sort_by = 'invited_at',
+      order = 'desc',
+    } = query;
+
+    const skip = (page - 1) * limit;
+
+    const qb = this.inviteRepository.createQueryBuilder('invite');
+
+    // --- Status filter ---
+    if (status) {
+      qb.andWhere('invite.status = :status', { status });
+    }
+
+    // --- Role filter ---
+    if (role) {
+      qb.andWhere('invite.role = :role', { role });
+    }
+
+    // --- Email filter ---
+    if (email) {
+      qb.andWhere('invite.email = :email', { email });
+    }
+
+    // --- Date filters: invited_at ---
+    if (invited_from) {
+      qb.andWhere('invite.invited_at >= :from', {
+        from: new Date(invited_from).toISOString(),
+      });
+    }
+
+    if (invited_to) {
+      qb.andWhere('invite.invited_at <= :to', {
+        to: new Date(invited_to).toISOString(),
+      });
+    }
+
+    // --- Date filters: expires_at ---
+    if (expires_after) {
+      qb.andWhere(
+        'invite.expires_at IS NOT NULL AND invite.expires_at >= :expAfter',
+        {
+          expAfter: new Date(expires_after).toISOString(),
+        },
+      );
+    }
+
+    if (expires_before) {
+      qb.andWhere(
+        'invite.expires_at IS NOT NULL AND invite.expires_at <= :expBefore',
+        {
+          expBefore: new Date(expires_before).toISOString(),
+        },
+      );
+    }
+
+    // --- Sorting ---
+    const orderDirection = order?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
+    const allowedSortFields = {
+      invited_at: 'invite.invited_at',
+      expires_at: 'invite.expires_at',
+      email: 'invite.email',
+      status: 'invite.status',
+    };
+
+    const sortField = allowedSortFields[sort_by] || 'invite.invited_at';
+
+    qb.orderBy(sortField, orderDirection);
+
+    // --- Total count before pagination ---
+    const total = await qb.getCount();
+
+    // --- Pagination ---
+    qb.skip(skip).take(limit);
+
+    const invites = await qb.getMany();
+
+    // --- Transform to DTO ---
+    const data = invites.map((inv) => ({
+      id: inv.id,
+      email: inv.email,
+      role: inv.role,
+      status: inv.status,
+      full_name: inv.full_name,
+      accepted: inv.accepted,
+      invited_at: inv.invited_at,
+      expires_at: inv.expires_at,
+      school_id: inv.school_id,
+    }));
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      total_pages: Math.ceil(total / limit),
     };
   }
 

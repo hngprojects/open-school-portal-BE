@@ -10,7 +10,8 @@ import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
-import { ClassSubject } from '../../class/entities';
+import { UserRole } from '../../shared/enums';
+import { StudentModelAction } from '../../student/model-actions';
 import { GradeResponseDto, UpdateGradeDto } from '../dto';
 import { Grade, GradeSubmissionStatus } from '../entities';
 import { GradeModelAction } from '../model-actions';
@@ -33,6 +34,7 @@ export class GradeService {
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
     private readonly gradeModelAction: GradeModelAction,
     private readonly dataSource: DataSource,
+    private readonly studentModelAction: StudentModelAction,
   ) {
     this.logger = baseLogger.child({ context: GradeService.name });
   }
@@ -47,27 +49,6 @@ export class GradeService {
       }
     }
     return 'F';
-  }
-
-  /**
-   * Verify teacher is assigned to the subject/class
-   */
-  private async verifyTeacherSubjectAssignment(
-    teacherId: string,
-    subjectId: string,
-    classId: string,
-  ): Promise<boolean> {
-    const classSubject = await this.dataSource
-      .getRepository(ClassSubject)
-      .findOne({
-        where: {
-          class: { id: classId },
-          subject: { id: subjectId },
-          teacher: { id: teacherId },
-        },
-      });
-
-    return !!classSubject;
   }
 
   /**
@@ -129,6 +110,103 @@ export class GradeService {
     });
 
     return this.transformGradeToResponse(updatedGrade, grade.student);
+  }
+
+  /**
+   * Get grades for a student (for students and parents)
+   */
+  async getStudentGrades(
+    studentId: string,
+    user: {
+      id: string;
+      student_id?: string;
+      parent_id?: string;
+      roles: UserRole[];
+    },
+  ) {
+    // Authorization
+    if (user.roles.includes(UserRole.STUDENT)) {
+      if (user.student_id !== studentId) {
+        throw new ForbiddenException(sysMsg.UNAUTHORIZED_GRADE_ACCESS);
+      }
+    } else if (user.roles.includes(UserRole.PARENT)) {
+      const student = await this.studentModelAction.get({
+        identifierOptions: {
+          id: studentId,
+        },
+        relations: { parent: true },
+      });
+
+      if (!student || !student.parent || student.parent.id !== user.parent_id) {
+        throw new ForbiddenException(sysMsg.UNAUTHORIZED_GRADE_ACCESS);
+      }
+    } else {
+      throw new ForbiddenException(sysMsg.UNAUTHORIZED_GRADE_ACCESS);
+    }
+
+    // Fetch only approved grades
+    const grades = await this.gradeModelAction.list({
+      filterRecordOptions: {
+        student_id: studentId,
+        submission: { status: GradeSubmissionStatus.APPROVED },
+      },
+      relations: {
+        submission: {
+          class: true,
+          subject: true,
+          term: true,
+          teacher: { user: true },
+        },
+      },
+    });
+
+    if (grades.payload.length === 0) {
+      return {
+        message: 'No grades found for this student.',
+        data: [],
+      };
+    }
+
+    // Transform data
+    const transformedGrades = grades.payload.map((grade) => ({
+      id: grade.id,
+      class: grade.submission.class
+        ? {
+            id: grade.submission.class.id,
+            name: grade.submission.class.name,
+            arm: grade.submission.class.arm,
+          }
+        : null,
+      subject: grade.submission.subject
+        ? {
+            id: grade.submission.subject.id,
+            name: grade.submission.subject.name,
+          }
+        : null,
+      term: grade.submission.term
+        ? {
+            id: grade.submission.term.id,
+            name: grade.submission.term.name,
+          }
+        : null,
+      teacher: grade.submission.teacher
+        ? {
+            id: grade.submission.teacher.id,
+            name: `${grade.submission.teacher.user?.first_name || ''} ${grade.submission.teacher.user?.last_name || ''}`.trim(),
+          }
+        : null,
+      ca_score: grade.ca_score,
+      exam_score: grade.exam_score,
+      total_score: grade.total_score,
+      grade_letter: grade.grade_letter,
+      comment: grade.comment,
+      submitted_at: grade.submission.submitted_at,
+    }));
+
+    return {
+      message: sysMsg.GRADES_FETCHED,
+      data: transformedGrades,
+    };
   }
 
   /**

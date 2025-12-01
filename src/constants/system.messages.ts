@@ -140,7 +140,13 @@ export const INVITE_SENT = 'invite sent';
 export const PENDING_INVITES_FETCHED = 'Pending invites retrieved successfully';
 export const NO_PENDING_INVITES = 'No pending invites found';
 export const INVITE_ALREADY_SENT = 'invite already sent';
+export const INVITES_FETCHED = 'invites fetched successfully';
 export const ACTIVE_INVITE_EXISTS = 'an active invite exist for this user';
+export const INVITE_EMAIL_MISMATCH =
+  'The email associated with this invite does not match your Google email.';
+export const INVALID_GOOGLE_TOKEN = 'Invalid Google token';
+export const REGISTRATION_INVITE_ONLY =
+  'Registration is by invitation only. Please provide an invite token.';
 
 //Academic Session
 export const ACADEMIC_SESSION =
@@ -154,6 +160,7 @@ export const START_DATE_IN_PAST = 'Start date cannot be in the past.';
 export const END_DATE_IN_PAST = 'End date cannot be in the past.';
 export const ACTIVE_ACADEMIC_SESSION_SUCCESS =
   'Academic session retrieved successfully.';
+export const NO_ACTIVE_SESSION = 'No active academic session found.';
 export const MULTIPLE_ACTIVE_ACADEMIC_SESSION =
   'Multiple academic session records detected.';
 export const ACADEMIC_SESSION_LIST_SUCCESS =
@@ -294,6 +301,7 @@ export const STUDENT_DELETED = 'Student deleted successfully';
 export const TERM_RETRIEVED = 'Term(s) retrieved successfully';
 export const TERM_UPDATED = 'Term updated successfully';
 export const TERM_NOT_FOUND = 'Term not found';
+export const NO_ACTIVE_TERM = 'No active term found';
 export const TERM_UPDATE_FAILED = 'Failed to update term';
 export const ARCHIVED_TERM_LOCKED =
   'Cannot modify an archived term. Archived terms are read-only to preserve historical data.';
