@@ -6,14 +6,18 @@ import {
   Param,
   Delete,
   HttpStatus,
-  HttpCode,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 
-import * as sysMsg from '../../constants/system.messages';
-
-import { CreateWaitlistDto } from './dto/create-waitlist.dto';
-import { WaitlistService } from './waitlist.service';
+import * as sysMsg from '../../../constants/system.messages';
+import {
+  DocsCreateWaitlistEntry,
+  DocsGetAllEntries,
+  DocsDeleteWaitlistEntry,
+  DocsGetWaitlistEntryById,
+} from '../docs/waitlist.decorator';
+import { CreateWaitlistDto } from '../dto/create-waitlist.dto';
+import { WaitlistService } from '../services/waitlist.service';
 
 @ApiTags('Waitlist')
 @Controller('waitlist')
@@ -21,16 +25,7 @@ export class WaitlistController {
   constructor(private readonly waitlistService: WaitlistService) {}
 
   @Post()
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Add user to waitlist' })
-  @ApiResponse({
-    status: HttpStatus.CREATED,
-    description: 'Successfully added to waitlist',
-  })
-  @ApiResponse({
-    status: HttpStatus.CONFLICT,
-    description: 'Email already exists',
-  })
+  @DocsCreateWaitlistEntry()
   async create(@Body() createWaitlistDto: CreateWaitlistDto) {
     const waitlistEntry = await this.waitlistService.create(createWaitlistDto);
 
@@ -39,21 +34,16 @@ export class WaitlistController {
       message: sysMsg.WAITLIST_ADDED_SUCCESSFULLY,
       data: {
         id: waitlistEntry.id,
-        firstName: waitlistEntry.firstName,
-        lastName: waitlistEntry.lastName,
+        first_name: waitlistEntry.first_name,
+        last_name: waitlistEntry.last_name,
         email: waitlistEntry.email,
-        createdAt: waitlistEntry.createdAt,
+        created_at: waitlistEntry.createdAt,
       },
     };
   }
 
   @Get()
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get all waitlist entries' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Waitlist entries retrieved successfully',
-  })
+  @DocsGetAllEntries()
   async findAll() {
     const entries = await this.waitlistService.findAll();
 
@@ -62,17 +52,16 @@ export class WaitlistController {
       message: sysMsg.WAITLIST_RETRIEVED_SUCCESSFULLY,
       data: entries.map((entry) => ({
         id: entry.id,
-        firstName: entry.firstName,
-        lastName: entry.lastName,
+        first_name: entry.first_name,
+        last_name: entry.last_name,
         email: entry.email,
-        createdAt: entry.createdAt,
+        created_at: entry.createdAt,
       })),
     };
   }
 
   @Get(':id')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get specific waitlist entry' })
+  @DocsGetWaitlistEntryById()
   async findOne(@Param('id') id: string) {
     const entry = await this.waitlistService.findOne(id);
 
@@ -81,17 +70,16 @@ export class WaitlistController {
       message: sysMsg.OPERATION_SUCCESSFUL,
       data: {
         id: entry.id,
-        firstName: entry.firstName,
-        lastName: entry.lastName,
+        first_name: entry.first_name,
+        last_name: entry.last_name,
         email: entry.email,
-        createdAt: entry.createdAt,
+        created_at: entry.createdAt,
       },
     };
   }
 
   @Delete(':id')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Remove entry from waitlist' })
+  @DocsDeleteWaitlistEntry()
   async remove(@Param('id') id: string) {
     await this.waitlistService.remove(id);
 

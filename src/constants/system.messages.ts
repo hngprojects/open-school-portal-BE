@@ -104,6 +104,7 @@ export const WAITLIST_RETRIEVED_SUCCESSFULLY =
 export const EMAIL_ALREADY_EXISTS = 'Email already exists in waitlist';
 export const WAITLIST_REMOVED_SUCCESSFULLY =
   'Entry removed from waitlist successfully';
+export const WAITLIST_ID_PARAM = 'Waitlist Entry ID';
 
 // Rate limits
 export const TOO_MANY_REQUESTS = 'too many requests';
