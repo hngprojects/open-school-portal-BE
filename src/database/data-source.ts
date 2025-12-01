@@ -1,21 +1,24 @@
 import * as dotenv from 'dotenv';
 import { DataSource } from 'typeorm';
 
+import config from '../config/config';
+
 dotenv.config();
 
+const { database } = config();
 const dataSource = new DataSource({
   type: 'postgres',
-  host: process.env.DB_HOST,
-  port: parseInt(process.env.DB_PORT || '5432'),
-  username: process.env.DB_USER,
-  password: String(process.env.DB_PASS || 'postgres'),
-  database: process.env.DB_NAME,
+  host: database.host,
+  port: database.port || parseInt('5432'),
+  username: database.user,
+  password: database.pass || 'postgres',
+  database: database.name,
   entities: [__dirname + '/**/*.entity.{ts,js}'],
-  migrations: [],
+  migrations: [__dirname + '/migrations/*{.ts,.js}'],
   synchronize: true,
   migrationsRun: false,
   migrationsTableName: 'migrations',
-  ssl: process.env.DB_SSL === 'true',
+  ssl: database.ssl ? { rejectUnauthorized: false } : false,
 });
 
 export async function initializeDataSource() {
