@@ -113,14 +113,9 @@ export class FeesService {
       .leftJoinAndSelect('fee.classes', 'classes')
       .orderBy('fee.createdAt', 'DESC');
 
-    // Filter by status - default to ACTIVE if not specified
+    // Only filter by status if explicitly provided
     if (status) {
       queryBuilder.andWhere('fee.status = :status', { status });
-    } else {
-      // Default to ACTIVE if no status is specified
-      queryBuilder.andWhere('fee.status = :status', {
-        status: FeeStatus.ACTIVE,
-      });
     }
 
     // Filter by term_id

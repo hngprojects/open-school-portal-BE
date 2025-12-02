@@ -54,7 +54,7 @@ export function swaggerGetAllFees() {
     ApiOperation({
       summary: 'Get all fee components',
       description:
-        'Retrieve all fee components with optional filtering by status, class, term, or search term. By default, returns only ACTIVE fees. Use status query parameter to include INACTIVE fees.',
+        'Retrieve all fee components with optional filtering by status, class, term, or search term. Returns all fees regardless of status by default. Use status query parameter to include INACTIVE fees.',
     }),
     ApiBearerAuth(),
     ApiQuery({ name: 'status', required: false, enum: ['ACTIVE', 'INACTIVE'] }),
