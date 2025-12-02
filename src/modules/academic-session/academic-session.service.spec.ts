@@ -199,9 +199,18 @@ describe('AcademicSessionService', () => {
       const invalidDto: CreateAcademicSessionDto = {
         description: 'Invalid session',
         terms: {
-          first_term: { startDate: `${nextYear}-12-01`, endDate: `${nextYear}-11-01` },
-          second_term: { startDate: `${nextYear + 1}-01-01`, endDate: `${nextYear + 1}-12-31` },
-          third_term: { startDate: `${nextYear + 2}-01-01`, endDate: `${nextYear + 2}-12-31` },
+          first_term: {
+            startDate: `${nextYear}-12-01`,
+            endDate: `${nextYear}-11-01`,
+          },
+          second_term: {
+            startDate: `${nextYear + 1}-01-01`,
+            endDate: `${nextYear + 1}-12-31`,
+          },
+          third_term: {
+            startDate: `${nextYear + 2}-01-01`,
+            endDate: `${nextYear + 2}-12-31`,
+          },
         },
       };
 
