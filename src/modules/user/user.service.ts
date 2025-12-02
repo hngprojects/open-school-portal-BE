@@ -70,14 +70,6 @@ export class UserService {
     });
   }
 
-  findAll() {
-    return `This action returns all user`;
-  }
-
-  update(id: number) {
-    return `This action updates a #${id} user`;
-  }
-
   async remove(id: string) {
     const user = await this.userModelAction.get({
       identifierOptions: { id },
