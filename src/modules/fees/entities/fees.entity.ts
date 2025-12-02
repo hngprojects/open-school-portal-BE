@@ -14,6 +14,8 @@ import {
   ManyToOne,
 } from 'typeorm';
 
+import { User } from 'src/modules/user/entities/user.entity';
+
 import { BaseEntity } from '../../../entities/base-entity';
 import { Term } from '../../academic-term/entities/term.entity';
 import { Class } from '../../class/entities/class.entity';
@@ -56,8 +58,10 @@ export class Fees extends BaseEntity {
   @IsEnum(FeeStatus)
   status: FeeStatus;
 
-  @Column()
-  @IsString()
-  @IsNotEmpty()
-  created_by: string;
+  @Column({ name: 'created_by', type: 'uuid', nullable: true, select: false })
+  created_by: string | null;
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'created_by' })
+  createdBy?: User;
 }
