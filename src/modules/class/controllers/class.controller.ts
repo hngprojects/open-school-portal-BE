@@ -117,7 +117,7 @@ export class ClassController {
 
   // --- GET: GET CLASSES ASSIGNED TO TEACHER ---
   @Get('teacher/assigned')
-  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @Roles(UserRole.TEACHER)
   @DocsGetTeacherClasses()
   async getTeacherClasses(
     @Req() req: IRequestWithUser,
