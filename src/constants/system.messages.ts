@@ -320,6 +320,8 @@ export const DASHBOARD_RESOLVED = 'Dashboard resolved successfully';
 
 // Teacher messages
 export const INVALID_TEACHER_ID = 'Invalid teacher ID provided';
+export const INVALID_TEACHER_AGE = (minAge: number) =>
+  `Teacher must be at least ${minAge} years old`;
 
 // Timetable messages
 export const TIMETABLE_CREATED = 'Timetable created successfully';
