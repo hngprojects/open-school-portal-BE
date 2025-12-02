@@ -300,4 +300,42 @@ export class FeesService {
 
     return updatedFee;
   }
+
+  async activate(id: string, activatedBy: string): Promise<Fees> {
+    const fee = await this.feesModelAction.get({
+      identifierOptions: { id },
+    });
+
+    if (!fee) {
+      throw new NotFoundException(sysMsg.FEE_NOT_FOUND);
+    }
+
+    if (fee.status === FeeStatus.ACTIVE) {
+      this.logger.info('Fee component is already active', {
+        fee_id: id,
+        activated_by: activatedBy,
+      });
+      return fee;
+    }
+
+    const updatedFee = await this.feesModelAction.update({
+      identifierOptions: { id },
+      updatePayload: {
+        status: FeeStatus.ACTIVE,
+      },
+      transactionOptions: {
+        useTransaction: false,
+      },
+    });
+
+    this.logger.info('Fee component activated successfully', {
+      fee_id: id,
+      component_name: fee.component_name,
+      activated_by: activatedBy,
+      previous_status: fee.status,
+      new_status: FeeStatus.ACTIVE,
+    });
+
+    return updatedFee;
+  }
 }
