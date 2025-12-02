@@ -25,6 +25,7 @@ import {
   ApiUpdateSubject,
   ApiDeleteSubject,
   ApiAssignClassesToSubject,
+  ApiUnassignClassesToSubject,
 } from '../docs/subject.swagger';
 import { AssignClassesToSubjectDto } from '../dto/assign-classes-to-subject.dto';
 import { CreateSubjectDto } from '../dto/create-subject.dto';
@@ -58,7 +59,19 @@ export class SubjectController {
     return this.subjectService.assignClassesToSubject(subjectId, dto);
   }
 
+  @Delete(':subjectId/unassign-classes')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiUnassignClassesToSubject()
+  unassignClassesToSubject(
+    @Param('subjectId') subjectId: string,
+    @Body() dto: AssignClassesToSubjectDto,
+  ) {
+    return this.subjectService.unassignClassesToSubject(subjectId, dto);
+  }
+
   @Get()
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @HttpCode(HttpStatus.OK)
   @ApiFindAllSubjects()
   findAll(@Query() query: ListSubjectsDto) {
@@ -74,6 +87,7 @@ export class SubjectController {
   }
 
   @Get(':id')
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @HttpCode(HttpStatus.OK)
   @ApiFindOneSubject()
   findOne(@Param('id') id: string) {

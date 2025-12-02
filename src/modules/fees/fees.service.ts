@@ -111,6 +111,13 @@ export class FeesService {
       .createQueryBuilder('fee')
       .leftJoinAndSelect('fee.term', 'term')
       .leftJoinAndSelect('fee.classes', 'classes')
+      .leftJoin('fee.createdBy', 'createdBy')
+      .addSelect([
+        'createdBy.id',
+        'createdBy.first_name',
+        'createdBy.last_name',
+        'createdBy.middle_name',
+      ])
       .orderBy('fee.createdAt', 'DESC');
 
     // Only filter by status if explicitly provided
@@ -239,14 +246,31 @@ export class FeesService {
   async findOne(id: string) {
     const existingFee = await this.feesModelAction.get({
       identifierOptions: { id },
-      relations: { classes: true, term: true },
+      relations: {
+        classes: true,
+        term: true,
+        createdBy: true,
+      },
     });
 
     if (!existingFee) {
       throw new NotFoundException(sysMsg.FEE_NOT_FOUND);
     }
 
-    return existingFee;
+    // Only include safe fields from createdBy
+    const limitedCreator = existingFee.createdBy
+      ? {
+          id: existingFee.createdBy.id,
+          first_name: existingFee.createdBy.first_name,
+          last_name: existingFee.createdBy.last_name,
+          middle_name: existingFee.createdBy.middle_name,
+        }
+      : null;
+
+    return {
+      ...existingFee,
+      createdBy: limitedCreator,
+    };
   }
 
   // fees.service.ts - Fix the deactivate method
