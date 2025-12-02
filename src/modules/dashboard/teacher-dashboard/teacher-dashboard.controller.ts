@@ -15,7 +15,7 @@ import { RolesGuard } from '../../auth/guards/roles.guard';
 import { UserRole } from '../../shared/enums';
 import { TeacherModelAction } from '../../teacher/model-actions/teacher-actions';
 
-import { ApiGetTodaysClasses } from './docs/teacher-dashboard.swagger';
+import { apiGetTodaysClasses } from './docs/teacher-dashboard.swagger';
 import { TodaysClassesResponseDto } from './dto/teacher-dashboard-response.dto';
 import { TeacherDashboardService } from './teacher-dashboard.service';
 
@@ -31,7 +31,7 @@ export class TeacherDashboardController {
 
   @Get('today-classes')
   @Roles(UserRole.TEACHER)
-  @ApiGetTodaysClasses()
+  @apiGetTodaysClasses()
   async getTodaysClasses(@CurrentUser() user: { id: string }): Promise<{
     message: string;
     status_code: number;

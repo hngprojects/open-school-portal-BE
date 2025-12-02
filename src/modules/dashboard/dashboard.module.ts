@@ -13,4 +13,4 @@ import { TeacherDashboardModule } from './teacher-dashboard/teacher-dashboard.mo
     TeacherDashboardModule,
   ],
 })
-export class DashboardModule { }
+export class DashboardModule {}
