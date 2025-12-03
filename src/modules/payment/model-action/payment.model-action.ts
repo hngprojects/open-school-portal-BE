@@ -22,12 +22,12 @@ export class PaymentModelAction extends AbstractModelAction<Payment> {
     const result = await this.repository
       .createQueryBuilder('payment')
       .select('SUM(payment.amount_paid)', 'total')
-      .where('payment.student_id = :student_id', { studentId })
-      .andWhere('payment.fee_component_id = :fee_component_id', {
+      .where('payment.student_id = :studentId', { studentId })
+      .andWhere('payment.fee_component_id = :feeComponentId', {
         feeComponentId,
       })
-      .andWhere('payment.term_id = :term_id', { termId })
-      .andWhere('payment.status = :status', { status: 'completed' })
+      .andWhere('payment.term_id = :termId', { termId })
+      .andWhere('payment.status = :status', { status: 'paid' })
       .getRawOne();
 
     return parseFloat(result?.total) || 0;

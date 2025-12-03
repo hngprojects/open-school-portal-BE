@@ -7,6 +7,8 @@ import {
 } from 'class-validator';
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 
+import { Student } from 'src/modules/student/entities';
+
 import { BaseEntity } from '../../../entities/base-entity';
 import { Term } from '../../academic-term/entities/term.entity';
 import { Fees } from '../../fees/entities/fees.entity';
@@ -19,9 +21,9 @@ export class Payment extends BaseEntity {
   @IsNotEmpty()
   student_id: string;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => Student)
   @JoinColumn({ name: 'student_id' })
-  student: User;
+  student: Student;
 
   @Column({ name: 'fee_component_id', type: 'uuid' })
   @IsNotEmpty()
