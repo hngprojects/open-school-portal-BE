@@ -7,10 +7,9 @@ import { TeachersModule } from '../teacher/teacher.module';
 
 import { ClassSubjectController } from './controllers/class-subject.controller';
 import { ClassController } from './controllers/class.controller';
-import { Class, ClassStudent, ClassTeacher, ClassSubject } from './entities';
+import { Class, ClassStudent, ClassSubject } from './entities';
 import {
   ClassModelAction,
-  ClassTeacherModelAction,
   ClassStudentModelAction,
   ClassSubjectModelAction,
 } from './model-actions';
@@ -19,7 +18,7 @@ import { ClassService } from './services/class.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Class, ClassTeacher, ClassSubject, ClassStudent]),
+    TypeOrmModule.forFeature([Class, ClassSubject, ClassStudent]),
     AcademicSessionModule,
     StudentModule,
     TeachersModule,
@@ -28,11 +27,10 @@ import { ClassService } from './services/class.service';
   providers: [
     ClassService,
     ClassModelAction,
-    ClassTeacherModelAction,
     ClassStudentModelAction,
     ClassSubjectModelAction,
     ClassSubjectService,
   ],
-  exports: [ClassModelAction, ClassTeacherModelAction, ClassStudentModelAction],
+  exports: [ClassModelAction, ClassStudentModelAction],
 })
 export class ClassModule {}
