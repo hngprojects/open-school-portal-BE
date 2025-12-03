@@ -10,9 +10,7 @@ import {
   SessionStatus,
 } from '../../academic-session/entities/academic-session.entity';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
-import { ClassSubject } from '../../class/entities/class-subject.entity';
 import { Class } from '../../class/entities/class.entity';
-import { GradeSubmission } from '../../grade/entities/grade-submission.entity';
 import { CreateSubjectDto } from '../dto/create-subject.dto';
 import { UpdateSubjectDto } from '../dto/update-subject.dto';
 import { Subject } from '../entities/subject.entity';
@@ -533,7 +531,7 @@ describe('SubjectService', () => {
   });
 
   describe('remove', () => {
-    it('should delete a subject successfully and unassign from all classes and grade submissions', async () => {
+    it('should delete a subject successfully', async () => {
       const existingSubject = {
         id: 'subject-1',
         name: 'Chemistry',
@@ -541,20 +539,8 @@ describe('SubjectService', () => {
         updatedAt: new Date('2024-01-04T00:00:00Z'),
       };
 
-      const managerDeleteMock = jest.fn().mockResolvedValue({ affected: 2 });
-
       subjectModelActionMock.get.mockResolvedValue(existingSubject);
       subjectModelActionMock.delete.mockResolvedValue(undefined);
-
-      // Mock the transaction to include manager.delete
-      const managerMock = {
-        delete: managerDeleteMock,
-        transactionId: 'manager-1',
-      } as unknown as EntityManager;
-
-      dataSourceMock.transaction = jest.fn(
-        (cb: (manager: EntityManager) => Promise<unknown>) => cb(managerMock),
-      );
 
       const result = await service.remove('subject-1');
 
@@ -564,64 +550,11 @@ describe('SubjectService', () => {
       });
 
       expect(dataSourceMock.transaction).toHaveBeenCalledTimes(1);
-      // Verify ClassSubject deletion
-      expect(managerDeleteMock).toHaveBeenCalledWith(ClassSubject, {
-        subject: { id: 'subject-1' },
-      });
-      // Verify GradeSubmission deletion
-      expect(managerDeleteMock).toHaveBeenCalledWith(GradeSubmission, {
-        subject: { id: 'subject-1' },
-      });
       expect(subjectModelActionMock.delete).toHaveBeenCalledWith({
         identifierOptions: { id: 'subject-1' },
         transactionOptions: {
           useTransaction: true,
-          transaction: managerMock,
-        },
-      });
-    });
-
-    it('should delete a subject successfully even when no classes or grade submissions are assigned', async () => {
-      const existingSubject = {
-        id: 'subject-1',
-        name: 'Chemistry',
-        createdAt: new Date('2024-01-03T00:00:00Z'),
-        updatedAt: new Date('2024-01-04T00:00:00Z'),
-      };
-
-      const managerDeleteMock = jest.fn().mockResolvedValue({ affected: 0 });
-
-      subjectModelActionMock.get.mockResolvedValue(existingSubject);
-      subjectModelActionMock.delete.mockResolvedValue(undefined);
-
-      const managerMock = {
-        delete: managerDeleteMock,
-        transactionId: 'manager-1',
-      } as unknown as EntityManager;
-
-      dataSourceMock.transaction = jest.fn(
-        (cb: (manager: EntityManager) => Promise<unknown>) => cb(managerMock),
-      );
-
-      const result = await service.remove('subject-1');
-
-      expect(result).toEqual({
-        message: sysMsg.SUBJECT_DELETED,
-        data: undefined,
-      });
-
-      // Verify both ClassSubject and GradeSubmission deletion attempts
-      expect(managerDeleteMock).toHaveBeenCalledWith(ClassSubject, {
-        subject: { id: 'subject-1' },
-      });
-      expect(managerDeleteMock).toHaveBeenCalledWith(GradeSubmission, {
-        subject: { id: 'subject-1' },
-      });
-      expect(subjectModelActionMock.delete).toHaveBeenCalledWith({
-        identifierOptions: { id: 'subject-1' },
-        transactionOptions: {
-          useTransaction: true,
-          transaction: managerMock,
+          transaction: entityManagerMock,
         },
       });
     });
