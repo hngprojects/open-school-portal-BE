@@ -10,9 +10,13 @@ import {
   Delete,
   HttpCode,
   HttpStatus,
+  Req,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
+import { IRequestWithUser } from '../../../common/types';
+import * as sysMsg from '../../../constants/system.messages';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -29,7 +33,7 @@ import {
   BulkCreateClassSubjectRequestDto,
   ListClassSubjectQueryDto,
 } from '../dto';
-import { ClassSubjectService } from '../services/class-subject.service';
+import { ClassSubjectService } from '../services';
 
 @ApiTags(ClassSubjectSwagger.tags[0])
 @Controller('class-subjects')
@@ -52,7 +56,17 @@ export class ClassSubjectController {
   @Get()
   @UseGuards(JwtAuthGuard)
   @DocsListClassSubjects()
-  async list(@Query() query: ListClassSubjectQueryDto) {
+  async list(
+    @Req() req: IRequestWithUser,
+    @Query() query: ListClassSubjectQueryDto,
+  ) {
+    if (req.user.roles.includes(UserRole.TEACHER)) {
+      const teacherId = req.user.teacher_id;
+      if (!teacherId) {
+        throw new BadRequestException(sysMsg.TEACHER_PROFILE_NOT_FOUND);
+      }
+      query.teacher_id = teacherId;
+    }
     return this.service.list(query);
   }
 
