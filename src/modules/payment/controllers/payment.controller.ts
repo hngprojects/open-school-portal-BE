@@ -11,18 +11,17 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 
-import * as sysMsg from '../../constants/system.messages';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { UserRole } from '../shared/enums';
-import { FileService } from '../shared/file/file.service';
-import { UploadService } from '../upload/upload.service';
-
-import { recordPaymentDoc } from './docs/payment.doc';
-import { PaymentResponseDto, RecordPaymentDto } from './dto/payment.dto';
-import { PaymentService } from './payment.service';
+import * as sysMsg from '../../../constants/system.messages';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { UserRole } from '../../shared/enums';
+import { FileService } from '../../shared/file/file.service';
+import { UploadService } from '../../upload/upload.service';
+import { recordPaymentDoc } from '../docs/payment.doc';
+import { PaymentResponseDto, RecordPaymentDto } from '../dto/payment.dto';
+import { PaymentService } from '../services/payment.service';
 
 @ApiTags('Fee Payments')
 @Controller('fee-payments')

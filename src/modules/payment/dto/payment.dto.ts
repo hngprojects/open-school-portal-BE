@@ -1,4 +1,4 @@
-import { Expose, Type } from 'class-transformer';
+import { Expose, Transform, Type } from 'class-transformer';
 import {
   IsNotEmpty,
   IsNumber,
@@ -56,9 +56,11 @@ class StudentDto {
   id: string;
 
   @Expose()
+  @Transform(({ obj }) => obj.user?.first_name)
   first_name: string;
 
   @Expose()
+  @Transform(({ obj }) => obj.user?.last_name)
   last_name: string;
 }
 

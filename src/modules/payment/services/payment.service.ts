@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 
-import { RecordPaymentDto } from './dto/payment.dto';
-import { Payment } from './entities/payment.entity';
-import { PaymentModelAction } from './model-action/payment.model-action';
-import { PaymentValidationService } from './services/payment-validation.service';
+import { RecordPaymentDto } from '../dto/payment.dto';
+import { Payment } from '../entities/payment.entity';
+import { PaymentModelAction } from '../model-action/payment.model-action';
+
+import { PaymentValidationService } from './payment-validation.service';
 
 @Injectable()
 export class PaymentService {
@@ -39,7 +40,7 @@ export class PaymentService {
     return this.paymentModelAction.get({
       identifierOptions: { id: payment.id },
       relations: {
-        student: true,
+        student: { user: true },
         fee_component: true,
         term: true,
       },
