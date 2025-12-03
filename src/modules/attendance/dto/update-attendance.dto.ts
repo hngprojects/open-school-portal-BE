@@ -1,22 +1,39 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsString, IsOptional } from 'class-validator';
 
-import { AttendanceStatus } from '../enums';
+import { AttendanceStatus, DailyAttendanceStatus } from '../enums';
 
 export class UpdateAttendanceDto {
-  @ApiProperty({
-    enum: AttendanceStatus,
+  @ApiPropertyOptional({
+    enum: [
+      ...Object.values(AttendanceStatus),
+      ...Object.values(DailyAttendanceStatus),
+    ],
     example: AttendanceStatus.PRESENT,
-    description: 'Updated attendance status',
-    required: false,
+    description:
+      'Updated attendance status (for schedule-based or daily attendance)',
   })
-  @IsEnum(AttendanceStatus)
   @IsOptional()
-  status?: AttendanceStatus;
+  status?: AttendanceStatus | DailyAttendanceStatus;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
+    example: '08:30:00',
+    description: 'Check-in time (for daily attendance only)',
+  })
+  @IsString()
+  @IsOptional()
+  check_in_time?: string;
+
+  @ApiPropertyOptional({
+    example: '15:00:00',
+    description: 'Check-out time (for daily attendance only)',
+  })
+  @IsString()
+  @IsOptional()
+  check_out_time?: string;
+
+  @ApiPropertyOptional({
     example: 'Updated: Student arrived late',
-    required: false,
     description: 'Updated notes',
   })
   @IsString()

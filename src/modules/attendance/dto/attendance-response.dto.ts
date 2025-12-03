@@ -27,14 +27,14 @@ export class AttendanceResponseDto {
 
   @ApiProperty({
     example: '123e4567-e89b-12d3-a456-426614174000',
-    description: 'Session ID',
+    description: 'Academic Session ID (school year)',
   })
   @Expose()
   session_id: string;
 
   @ApiProperty({
     example: '2025-09-20',
-    description: 'Attendance date',
+    description: 'Date attendance is taken',
   })
   @Expose()
   date: Date;
@@ -49,7 +49,7 @@ export class AttendanceResponseDto {
 
   @ApiProperty({
     example: '123e4567-e89b-12d3-a456-426614174000',
-    description: 'ID of user who marked attendance',
+    description: 'ID of user who marked attendance (i.e., teacher)',
   })
   @Expose()
   marked_by: string;
