@@ -143,7 +143,7 @@ export class ResolverService {
   ): Promise<DashboardMetadataTeacher> {
     await this.teacherModelAction.list({
       filterRecordOptions: { user_id: userId },
-      relations: { class_assignments: true },
+      relations: { classes: true },
     });
 
     return {
