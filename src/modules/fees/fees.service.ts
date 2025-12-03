@@ -111,16 +111,18 @@ export class FeesService {
       .createQueryBuilder('fee')
       .leftJoinAndSelect('fee.term', 'term')
       .leftJoinAndSelect('fee.classes', 'classes')
+      .leftJoin('fee.createdBy', 'createdBy')
+      .addSelect([
+        'createdBy.id',
+        'createdBy.first_name',
+        'createdBy.last_name',
+        'createdBy.middle_name',
+      ])
       .orderBy('fee.createdAt', 'DESC');
 
-    // Filter by status - default to ACTIVE if not specified
+    // Only filter by status if explicitly provided
     if (status) {
       queryBuilder.andWhere('fee.status = :status', { status });
-    } else {
-      // Default to ACTIVE if no status is specified
-      queryBuilder.andWhere('fee.status = :status', {
-        status: FeeStatus.ACTIVE,
-      });
     }
 
     // Filter by term_id
@@ -239,5 +241,120 @@ export class FeesService {
 
       return updatedFee;
     });
+  }
+
+  async findOne(id: string) {
+    const existingFee = await this.feesModelAction.get({
+      identifierOptions: { id },
+      relations: {
+        classes: true,
+        term: true,
+        createdBy: true,
+      },
+    });
+
+    if (!existingFee) {
+      throw new NotFoundException(sysMsg.FEE_NOT_FOUND);
+    }
+
+    // Only include safe fields from createdBy
+    const limitedCreator = existingFee.createdBy
+      ? {
+          id: existingFee.createdBy.id,
+          first_name: existingFee.createdBy.first_name,
+          last_name: existingFee.createdBy.last_name,
+          middle_name: existingFee.createdBy.middle_name,
+        }
+      : null;
+
+    return {
+      ...existingFee,
+      createdBy: limitedCreator,
+    };
+  }
+
+  // fees.service.ts - Fix the deactivate method
+  async deactivate(
+    id: string,
+    deactivatedBy: string,
+    reason?: string,
+  ): Promise<Fees> {
+    // Find the fee component - get method doesn't need transactionOptions
+    const fee = await this.feesModelAction.get({
+      identifierOptions: { id },
+    });
+
+    if (!fee) {
+      throw new NotFoundException(sysMsg.FEE_NOT_FOUND);
+    }
+
+    // Check if already inactive (idempotent)
+    if (fee.status === FeeStatus.INACTIVE) {
+      this.logger.info('Fee component is already inactive', {
+        fee_id: id,
+        deactivated_by: deactivatedBy,
+      });
+      return fee;
+    }
+
+    // Update status to inactive with transactionOptions (only update needs it)
+    const updatedFee = await this.feesModelAction.update({
+      identifierOptions: { id },
+      updatePayload: {
+        status: FeeStatus.INACTIVE,
+      },
+      transactionOptions: {
+        useTransaction: false,
+      },
+    });
+
+    this.logger.info('Fee component deactivated successfully', {
+      fee_id: id,
+      component_name: fee.component_name,
+      deactivated_by: deactivatedBy,
+      reason,
+      previous_status: fee.status,
+      new_status: FeeStatus.INACTIVE,
+    });
+
+    return updatedFee;
+  }
+
+  async activate(id: string, activatedBy: string): Promise<Fees> {
+    const fee = await this.feesModelAction.get({
+      identifierOptions: { id },
+    });
+
+    if (!fee) {
+      throw new NotFoundException(sysMsg.FEE_NOT_FOUND);
+    }
+
+    if (fee.status === FeeStatus.ACTIVE) {
+      this.logger.info('Fee component is already active', {
+        fee_id: id,
+        activated_by: activatedBy,
+      });
+      return fee;
+    }
+
+    const updatedFee = await this.feesModelAction.update({
+      identifierOptions: { id },
+      updatePayload: {
+        status: FeeStatus.ACTIVE,
+      },
+      transactionOptions: {
+        useTransaction: false,
+      },
+    });
+
+    this.logger.info('Fee component activated successfully', {
+      fee_id: id,
+      component_name: fee.component_name,
+      activated_by: activatedBy,
+      previous_status: fee.status,
+      new_status: FeeStatus.ACTIVE,
+    });
+
+    return updatedFee;
   }
 }

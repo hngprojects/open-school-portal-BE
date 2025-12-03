@@ -113,3 +113,20 @@ export class CreateFeeResponseDto {
   @ApiProperty({ type: FeesResponseDto })
   data: FeesResponseDto;
 }
+
+// dto/fees-response.dto.ts - Add this to the existing file
+export class DeactivateFeeResponseDto {
+  @ApiProperty({ example: 'Fee component deactivated successfully' })
+  message: string;
+
+  @ApiProperty({ type: FeesResponseDto })
+  data: FeesResponseDto;
+}
+
+export class ActivateFeeResponseDto {
+  @ApiProperty({ example: 'Fee component activated successfully' })
+  message: string;
+
+  @ApiProperty({ type: FeesResponseDto })
+  data: FeesResponseDto;
+}

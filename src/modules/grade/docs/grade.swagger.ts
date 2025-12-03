@@ -1,21 +1,23 @@
 import { applyDecorators } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
+  ApiNotFoundResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiParam,
-  ApiQuery,
   ApiResponse,
 } from '@nestjs/swagger';
 
+import * as sysMsg from '../../../constants/system.messages';
 import {
   CreateGradeSubmissionDto,
   GradeResponseDto,
   GradeSubmissionResponseDto,
+  ListGradeSubmissionsResponseDto,
   UpdateGradeDto,
 } from '../dto';
-import { GradeSubmissionStatus } from '../entities/grade-submission.entity';
-
 export const GradeSwagger = {
   tags: ['Grades'],
 };
@@ -45,52 +47,18 @@ export function createGradeSubmissionDocs() {
   );
 }
 
-export function listTeacherSubmissionsDocs() {
+export function listGradeSubmissionsDocs() {
   return applyDecorators(
     ApiBearerAuth(),
     ApiOperation({
-      summary: 'List teacher submissions',
-      description: 'Get all grade submissions for the authenticated teacher',
-    }),
-    ApiQuery({
-      name: 'page',
-      required: false,
-      type: Number,
-      description: 'Page number',
-    }),
-    ApiQuery({
-      name: 'limit',
-      required: false,
-      type: Number,
-      description: 'Items per page',
-    }),
-    ApiQuery({
-      name: 'class_id',
-      required: false,
-      type: String,
-      description: 'Filter by class ID',
-    }),
-    ApiQuery({
-      name: 'subject_id',
-      required: false,
-      type: String,
-      description: 'Filter by subject ID',
-    }),
-    ApiQuery({
-      name: 'term_id',
-      required: false,
-      type: String,
-      description: 'Filter by term ID',
-    }),
-    ApiQuery({
-      name: 'status',
-      required: false,
-      enum: GradeSubmissionStatus,
-      description: 'Filter by status',
+      summary: 'List grade submissions (ADMIN/TEACHER)',
+      description:
+        'Get all grade submissions, Only gets submissions for authenticated teacher if authenticated user is a teacher',
     }),
     ApiResponse({
       status: 200,
       description: 'List of grade submissions',
+      type: ListGradeSubmissionsResponseDto,
     }),
   );
 }
@@ -182,43 +150,70 @@ export function updateGradeDocs() {
   );
 }
 
-export function getStudentsForClassDocs() {
+export function getStudentGradesDocs() {
   return applyDecorators(
     ApiBearerAuth(),
     ApiOperation({
-      summary: 'Get students for grade entry',
-      description:
-        'Get list of students in a class for grade entry. Teacher must be assigned to the subject.',
+      summary: 'Get student grades',
+      description: 'Retrieve all grades for a specific student.',
     }),
     ApiParam({
-      name: 'classId',
+      name: 'studentId',
       type: String,
-      description: 'Class ID',
-    }),
-    ApiQuery({
-      name: 'subject_id',
-      required: true,
-      type: String,
-      description: 'Subject ID',
+      description: 'The ID of the student to retrieve grades for.',
     }),
     ApiResponse({
       status: 200,
-      description: 'List of students',
-      schema: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            name: { type: 'string' },
-            registration_number: { type: 'string' },
-          },
-        },
-      },
+      description: 'Grades fetched successfully.',
+      type: [GradeResponseDto],
     }),
     ApiResponse({
       status: 403,
-      description: 'Forbidden - teacher not assigned to this subject/class',
+      description: 'Forbidden - Not authorized to access these grades.',
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Student not found',
+    }),
+  );
+}
+
+export function approveSubmissionDocs() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: 'Approve a grade submission',
+      description:
+        'Approve a grade submission by Admin. All grades must be complete.',
+    }),
+    ApiOkResponse({
+      description: sysMsg.GRADE_APPROVED,
+    }),
+    ApiBadRequestResponse({
+      description: `${sysMsg.GRADE_ALREADY_APPROVED} || ${sysMsg.GRADE_ALREADY_REJECTED} || ${sysMsg.GRADE_NOT_SUBMITTED}`,
+    }),
+    ApiNotFoundResponse({
+      description: sysMsg.GRADE_SUBMISSION_NOT_FOUND,
+    }),
+  );
+}
+
+export function rejectSubmissionDocs() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: 'Reject a grade submission',
+      description:
+        'Reject a grade submission by Admin. All grades must be complete.',
+    }),
+    ApiNotFoundResponse({
+      description: sysMsg.GRADE_SUBMISSION_NOT_FOUND,
+    }),
+    ApiOkResponse({
+      description: sysMsg.GRADE_REJECTED,
+    }),
+    ApiBadRequestResponse({
+      description: `${sysMsg.GRADE_ALREADY_APPROVED} || ${sysMsg.GRADE_ALREADY_REJECTED} || ${sysMsg.GRADE_NOT_SUBMITTED}`,
     }),
   );
 }

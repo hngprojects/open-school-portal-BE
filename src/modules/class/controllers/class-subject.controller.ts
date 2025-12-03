@@ -6,9 +6,17 @@ import {
   Post,
   Body,
   UseGuards,
+  Query,
+  Delete,
+  HttpCode,
+  HttpStatus,
+  Req,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
+import { IRequestWithUser } from '../../../common/types';
+import * as sysMsg from '../../../constants/system.messages';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -18,49 +26,66 @@ import {
   DocsListClassSubjects,
   DocsAssignTeacherToSubject,
   DocsUnassignTeacherFromSubject,
+  DocsCreateClassSubjects,
 } from '../docs';
-import { AssignTeacherToClassSubjectRequestDto } from '../dto';
-import { ClassSubjectService } from '../services/class-subject.service';
+import {
+  AssignTeacherToClassSubjectRequestDto,
+  BulkCreateClassSubjectRequestDto,
+  ListClassSubjectQueryDto,
+} from '../dto';
+import { ClassSubjectService } from '../services';
 
 @ApiTags(ClassSubjectSwagger.tags[0])
-@Controller('classes/:classId/subjects')
+@Controller('class-subjects')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ClassSubjectController {
-  constructor(private readonly classStudentService: ClassSubjectService) {}
+  constructor(private readonly service: ClassSubjectService) {}
+
+  // --- POST: CREATE CLASS SUBJECTS ---
+  @Post()
+  @Roles(UserRole.ADMIN)
+  @DocsCreateClassSubjects()
+  @HttpCode(HttpStatus.CREATED)
+  create(@Body() { classId, subjectIds }: BulkCreateClassSubjectRequestDto) {
+    return this.service.create(classId, subjectIds);
+  }
 
   // --- GET: LIST CLASS SUBJECTS ---
   @Get()
   @DocsListClassSubjects()
-  async list(@Param('classId', ParseUUIDPipe) classId: string) {
-    return this.classStudentService.list(classId);
+  async list(
+    @Req() req: IRequestWithUser,
+    @Query() query: ListClassSubjectQueryDto,
+  ) {
+    if (req.user.roles.includes(UserRole.TEACHER)) {
+      const teacherId = req.user.teacher_id;
+      if (!teacherId) {
+        throw new BadRequestException(sysMsg.TEACHER_PROFILE_NOT_FOUND);
+      }
+      query.teacher_id = teacherId;
+    }
+    return this.service.list(query);
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  // --- POST: ASSIGN TEACHER TO CLASS SUBJECT ---
   @Roles(UserRole.ADMIN)
-  @Post(':subjectId/assign-teacher')
+  @Post(':id/teacher')
   @DocsAssignTeacherToSubject()
   async assignTeacher(
-    @Param('classId', ParseUUIDPipe) classId: string,
-    @Param('subjectId', ParseUUIDPipe) subjectId: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() { teacherId }: AssignTeacherToClassSubjectRequestDto,
   ) {
-    return this.classStudentService.assignTeacher(
-      classId,
-      subjectId,
-      teacherId,
-    );
+    return this.service.assignTeacher(id, teacherId);
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  // --- DELETE: DELETE TEACHER FROM CLASS SUBJECT ---
   @Roles(UserRole.ADMIN)
   @DocsUnassignTeacherFromSubject()
-  @Post(':subjectId/unassign-teacher')
+  @Delete(':id/teacher')
   @DocsAssignTeacherToSubject()
-  async unassignTeacher(
-    @Param('classId', ParseUUIDPipe) classId: string,
-    @Param('subjectId', ParseUUIDPipe) subjectId: string,
-  ) {
-    return this.classStudentService.unassignTeacher(classId, subjectId);
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async unassignTeacher(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.unassignTeacher(id);
   }
 }

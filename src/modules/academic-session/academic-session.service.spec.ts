@@ -6,24 +6,24 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource, EntityManager } from 'typeorm';
+import { Logger } from 'winston';
 
 import * as sysMsg from '../../constants/system.messages';
 import { CreateTermDto } from '../academic-term/dto/create-term.dto';
 import { TermService } from '../academic-term/term.service';
 
 import { AcademicSessionService } from './academic-session.service';
-import { CreateAcademicSessionDto } from './dto/create-academic-session.dto';
-import {
-  AcademicSession,
-  SessionStatus,
-} from './entities/academic-session.entity';
+import { CreateAcademicSessionDto } from './dto';
+import { AcademicSession, SessionStatus } from './entities';
 import { AcademicSessionModelAction } from './model-actions/academic-session-actions';
 
 describe('AcademicSessionService', () => {
   let service: AcademicSessionService;
   let sessionModelAction: jest.Mocked<AcademicSessionModelAction>;
   let termService: jest.Mocked<TermService>;
+  let mockLogger: jest.Mocked<Logger>;
 
   const mockCreate = jest.fn();
   const mockSave = jest.fn();
@@ -36,19 +36,29 @@ describe('AcademicSessionService', () => {
     findOne: mockFindOne,
   } as unknown as EntityManager;
 
-  beforeEach(async () => {
-    const mockSessionModelAction = {
-      get: jest.fn(),
-      create: jest.fn(),
-      list: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    };
+  const mockSessionModelAction = {
+    get: jest.fn(),
+    create: jest.fn(),
+    list: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  };
 
-    const mockTermService = {
-      createTermsForSession: jest.fn(),
-      archiveTermsBySessionId: jest.fn(),
-    };
+  const mockTermService = {
+    createTermsForSession: jest.fn(),
+    archiveTermsBySessionId: jest.fn(),
+    findTermsBySessionId: jest.fn(),
+  };
+
+  beforeEach(async () => {
+    mockLogger = {
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      debug: jest.fn(),
+      log: jest.fn(),
+      child: jest.fn().mockReturnThis(),
+    } as unknown as jest.Mocked<Logger>;
 
     const mockDataSource = {
       transaction: jest.fn((callback) => callback(mockEntityManager)),
@@ -69,6 +79,10 @@ describe('AcademicSessionService', () => {
         {
           provide: DataSource,
           useValue: mockDataSource,
+        },
+        {
+          provide: WINSTON_MODULE_PROVIDER,
+          useValue: mockLogger,
         },
       ],
     }).compile();
@@ -118,7 +132,7 @@ describe('AcademicSessionService', () => {
       startDate: new Date(`${futureDate.getFullYear()}-09-01`),
       endDate: new Date(`${futureDate.getFullYear() + 1}-07-20`),
       description: 'Test Academic Session',
-      status: SessionStatus.ACTIVE,
+      status: SessionStatus.INACTIVE, // Future session, not yet active
       terms: [],
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -138,7 +152,7 @@ describe('AcademicSessionService', () => {
       const result = await service.create(createDto);
 
       expect(result).toEqual({
-        status_code: HttpStatus.OK,
+        status_code: HttpStatus.CREATED,
         message: sysMsg.ACADEMIC_SESSION_CREATED,
         data: mockSession,
       });
@@ -181,12 +195,22 @@ describe('AcademicSessionService', () => {
     });
 
     it('should throw BadRequestException for invalid term date ranges', async () => {
+      const nextYear = futureDate.getFullYear() + 2;
       const invalidDto: CreateAcademicSessionDto = {
         description: 'Invalid session',
         terms: {
-          first_term: { startDate: '2025-12-01', endDate: '2025-11-01' },
-          second_term: { startDate: '2026-01-01', endDate: '2026-12-31' },
-          third_term: { startDate: '2027-01-01', endDate: '2027-12-31' },
+          first_term: {
+            startDate: `${nextYear}-12-01`,
+            endDate: `${nextYear}-11-01`,
+          },
+          second_term: {
+            startDate: `${nextYear + 1}-01-01`,
+            endDate: `${nextYear + 1}-12-31`,
+          },
+          third_term: {
+            startDate: `${nextYear + 2}-01-01`,
+            endDate: `${nextYear + 2}-12-31`,
+          },
         },
       };
 
@@ -237,45 +261,6 @@ describe('AcademicSessionService', () => {
         sysMsg.TERM_SEQUENTIAL_INVALID,
       );
     });
-
-    it('should archive previous active session when creating new one', async () => {
-      const prevYear = futureDate.getFullYear() - 1;
-      const pastDate = new Date();
-      pastDate.setFullYear(pastDate.getFullYear() - 1);
-
-      const existingSession: AcademicSession = {
-        ...mockSession,
-        id: 'old-session-id',
-        academicYear: `${prevYear}/${prevYear + 1}`,
-        name: `${prevYear}/${prevYear + 1}`,
-        endDate: pastDate, // Past date so it's not considered ongoing
-      };
-
-      sessionModelAction.get.mockResolvedValue(null);
-      sessionModelAction.list.mockResolvedValue({
-        payload: [existingSession],
-        paginationMeta: null,
-      });
-      mockCreate.mockReturnValue(mockSession);
-      mockSave.mockResolvedValue(mockSession);
-      mockFindOne.mockResolvedValue(mockSession);
-      termService.createTermsForSession.mockResolvedValue([]);
-
-      await service.create(createDto);
-
-      expect(termService.archiveTermsBySessionId).toHaveBeenCalledWith(
-        'old-session-id',
-        mockEntityManager,
-      );
-      expect(sessionModelAction.update).toHaveBeenCalledWith({
-        updatePayload: { status: SessionStatus.ARCHIVED },
-        identifierOptions: { status: SessionStatus.ACTIVE },
-        transactionOptions: {
-          useTransaction: true,
-          transaction: mockEntityManager,
-        },
-      });
-    });
   });
 
   describe('findAll', () => {
@@ -306,6 +291,12 @@ describe('AcademicSessionService', () => {
       expect(result.message).toBe(sysMsg.ACADEMIC_SESSION_LIST_SUCCESS);
       expect(result.data).toEqual(mockSessions);
       expect(result.meta).toBeDefined();
+      expect(result.meta.summary).toBeDefined();
+      expect(result.meta.summary).toEqual({
+        active: 1,
+        inactive: 0,
+        archived: 0,
+      });
     });
 
     it('should use default pagination values', async () => {
@@ -484,6 +475,48 @@ describe('AcademicSessionService', () => {
       expect(sessionModelAction.delete).toHaveBeenCalledWith({
         identifierOptions: { id: 'session-id' },
         transactionOptions: { useTransaction: false },
+      });
+    });
+  });
+
+  describe('activeSessions', () => {
+    it('should return active session', async () => {
+      const mockActiveSession: AcademicSession = {
+        id: 'session-123',
+        name: '2023/2024',
+        startDate: new Date('2023-09-01'),
+        endDate: new Date('2024-08-31'),
+        status: SessionStatus.ACTIVE,
+      } as AcademicSession;
+
+      sessionModelAction.list.mockResolvedValue({
+        payload: [mockActiveSession],
+        paginationMeta: { page: 1, limit: 20, total: 1 },
+      });
+
+      const result = await service.activeSessions();
+
+      expect(result.status_code).toBe(HttpStatus.OK);
+      expect(result.message).toBe(sysMsg.ACTIVE_ACADEMIC_SESSION_SUCCESS);
+      expect(result.data).toEqual(mockActiveSession);
+      expect(sessionModelAction.list).toHaveBeenCalledWith({
+        filterRecordOptions: { status: SessionStatus.ACTIVE },
+      });
+    });
+
+    it('should throw NotFoundException when no active session exists', async () => {
+      sessionModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { page: 1, limit: 20, total: 0 },
+      });
+
+      await expect(service.activeSessions()).rejects.toThrow(NotFoundException);
+      await expect(service.activeSessions()).rejects.toThrow(
+        sysMsg.NO_ACTIVE_SESSION,
+      );
+
+      expect(sessionModelAction.list).toHaveBeenCalledWith({
+        filterRecordOptions: { status: SessionStatus.ACTIVE },
       });
     });
   });

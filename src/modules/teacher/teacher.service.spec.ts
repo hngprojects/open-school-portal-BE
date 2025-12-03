@@ -1,4 +1,8 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
@@ -278,6 +282,90 @@ describe('TeacherService', () => {
       await expect(service.create(createDto)).rejects.toThrow();
       // Transaction will automatically rollback on error
       expect(dataSource.transaction).toHaveBeenCalled();
+    });
+
+    describe('age validation', () => {
+      it('should throw BadRequestException if teacher is under 18 years old', async () => {
+        const today = new Date();
+        const underageDate = new Date(
+          today.getFullYear() - 17,
+          today.getMonth(),
+          today.getDate(),
+        );
+        const underageDto = {
+          ...createDto,
+          date_of_birth: underageDate.toISOString().split('T')[0],
+        };
+
+        await expect(service.create(underageDto)).rejects.toThrow(
+          BadRequestException,
+        );
+      });
+
+      it('should throw BadRequestException with correct message for underage teacher', async () => {
+        const today = new Date();
+        const underageDate = new Date(
+          today.getFullYear() - 10,
+          today.getMonth(),
+          today.getDate(),
+        );
+        const underageDto = {
+          ...createDto,
+          date_of_birth: underageDate.toISOString().split('T')[0],
+        };
+
+        await expect(service.create(underageDto)).rejects.toThrow(
+          /at least 18 years old/,
+        );
+      });
+
+      it('should allow teacher who is exactly 18 years old', async () => {
+        const today = new Date();
+        const exactlyEighteenDate = new Date(
+          today.getFullYear() - 18,
+          today.getMonth(),
+          today.getDate(),
+        );
+        const validAgeDto = {
+          ...createDto,
+          date_of_birth: exactlyEighteenDate.toISOString().split('T')[0],
+        };
+
+        const result = await service.create(validAgeDto);
+
+        expect(result).toBeDefined();
+        expect(result).toHaveProperty('employment_id');
+      });
+
+      it('should throw BadRequestException if teacher turns 18 tomorrow', async () => {
+        const today = new Date();
+        const almostEighteenDate = new Date(
+          Date.UTC(
+            today.getFullYear() - 18,
+            today.getMonth(),
+            today.getDate() + 1,
+          ),
+        );
+        const almostEighteenDto = {
+          ...createDto,
+          date_of_birth: almostEighteenDate.toISOString().split('T')[0],
+        };
+
+        await expect(service.create(almostEighteenDto)).rejects.toThrow(
+          BadRequestException,
+        );
+      });
+
+      it('should allow teacher who is well over 18 years old', async () => {
+        const validAgeDto = {
+          ...createDto,
+          date_of_birth: '1990-01-15',
+        };
+
+        const result = await service.create(validAgeDto);
+
+        expect(result).toBeDefined();
+      });
     });
   });
 

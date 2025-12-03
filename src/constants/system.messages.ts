@@ -31,6 +31,8 @@ export const ACCOUNT_NOT_FOUND = 'account not found';
 export const ACCOUNT_ALREADY_EXISTS = 'account already exists';
 export const USER_NOT_FOUND = 'user not found';
 export const ACCOUNT_DELETED = 'account deleted';
+export const USER_CREATED_SUCCESSFULLY = 'user created successfully';
+export const USER_UPDATED_SUCCESSFULLY = 'user updated sucessfully';
 
 // Email Verification
 export const EMAIL_VERIFICATION_SENT = 'email verification sent';
@@ -140,7 +142,13 @@ export const INVITE_SENT = 'invite sent';
 export const PENDING_INVITES_FETCHED = 'Pending invites retrieved successfully';
 export const NO_PENDING_INVITES = 'No pending invites found';
 export const INVITE_ALREADY_SENT = 'invite already sent';
+export const INVITES_FETCHED = 'invites fetched successfully';
 export const ACTIVE_INVITE_EXISTS = 'an active invite exist for this user';
+export const INVITE_EMAIL_MISMATCH =
+  'The email associated with this invite does not match your Google email.';
+export const INVALID_GOOGLE_TOKEN = 'Invalid Google token';
+export const REGISTRATION_INVITE_ONLY =
+  'Registration is by invitation only. Please provide an invite token.';
 
 //Academic Session
 export const ACADEMIC_SESSION =
@@ -154,6 +162,7 @@ export const START_DATE_IN_PAST = 'Start date cannot be in the past.';
 export const END_DATE_IN_PAST = 'End date cannot be in the past.';
 export const ACTIVE_ACADEMIC_SESSION_SUCCESS =
   'Academic session retrieved successfully.';
+export const NO_ACTIVE_SESSION = 'No active academic session found.';
 export const MULTIPLE_ACTIVE_ACADEMIC_SESSION =
   'Multiple academic session records detected.';
 export const ACADEMIC_SESSION_LIST_SUCCESS =
@@ -171,8 +180,6 @@ export const ACADEMIC_SESSION_UPDATED =
   'Academic session updated successfully.';
 export const ACADEMIC_SESSION_DELETED =
   'Academic session deleted successfully.';
-export const INACTIVE_SESSION_LOCKED =
-  'Cannot modify an inactive academic session. Previous sessions are locked to preserve historical data integrity.';
 export const ARCHIVED_SESSION_LOCKED =
   'Cannot modify an archived academic session. Archived sessions are read-only to preserve historical data.';
 export const ARCHIVED_SESSION_NO_DELETE =
@@ -180,8 +187,6 @@ export const ARCHIVED_SESSION_NO_DELETE =
 export const ACTIVE_SESSION_NO_DELETE =
   'Cannot delete an active academic session. Please archive the session first before deletion.';
 export const SESSION_ARCHIVED = 'Academic session archived successfully.';
-export const ONGOING_SESSION_EXISTS =
-  'Cannot create a new session while an ongoing session exists. Please wait for the current session to end.';
 // Session management messages
 export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
@@ -215,6 +220,8 @@ export const SUBJECT_DELETED = 'Subject deleted successfully';
 export const SUBJECT_REQUIRED_FOR_LESSON = 'Subject is required for lessons';
 export const CLASSES_ASSIGNED_TO_SUBJECT =
   'Classes successfully assigned to subject';
+export const CLASSES_UNASSIGNED_TO_SUBJECT =
+  'Classes successfully unassigned to subject';
 
 // School Installation messages
 export const INSTALLATION_COMPLETED =
@@ -239,6 +246,8 @@ export const TOTAL_CLASSES_FETCHED = 'total classes fetched successfully';
 export const INVALID_CLASS_IDS = 'One or more class IDs are invalid';
 export const CLASSES_NOT_IN_ACTIVE_SESSION =
   'One or more classes are not in the active academic session';
+export const CLASS_SUBJECTS_CREATED = (length: number) =>
+  `${length} class subjects created successfully.`;
 export const CLASS_SUBJECT_NOT_FOUND = 'Subject not found in class';
 export const CLASS_SUBJECTS_FETCHED_SUCCESSFUL =
   'Class subjects fetched successfully';
@@ -298,24 +307,25 @@ export const STUDENT_DELETED = 'Student deleted successfully';
 export const TERM_RETRIEVED = 'Term(s) retrieved successfully';
 export const TERM_UPDATED = 'Term updated successfully';
 export const TERM_NOT_FOUND = 'Term not found';
+export const NO_ACTIVE_TERM = 'No active term found';
 export const TERM_UPDATE_FAILED = 'Failed to update term';
 export const ARCHIVED_TERM_LOCKED =
   'Cannot modify an archived term. Archived terms are read-only to preserve historical data.';
 
 // Academic Term - Validation errors
-export const TERM_INVALID_DATE_RANGE = 'end date must be after start date';
-export const TERM_START_AFTER_END =
-  'Start date must be before the current end date';
-export const TERM_END_BEFORE_START =
-  'End date must be after the current start date';
+export const TERM_INVALID_DATE_RANGE = 'end date must be after start date.';
 export const TERM_SEQUENTIAL_INVALID =
-  'start date must be after the previous term end date';
-export const TERM_ID_INVALID = 'invalid term id';
+  'Start date must be after the previous term end date.';
+export const TERM_ID_INVALID = 'Invalid term ID.';
 // Dashboard messages
 export const DASHBOARD_RESOLVED = 'Dashboard resolved successfully';
+export const TODAYS_CLASSES_FETCHED = "Today's classes retrieved successfully";
+export const NO_CLASSES_TODAY = 'No classes scheduled for today';
 
 // Teacher messages
 export const INVALID_TEACHER_ID = 'Invalid teacher ID provided';
+export const INVALID_TEACHER_AGE = (minAge: number) =>
+  `Teacher must be at least ${minAge} years old`;
 
 // Timetable messages
 export const TIMETABLE_CREATED = 'Timetable created successfully';
@@ -353,6 +363,8 @@ export const GRADE_SUBMISSION_UPDATED = 'Grade submission updated successfully';
 export const GRADE_SUBMISSION_NOT_FOUND = 'Grade submission not found';
 export const GRADE_SUBMISSION_EXISTS =
   'A grade submission already exists for this class, subject, and term';
+export const GRADE_SUBMISSIONS_FETCHED =
+  'Grade submissions fetched successfully';
 export const GRADE_CREATED = 'Grade created successfully';
 export const GRADE_UPDATED = 'Grade updated successfully';
 export const GRADE_SUBMITTED = 'Grades submitted for approval successfully';
@@ -363,6 +375,8 @@ export const GRADE_NOT_FOUND = 'Grade not found';
 export const GRADES_FETCHED = 'Grades fetched successfully';
 export const GRADE_ALREADY_APPROVED =
   'Cannot modify an approved grade submission';
+export const GRADE_ALREADY_REJECTED =
+  'Cannot approve a rejected grade submission';
 export const GRADE_ALREADY_SUBMITTED =
   'Cannot modify a submitted grade submission. Wait for admin review.';
 export const GRADE_NOT_SUBMITTED =
@@ -378,3 +392,19 @@ export const TEACHER_PROFILE_NOT_FOUND =
 export const UNAUTHORIZED_GRADE_ACCESS =
   'You are not authorized to access this grade submission';
 export const INVALID_SCORE_RANGE = 'Score must be within the allowed range';
+export const FEE_DEACTIVATED_SUCCESSFULLY =
+  'Fee component deactivated successfully';
+export const FEE_ALREADY_INACTIVE = 'Fee component is already inactive';
+// Superadmin messages
+export const SUPERADMIN_ACCOUNT_CREATED = 'superadmin account created';
+export const SUPERADMIN_PASSWORDS_REQUIRED =
+  'password and confirmation password are required';
+export const SUPERADMIN_INVALID_PASSWORD = 'invalid password';
+export const SUPERADMIN_EMAIL_EXISTS =
+  'superadmin with this email already exists';
+export const SUPERADMIN_PASSWORD_MUST_MATCH =
+  'password and confirmation password must match';
+export const SUPERADMIN_CONFLICT_GENERAL_MSG =
+  'conflict - request cannot be processed. See examples for possible causes.';
+export const SUPERADMIN_ALREADY_EXISTS =
+  'a superadmin account already exists. Only one is allowed.';
