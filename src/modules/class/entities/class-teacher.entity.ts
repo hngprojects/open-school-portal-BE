@@ -1,16 +1,11 @@
-import {
-  Entity,
-  Column,
-  ManyToOne,
-  JoinColumn,
-  CreateDateColumn,
-} from 'typeorm';
+import { Entity, Column, CreateDateColumn } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
-import { Teacher } from '../../teacher/entities/teacher.entity';
 
-import { Class } from './class.entity';
-
+/**
+ * @deprecated This entity is kept for historical data migration purposes only.
+ * New implementations should use the direct teacher relationship on the Class entity.
+ */
 @Entity('class_teachers')
 export class ClassTeacher extends BaseEntity {
   // FIX: explicitly map to 'session_id' and fix property casing
@@ -23,11 +18,18 @@ export class ClassTeacher extends BaseEntity {
   @Column({ name: 'is_active', default: true })
   is_active: boolean;
 
-  @ManyToOne(() => Class, (cls) => cls.teacher_assignment)
-  @JoinColumn({ name: 'class_id' })
-  class: Class;
+  @Column({ name: 'class_id' })
+  class_id: string;
 
-  @ManyToOne(() => Teacher, (teacher) => teacher.class_assignments)
-  @JoinColumn({ name: 'teacher_id' })
-  teacher: Teacher;
+  @Column({ name: 'teacher_id' })
+  teacher_id: string;
+
+  // Relationships commented out - using direct relationship on Class now
+  // @ManyToOne(() => Class, (cls) => cls.teacher)
+  // @JoinColumn({ name: 'class_id' })
+  // class: Class;
+
+  // @ManyToOne(() => Teacher, (teacher) => teacher.classes)
+  // @JoinColumn({ name: 'teacher_id' })
+  // teacher: Teacher;
 }
