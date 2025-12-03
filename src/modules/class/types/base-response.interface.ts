@@ -16,7 +16,11 @@ export interface ICreateClassResponse {
     id: string;
     name: string;
   };
-  teacherIds?: string[];
+  teacher: {
+    id: string;
+    name: string;
+    employment_id: string;
+  } | null;
 }
 
 export interface IUpdateClassResponse {
@@ -28,6 +32,11 @@ export interface IUpdateClassResponse {
     id: string;
     name: string;
   };
+  teacher: {
+    id: string;
+    name: string;
+    employment_id: string;
+  } | null;
 }
 
 export interface IGetClassByIdResponse {
@@ -40,4 +49,9 @@ export interface IGetClassByIdResponse {
     id: string;
     name: string;
   };
+  teacher: {
+    id: string;
+    name: string;
+    employment_id: string;
+  } | null;
 }
