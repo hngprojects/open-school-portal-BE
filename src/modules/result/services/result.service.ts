@@ -1,4 +1,3 @@
-import { PaginationMeta } from '@hng-sdk/orm';
 import {
   BadRequestException,
   Inject,
@@ -17,11 +16,7 @@ import { ClassModelAction } from '../../class/model-actions/class.actions';
 import { GradeSubmissionStatus } from '../../grade/entities';
 import { GradeModelAction } from '../../grade/model-actions';
 import { StudentModelAction } from '../../student/model-actions/student-actions';
-import {
-  ResultResponseDto,
-  ListResultsQueryDto,
-  ClassStatisticsDto,
-} from '../dto';
+import { ResultResponseDto } from '../dto';
 import { Result, ResultSubjectLine } from '../entities';
 import { IStudentGradeData, IStudentResultData } from '../interface';
 import {
@@ -56,7 +51,11 @@ export class ResultService {
     classId: string,
     termId: string,
     academicSessionId?: string,
-  ): Promise<{ message: string; generated_count: number }> {
+  ): Promise<{
+    message: string;
+    generated_count: number;
+    result_ids: string[];
+  }> {
     // Validate class exists
     const classEntity = await this.classModelAction.get({
       identifierOptions: { id: classId },
@@ -174,6 +173,7 @@ export class ResultService {
 
     try {
       let generatedCount = 0;
+      const resultIds: string[] = [];
 
       for (const resultData of resultsWithPositions) {
         // Check if result already exists
@@ -200,6 +200,7 @@ export class ResultService {
         result.generated_at = new Date();
 
         const savedResult = await queryRunner.manager.save(Result, result);
+        resultIds.push(savedResult.id);
 
         // Delete existing subject lines if updating
         if (existingResult) {
@@ -239,179 +240,13 @@ export class ResultService {
       return {
         message: sysMsg.RESULT_GENERATED_SUCCESS(generatedCount),
         generated_count: generatedCount,
+        result_ids: resultIds,
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
       this.logger.error('Error generating class results', {
         error: error instanceof Error ? error.message : String(error),
         classId,
-        termId,
-      });
-      throw error;
-    } finally {
-      await queryRunner.release();
-    }
-  }
-
-  /**
-   * Generate result for a single student
-   */
-  async generateStudentResult(
-    studentId: string,
-    termId: string,
-    academicSessionId?: string,
-  ): Promise<ResultResponseDto> {
-    // Validate student exists
-    const student = await this.studentModelAction.get({
-      identifierOptions: { id: studentId },
-      relations: { user: true },
-    });
-
-    if (!student || student.is_deleted) {
-      throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
-    }
-
-    // Get student's active class assignment
-    const assignments = await this.classStudentModelAction.list({
-      filterRecordOptions: {
-        student: { id: studentId },
-        is_active: true,
-      },
-      relations: {
-        class: { academicSession: true },
-      },
-      order: { enrollment_date: 'DESC' },
-    });
-
-    if (assignments.payload.length === 0) {
-      throw new BadRequestException(sysMsg.STUDENT_NOT_ENROLLED);
-    }
-
-    const assignment = assignments.payload[0];
-    const classId = assignment.class.id;
-    const sessionId = academicSessionId || assignment.class.academicSession.id;
-
-    // Validate term
-    const term = await this.termModelAction.get({
-      identifierOptions: { id: termId },
-      relations: { academicSession: true },
-    });
-
-    if (!term) {
-      throw new NotFoundException(sysMsg.TERM_NOT_FOUND);
-    }
-
-    if (term.academicSession.id !== sessionId) {
-      throw new BadRequestException(sysMsg.TERM_NOT_IN_STUDENT_SESSION);
-    }
-
-    // Compute result data
-    const resultData = await this.computeStudentResultData(
-      studentId,
-      classId,
-      termId,
-      sessionId,
-    );
-
-    if (!resultData) {
-      // Check if grades need approval
-      const submittedGrades = await this.gradeModelAction.list({
-        filterRecordOptions: {
-          student_id: studentId,
-          submission: {
-            class_id: classId,
-            term_id: termId,
-            academic_session_id: sessionId,
-            status: GradeSubmissionStatus.SUBMITTED,
-          },
-        },
-      });
-
-      if (submittedGrades.payload.length > 0) {
-        throw new BadRequestException(sysMsg.GRADES_NOT_APPROVED);
-      }
-
-      throw new BadRequestException(sysMsg.NO_APPROVED_GRADES_STUDENT);
-    }
-
-    if (resultData.subject_count === 0) {
-      throw new BadRequestException(sysMsg.NO_VALID_GRADES_STUDENT);
-    }
-
-    // Calculate position (need to compare with other students in class)
-    const classResults = await this.getStudentResultsForClass(
-      classId,
-      termId,
-      sessionId,
-    );
-    const position = this.calculateStudentPosition(
-      resultData.average_score,
-      classResults,
-    );
-
-    resultData.position = position;
-
-    // Save result
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    try {
-      const existingResult = await this.resultModelAction.get({
-        identifierOptions: {
-          student_id: studentId,
-          class_id: classId,
-          term_id: termId,
-          academic_session_id: sessionId,
-        },
-      });
-
-      const result = existingResult || new Result();
-      result.student_id = studentId;
-      result.class_id = classId;
-      result.term_id = termId;
-      result.academic_session_id = sessionId;
-      result.total_score = resultData.total_score;
-      result.average_score = resultData.average_score;
-      result.grade_letter = calculateGradeLetter(resultData.average_score);
-      result.remark = getOverallRemark(resultData.average_score);
-      result.position = position;
-      result.subject_count = resultData.subject_count;
-      result.generated_at = new Date();
-
-      const savedResult = await queryRunner.manager.save(Result, result);
-
-      // Delete existing subject lines if updating
-      if (existingResult) {
-        await queryRunner.manager.delete(ResultSubjectLine, {
-          result_id: savedResult.id,
-        });
-      }
-
-      // Create subject lines
-      const subjectLines = resultData.grades.map((grade) => {
-        const line = new ResultSubjectLine();
-        line.result_id = savedResult.id;
-        line.subject_id = grade.subject_id;
-        line.ca_score = grade.ca_score;
-        line.exam_score = grade.exam_score;
-        line.total_score = grade.total_score;
-        line.grade_letter = grade.grade_letter;
-        line.remark = grade.comment || getOverallRemark(grade.total_score);
-        return line;
-      });
-
-      await queryRunner.manager.save(ResultSubjectLine, subjectLines);
-
-      await queryRunner.commitTransaction();
-
-      // Fetch and return the complete result
-      return this.getResultById(savedResult.id);
-    } catch (error) {
-      await queryRunner.rollbackTransaction();
-      this.logger.error('Error generating student result', {
-        error: error instanceof Error ? error.message : String(error),
-        studentId,
         termId,
       });
       throw error;
@@ -623,192 +458,6 @@ export class ResultService {
     }
 
     return this.transformToResponseDto(result);
-  }
-
-  /**
-   * List results with filters
-   */
-  async listResults(
-    query: ListResultsQueryDto,
-  ): Promise<{ data: ResultResponseDto[]; meta: Partial<PaginationMeta> }> {
-    const filterOptions: Record<string, string> = {};
-
-    if (query.term_id) {
-      filterOptions.term_id = query.term_id;
-    }
-
-    if (query.academic_session_id) {
-      filterOptions.academic_session_id = query.academic_session_id;
-    }
-
-    if (query.class_id) {
-      filterOptions.class_id = query.class_id;
-    }
-
-    const page = query.page || 1;
-    const limit = query.limit || 10;
-
-    const results = await this.resultModelAction.list({
-      filterRecordOptions: filterOptions,
-      relations: {
-        student: { user: true },
-        class: true,
-        term: true,
-        academicSession: true,
-        subject_lines: { subject: true },
-      },
-      order: { position: 'ASC', average_score: 'DESC' },
-      paginationPayload: { page, limit },
-    });
-
-    const transformedResults = results.payload.map((result) =>
-      this.transformToResponseDto(result),
-    );
-
-    return {
-      data: transformedResults,
-      meta: results.paginationMeta,
-    };
-  }
-
-  /**
-   * Get results for a specific student
-   */
-  async getStudentResults(
-    studentId: string,
-    query: ListResultsQueryDto,
-  ): Promise<{ data: ResultResponseDto[]; meta: Partial<PaginationMeta> }> {
-    // Validate student exists
-    const student = await this.studentModelAction.get({
-      identifierOptions: { id: studentId },
-    });
-
-    if (!student || student.is_deleted) {
-      throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
-    }
-
-    const filterOptions: Record<string, string> = {
-      student_id: studentId,
-    };
-
-    if (query.term_id) {
-      filterOptions.term_id = query.term_id;
-    }
-
-    if (query.academic_session_id) {
-      filterOptions.academic_session_id = query.academic_session_id;
-    }
-
-    const page = query.page || 1;
-    const limit = query.limit || 10;
-
-    const results = await this.resultModelAction.list({
-      filterRecordOptions: filterOptions,
-      relations: {
-        student: { user: true },
-        class: true,
-        term: true,
-        academicSession: true,
-        subject_lines: { subject: true },
-      },
-      order: { term: { name: 'ASC' }, createdAt: 'DESC' },
-      paginationPayload: { page, limit },
-    });
-
-    const transformedResults = results.payload.map((result) =>
-      this.transformToResponseDto(result),
-    );
-
-    return {
-      data: transformedResults,
-      meta: results.paginationMeta,
-    };
-  }
-
-  /**
-   * Get class results for a specific term
-   */
-  async getClassResults(
-    classId: string,
-    termId: string,
-    academicSessionId?: string,
-  ): Promise<{
-    data: ResultResponseDto[];
-    class_statistics: ClassStatisticsDto;
-  }> {
-    // Validate class
-    const classEntity = await this.classModelAction.get({
-      identifierOptions: { id: classId },
-      relations: { academicSession: true },
-    });
-
-    if (!classEntity || classEntity.is_deleted) {
-      throw new NotFoundException(sysMsg.CLASS_NOT_FOUND);
-    }
-
-    const sessionId = academicSessionId || classEntity.academicSession.id;
-
-    // Validate term
-    const term = await this.termModelAction.get({
-      identifierOptions: { id: termId },
-    });
-
-    if (!term) {
-      throw new NotFoundException(sysMsg.TERM_NOT_FOUND);
-    }
-
-    const results = await this.resultModelAction.list({
-      filterRecordOptions: {
-        class_id: classId,
-        term_id: termId,
-        academic_session_id: sessionId,
-      },
-      relations: {
-        student: { user: true },
-        class: true,
-        term: true,
-        academicSession: true,
-        subject_lines: { subject: true },
-      },
-      order: { position: 'ASC', average_score: 'DESC' },
-    });
-
-    const transformedResults = results.payload.map((result) =>
-      this.transformToResponseDto(result),
-    );
-
-    // Calculate class statistics
-    const validResults = transformedResults.filter(
-      (r) => r.average_score !== null && r.average_score !== undefined,
-    );
-
-    const classStatistics = {
-      highest_score:
-        validResults.length > 0
-          ? Math.max(...validResults.map((r) => r.average_score || 0))
-          : null,
-      lowest_score:
-        validResults.length > 0
-          ? Math.min(...validResults.map((r) => r.average_score || 0))
-          : null,
-      class_average:
-        validResults.length > 0
-          ? validResults.reduce((sum, r) => sum + (r.average_score || 0), 0) /
-            validResults.length
-          : null,
-      total_students: transformedResults.length,
-    };
-
-    // Add statistics to each result
-    const resultsWithStats = transformedResults.map((result) => ({
-      ...result,
-      class_statistics: classStatistics,
-    }));
-
-    return {
-      data: resultsWithStats,
-      class_statistics: classStatistics,
-    };
   }
 
   /**

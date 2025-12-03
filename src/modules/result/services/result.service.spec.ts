@@ -9,7 +9,6 @@ import { Class } from '../../class/entities/class.entity';
 import { ClassStudentModelAction } from '../../class/model-actions/class-student.action';
 import { ClassModelAction } from '../../class/model-actions/class.actions';
 import { GradeModelAction } from '../../grade/model-actions';
-import { Student } from '../../student/entities/student.entity';
 import { StudentModelAction } from '../../student/model-actions/student-actions';
 import { Result } from '../entities';
 import {
@@ -26,7 +25,6 @@ describe('ResultService', () => {
   let classStudentModelAction: jest.Mocked<ClassStudentModelAction>;
   let termModelAction: jest.Mocked<TermModelAction>;
   let academicSessionModelAction: jest.Mocked<AcademicSessionModelAction>;
-  let studentModelAction: jest.Mocked<StudentModelAction>;
 
   const mockLogger = {
     child: jest.fn().mockReturnThis(),
@@ -122,7 +120,6 @@ describe('ResultService', () => {
     classStudentModelAction = module.get(ClassStudentModelAction);
     termModelAction = module.get(TermModelAction);
     academicSessionModelAction = module.get(AcademicSessionModelAction);
-    studentModelAction = module.get(StudentModelAction);
   });
 
   afterEach(() => {
@@ -241,37 +238,6 @@ describe('ResultService', () => {
 
       await expect(
         service.generateClassResults(classId, termId, sessionId),
-      ).rejects.toThrow(BadRequestException);
-    });
-  });
-
-  describe('generateStudentResult', () => {
-    it('should throw NotFoundException when student does not exist', async () => {
-      const studentId = 'student-uuid-123';
-      const termId = 'term-uuid-123';
-
-      studentModelAction.get.mockResolvedValue(null);
-
-      await expect(
-        service.generateStudentResult(studentId, termId),
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('should throw BadRequestException when student not enrolled', async () => {
-      const studentId = 'student-uuid-123';
-      const termId = 'term-uuid-123';
-
-      studentModelAction.get.mockResolvedValue({
-        id: studentId,
-        is_deleted: false,
-      } as unknown as Student);
-
-      classStudentModelAction.list.mockResolvedValue({
-        payload: [],
-      } as unknown as Awaited<ReturnType<typeof classStudentModelAction.list>>);
-
-      await expect(
-        service.generateStudentResult(studentId, termId),
       ).rejects.toThrow(BadRequestException);
     });
   });

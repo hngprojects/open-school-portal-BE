@@ -21,10 +21,10 @@ export class GenerateResultDto {
   @IsUUID()
   class_id?: string;
 
-  @ApiPropertyOptional({
-    description: 'Student ID (required for single student generation)',
-  })
-  @IsOptional()
-  @IsUUID()
-  student_id?: string;
+  //   @ApiPropertyOptional({
+  //     description: 'Student ID (required for single student generation)',
+  //   })
+  //   @IsOptional()
+  //   @IsUUID()
+  //   student_id?: string;
 }
