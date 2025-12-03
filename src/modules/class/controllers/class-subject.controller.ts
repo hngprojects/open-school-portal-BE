@@ -54,7 +54,6 @@ export class ClassSubjectController {
 
   // --- GET: LIST CLASS SUBJECTS ---
   @Get()
-  @UseGuards(JwtAuthGuard)
   @DocsListClassSubjects()
   async list(
     @Req() req: IRequestWithUser,
@@ -71,7 +70,6 @@ export class ClassSubjectController {
   }
 
   // --- POST: ASSIGN TEACHER TO CLASS SUBJECT ---
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @Post(':id/teacher')
   @DocsAssignTeacherToSubject()
@@ -83,7 +81,6 @@ export class ClassSubjectController {
   }
 
   // --- DELETE: DELETE TEACHER FROM CLASS SUBJECT ---
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @DocsUnassignTeacherFromSubject()
   @Delete(':id/teacher')
