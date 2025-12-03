@@ -246,6 +246,8 @@ export const TOTAL_CLASSES_FETCHED = 'total classes fetched successfully';
 export const INVALID_CLASS_IDS = 'One or more class IDs are invalid';
 export const CLASSES_NOT_IN_ACTIVE_SESSION =
   'One or more classes are not in the active academic session';
+export const CLASS_SUBJECTS_CREATED = (length: number) =>
+  `${length} class subjects created successfully.`;
 export const CLASS_SUBJECT_NOT_FOUND = 'Subject not found in class';
 export const CLASS_SUBJECTS_FETCHED_SUCCESSFUL =
   'Class subjects fetched successfully';
@@ -317,9 +319,13 @@ export const TERM_SEQUENTIAL_INVALID =
 export const TERM_ID_INVALID = 'Invalid term ID.';
 // Dashboard messages
 export const DASHBOARD_RESOLVED = 'Dashboard resolved successfully';
+export const TODAYS_CLASSES_FETCHED = "Today's classes retrieved successfully";
+export const NO_CLASSES_TODAY = 'No classes scheduled for today';
 
 // Teacher messages
 export const INVALID_TEACHER_ID = 'Invalid teacher ID provided';
+export const INVALID_TEACHER_AGE = (minAge: number) =>
+  `Teacher must be at least ${minAge} years old`;
 
 // Timetable messages
 export const TIMETABLE_CREATED = 'Timetable created successfully';
