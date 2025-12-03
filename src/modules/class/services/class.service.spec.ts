@@ -12,10 +12,9 @@ import * as sysMsg from '../../../constants/system.messages';
 import { SessionStatus } from '../../academic-session/entities/academic-session.entity';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { StudentModelAction } from '../../student/model-actions/student-actions';
-import { ClassTeacher } from '../entities/class-teacher.entity';
+import { TeacherModelAction } from '../../teacher/model-actions/teacher-actions';
 import { Class } from '../entities/class.entity';
 import { ClassStudentModelAction } from '../model-actions/class-student.action';
-import { ClassTeacherModelAction } from '../model-actions/class-teacher.action';
 import { ClassModelAction } from '../model-actions/class.actions';
 
 import { ClassService } from './class.service';
@@ -42,13 +41,6 @@ const mockClass = {
   id: MOCK_CLASS_ID,
   name: 'Grade 10',
   streams: [{ name: 'Science' }],
-} as unknown as Class;
-
-const mockTeacherAssignment = {
-  id: 10,
-  assignment_date: new Date('2023-09-01'),
-  session_id: MOCK_SESSION_ID,
-  is_active: true,
   teacher: {
     id: 'teacher-uuid-101',
     employment_id: 'EMP-2025-001',
@@ -57,13 +49,16 @@ const mockTeacherAssignment = {
       last_name: 'Doe',
     },
   },
-  class: mockClass,
-} as unknown as ClassTeacher;
+  academicSession: {
+    id: MOCK_SESSION_ID,
+    name: '2023/2024 Academic Session',
+  },
+  createdAt: new Date('2023-09-01'),
+} as unknown as Class;
 
 describe('ClassService', () => {
   let service: ClassService;
   let classModelAction: jest.Mocked<ClassModelAction>;
-  let classTeacherModelAction: jest.Mocked<ClassTeacherModelAction>;
   let academicSessionModelAction: jest.Mocked<AcademicSessionModelAction>;
   let mockLogger: jest.Mocked<Logger>;
 
@@ -71,12 +66,9 @@ describe('ClassService', () => {
     get: jest.fn(),
     find: jest.fn(),
     create: jest.fn(),
+    update: jest.fn(),
     findAllWithSession: jest.fn(),
     findAllWithSessionRaw: jest.fn(),
-    list: jest.fn(),
-  };
-
-  const mockClassTeacherModelAction = {
     list: jest.fn(),
   };
 
@@ -86,6 +78,10 @@ describe('ClassService', () => {
   };
 
   const mockStudentModelAction = {
+    get: jest.fn(),
+  };
+
+  const mockTeacherModelAction = {
     get: jest.fn(),
   };
 
@@ -107,16 +103,16 @@ describe('ClassService', () => {
           useValue: mockClassModelAction,
         },
         {
-          provide: ClassTeacherModelAction,
-          useValue: mockClassTeacherModelAction,
-        },
-        {
           provide: ClassStudentModelAction,
           useValue: mockClassStudentModelAction,
         },
         {
           provide: StudentModelAction,
           useValue: mockStudentModelAction,
+        },
+        {
+          provide: TeacherModelAction,
+          useValue: mockTeacherModelAction,
         },
         {
           provide: WINSTON_MODULE_PROVIDER,
@@ -143,7 +139,6 @@ describe('ClassService', () => {
 
     service = module.get<ClassService>(ClassService);
     classModelAction = module.get(ClassModelAction);
-    classTeacherModelAction = module.get(ClassTeacherModelAction);
     academicSessionModelAction = module.get(AcademicSessionModelAction);
   });
 
@@ -156,12 +151,8 @@ describe('ClassService', () => {
   });
 
   describe('getTeachersByClass', () => {
-    it('should return a list of mapped teachers for a specific session', async () => {
+    it('should return the form teacher for a class', async () => {
       classModelAction.get.mockResolvedValue(mockClass);
-      classTeacherModelAction.list.mockResolvedValue({
-        payload: [mockTeacherAssignment],
-        paginationMeta: {},
-      });
 
       const result = await service.getTeachersByClass(
         MOCK_CLASS_ID,
@@ -172,37 +163,29 @@ describe('ClassService', () => {
         identifierOptions: {
           id: MOCK_CLASS_ID,
         },
+        relations: {
+          teacher: { user: true },
+          streams: true,
+          academicSession: true,
+        },
       });
 
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({
         teacher_id: 'teacher-uuid-101',
         name: 'John Doe',
-        assignment_date: mockTeacherAssignment.assignment_date,
+        assignment_date: mockClass.createdAt,
         streams: 'Science',
       });
     });
 
-    it('should use the active session if no session ID is provided', async () => {
-      classModelAction.get.mockResolvedValue(mockClass);
-      classTeacherModelAction.list.mockResolvedValue({
-        payload: [mockTeacherAssignment],
-        paginationMeta: {},
-      });
+    it('should return empty array if class has no teacher', async () => {
+      const classWithoutTeacher = { ...mockClass, teacher: null };
+      classModelAction.get.mockResolvedValue(classWithoutTeacher);
 
-      await service.getTeachersByClass(MOCK_CLASS_ID);
+      const result = await service.getTeachersByClass(MOCK_CLASS_ID);
 
-      expect(classTeacherModelAction.list).toHaveBeenCalledWith({
-        filterRecordOptions: {
-          class: { id: MOCK_CLASS_ID },
-          session_id: MOCK_ACTIVE_SESSION,
-          is_active: true,
-        },
-        relations: {
-          teacher: { user: true },
-          class: { streams: true },
-        },
-      });
+      expect(result).toEqual([]);
     });
 
     it('should throw NotFoundException if the class does not exist', async () => {
@@ -212,29 +195,13 @@ describe('ClassService', () => {
         service.getTeachersByClass('wrong-uuid', MOCK_SESSION_ID),
       ).rejects.toThrow(NotFoundException);
     });
-
-    it('should return an empty array if class exists but has no teachers', async () => {
-      const emptyPayload = {
-        payload: [],
-        paginationMeta: {},
-      };
-      classModelAction.get.mockResolvedValue(mockClass);
-      classTeacherModelAction.list.mockResolvedValue(emptyPayload);
-
-      const result = await service.getTeachersByClass(
-        MOCK_CLASS_ID,
-        MOCK_SESSION_ID,
-      );
-
-      expect(result).toEqual(emptyPayload.payload);
-    });
   });
 
   describe('create', () => {
     const createClassDto = {
       name: 'Grade 10',
       arm: 'A',
-      // teacherIds: ['valid-uuid-1', 'valid-uuid-2'], // Uncomment if teacherIds are supported
+      teacherIds: ['teacher-uuid-1'],
     };
     const mockCreatedClass = {
       id: 'class-uuid-1',
@@ -255,8 +222,17 @@ describe('ClassService', () => {
         payload: [activeSession],
         paginationMeta: {},
       });
+      (mockTeacherModelAction.get as jest.Mock).mockResolvedValue({
+        id: 'teacher-uuid-1',
+        employment_id: 'EMP-001',
+      });
 
       const result = await service.create(createClassDto);
+
+      expect(mockTeacherModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: 'teacher-uuid-1' },
+        relations: { user: true },
+      });
 
       expect(classModelAction.find).toHaveBeenCalledWith({
         findOptions: {
@@ -275,10 +251,10 @@ describe('ClassService', () => {
           name: createClassDto.name,
           arm: createClassDto.arm,
           academicSession: activeSession,
+          teacher: { id: 'teacher-uuid-1' },
         },
         transactionOptions: {
-          useTransaction: true,
-          transaction: expect.any(Object),
+          useTransaction: false,
         },
       });
 
@@ -306,13 +282,16 @@ describe('ClassService', () => {
       );
     });
 
-    it('should throw BadRequestException if teacherIds contains invalid UUIDs', async () => {
-      const invalidDto = {
-        ...createClassDto,
-        teacherIds: ['not-a-uuid'],
-      };
-      await expect(service.create(invalidDto)).rejects.toThrow(
-        BadRequestException,
+    it('should throw NotFoundException if teacher does not exist', async () => {
+      (academicSessionModelAction.list as jest.Mock).mockResolvedValue({
+        payload: [
+          { id: MOCK_ACTIVE_SESSION, name: '2024/2025 Academic Session' },
+        ],
+      });
+      (mockTeacherModelAction.get as jest.Mock).mockResolvedValue(null);
+
+      await expect(service.create(createClassDto)).rejects.toThrow(
+        new NotFoundException(sysMsg.TEACHER_NOT_FOUND),
       );
     });
   });
@@ -337,7 +316,7 @@ describe('ClassService', () => {
       name: 'JSS1',
       arm: 'A',
       academicSession: mockAcademicSession,
-      teacher_assignment: [],
+      teacher: null,
       student_assignments: [],
       streams: [],
       createdAt: new Date(),
@@ -358,7 +337,7 @@ describe('ClassService', () => {
 
       expect(classModelAction.get).toHaveBeenCalledWith({
         identifierOptions: { id: classId },
-        relations: { academicSession: true },
+        relations: { academicSession: true, teacher: { user: true } },
       });
       expect(classModelAction.find).toHaveBeenCalledWith({
         findOptions: {
@@ -383,7 +362,20 @@ describe('ClassService', () => {
           id: existingClass.academicSession.id,
           name: existingClass.academicSession.name,
         },
+        teacher: null,
       });
+    });
+
+    it('should throw NotFoundException if teacher does not exist when updating', async () => {
+      const updateWithTeacher = {
+        ...updateDto,
+        teacherIds: ['invalid-teacher-id'],
+      };
+      (mockTeacherModelAction.get as jest.Mock).mockResolvedValue(null);
+
+      await expect(
+        service.updateClass(classId, updateWithTeacher),
+      ).rejects.toThrow(new NotFoundException(sysMsg.TEACHER_NOT_FOUND));
     });
 
     it('should throw NotFoundException if class does not exist', async () => {
@@ -407,7 +399,7 @@ describe('ClassService', () => {
             name: 'JSS2',
             arm: 'B',
             academicSession: mockAcademicSession,
-            teacher_assignment: [],
+            teacher: null,
             student_assignments: [],
             streams: [],
             createdAt: new Date(),
@@ -434,12 +426,18 @@ describe('ClassService', () => {
           name: 'JSS1',
           arm: 'A',
           academicSession: { id: 'session-id', name: '2027/2028' },
+          teacher: {
+            id: 'teacher-id-1',
+            employment_id: 'EMP-001',
+            user: { first_name: 'John', last_name: 'Doe' },
+          },
         },
         {
           id: 'class-id-2',
           name: 'JSS1',
           arm: 'B',
           academicSession: { id: 'session-id', name: '2027/2028' },
+          teacher: null,
         },
       ];
 
@@ -453,8 +451,16 @@ describe('ClassService', () => {
           name: 'JSS1',
           academicSession: { id: 'session-id', name: '2027/2028' },
           classes: [
-            { id: 'class-id-1', arm: 'A' },
-            { id: 'class-id-2', arm: 'B' },
+            {
+              id: 'class-id-1',
+              arm: 'A',
+              teacher: {
+                id: 'teacher-id-1',
+                name: 'John Doe',
+                employment_id: 'EMP-001',
+              },
+            },
+            { id: 'class-id-2', arm: 'B', teacher: null },
           ],
         },
       ];
@@ -501,10 +507,12 @@ describe('ClassService', () => {
         id: classId,
         name: 'JSS1',
         arm: 'A',
+        is_deleted: existingClass.is_deleted,
         academicSession: {
           id: 'session-uuid-1',
           name: '2026/2027',
         },
+        teacher: null,
       });
     });
 
