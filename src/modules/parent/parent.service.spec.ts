@@ -10,16 +10,29 @@ import {
 } from 'typeorm';
 import { Logger } from 'winston';
 
+import { ClassStudent } from '../class/entities/class-student.entity';
+import { ClassSubject } from '../class/entities/class-subject.entity';
+import { ClassStudentModelAction } from '../class/model-actions/class-student.action';
+import { ClassSubjectModelAction } from '../class/model-actions/class-subject.action';
 import { UserRole } from '../shared/enums';
 import { FileService } from '../shared/file/file.service';
 import * as passwordUtil from '../shared/utils/password.util';
+import { Student } from '../student/entities/student.entity';
+import { StudentModelAction } from '../student/model-actions/student-actions';
 import { User } from '../user/entities/user.entity';
 import { UserModelAction } from '../user/model-actions/user-actions';
 
 import { CreateParentDto, UpdateParentDto } from './dto';
 import { Parent } from './entities/parent.entity';
 import { ParentModelAction } from './model-actions/parent-actions';
-import { ParentService } from './parent.service';
+import { ParentService, IUserPayload } from './parent.service';
+
+// Helper type to access protected repository in tests
+type MockModelAction = {
+  repository: {
+    find: jest.Mock;
+  };
+};
 
 // Mock the password utilities
 jest.mock('../shared/utils/password.util', () => ({
@@ -46,9 +59,17 @@ describe('ParentService', () => {
   let fileService: jest.Mocked<FileService>;
   let parentModelAction: jest.Mocked<ParentModelAction>;
   let userModelAction: jest.Mocked<UserModelAction>;
+  let studentModelAction: jest.Mocked<StudentModelAction>;
+  let classStudentModelAction: jest.Mocked<ClassStudentModelAction>;
+  let classSubjectModelAction: jest.Mocked<ClassSubjectModelAction>;
   let queryRunner: jest.Mocked<QueryRunner>;
   let mockLogger: jest.Mocked<Logger>;
 
+  const mockUserPayload: IUserPayload = {
+    id: 'user-id',
+    email: 'test@example.com',
+    roles: ['PARENT'],
+  };
   const mockUser: Partial<User> = {
     id: 'user-uuid-123',
     first_name: 'John',
@@ -142,6 +163,21 @@ describe('ParentService', () => {
       update: jest.fn(),
     } as unknown as jest.Mocked<UserModelAction>;
 
+    studentModelAction = {
+      get: jest.fn(),
+    } as unknown as jest.Mocked<StudentModelAction>;
+
+    classStudentModelAction = {
+      get: jest.fn(),
+    } as unknown as jest.Mocked<ClassStudentModelAction>;
+
+    classSubjectModelAction = {
+      get: jest.fn(),
+      repository: {
+        find: jest.fn(),
+      },
+    } as unknown as jest.Mocked<ClassSubjectModelAction>;
+
     // Mock Logger
     mockLogger = {
       info: jest.fn(),
@@ -162,6 +198,18 @@ describe('ParentService', () => {
         {
           provide: UserModelAction,
           useValue: userModelAction,
+        },
+        {
+          provide: StudentModelAction,
+          useValue: studentModelAction,
+        },
+        {
+          provide: ClassStudentModelAction,
+          useValue: classStudentModelAction,
+        },
+        {
+          provide: ClassSubjectModelAction,
+          useValue: classSubjectModelAction,
         },
         {
           provide: getRepositoryToken(Parent),
@@ -878,6 +926,119 @@ describe('ParentService', () => {
           userId: mockParent.user_id,
         }),
       );
+    });
+  });
+
+  describe('getStudentSubjects', () => {
+    const mockStudentId = 'student-uuid-123';
+    const mockClassId = 'class-uuid-123';
+
+    it('should return subjects for admin user', async () => {
+      const adminUser: IUserPayload = {
+        ...mockUserPayload,
+        roles: [UserRole.ADMIN],
+      };
+
+      classStudentModelAction.get.mockResolvedValue({
+        class: { id: mockClassId },
+      } as unknown as ClassStudent);
+
+      (
+        classSubjectModelAction as unknown as MockModelAction
+      ).repository.find.mockResolvedValue([
+        {
+          subject: { name: 'Math' },
+          teacher: {
+            user: {
+              first_name: 'Teacher',
+              last_name: 'One',
+              email: 't1@test.com',
+            },
+          },
+        },
+      ] as unknown as ClassSubject[]);
+
+      const result = await service.getStudentSubjects(mockStudentId, adminUser);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].subject_name).toBe('Math');
+      expect(classStudentModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { student: { id: mockStudentId }, is_active: true },
+        relations: { class: true },
+      });
+    });
+
+    it('should return subjects for parent user linked to student', async () => {
+      parentModelAction.get.mockResolvedValue({ id: mockParentId } as Parent);
+      studentModelAction.get.mockResolvedValue({
+        id: mockStudentId,
+      } as Student);
+
+      classStudentModelAction.get.mockResolvedValue({
+        class: { id: mockClassId },
+      } as unknown as ClassStudent);
+
+      (
+        classSubjectModelAction as unknown as MockModelAction
+      ).repository.find.mockResolvedValue([
+        {
+          subject: { name: 'English' },
+          teacher: {
+            user: {
+              first_name: 'Teacher',
+              last_name: 'Two',
+              email: 't2@test.com',
+            },
+          },
+        },
+      ] as unknown as ClassSubject[]);
+
+      const result = await service.getStudentSubjects(
+        mockStudentId,
+        mockUserPayload,
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].subject_name).toBe('English');
+      expect(parentModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { user_id: mockUserPayload.id },
+      });
+      expect(studentModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: mockStudentId, parent: { id: mockParentId } },
+      });
+    });
+
+    it('should throw NotFoundException if parent profile not found', async () => {
+      parentModelAction.get.mockResolvedValue(null);
+
+      await expect(
+        service.getStudentSubjects(mockStudentId, mockUserPayload),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException if student not linked to parent', async () => {
+      parentModelAction.get.mockResolvedValue({ id: mockParentId } as Parent);
+      studentModelAction.get.mockResolvedValue(null);
+
+      await expect(
+        service.getStudentSubjects(mockStudentId, mockUserPayload),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should return empty array if student has no active class', async () => {
+      parentModelAction.get.mockResolvedValue({ id: mockParentId } as Parent);
+      studentModelAction.get.mockResolvedValue({
+        id: mockStudentId,
+      } as Student);
+      classStudentModelAction.get.mockResolvedValue(null);
+
+      const result = await service.getStudentSubjects(
+        mockStudentId,
+        mockUserPayload,
+      );
+
+      expect(result).toEqual([]);
+      expect(mockLogger.warn).toHaveBeenCalled();
     });
   });
 });
