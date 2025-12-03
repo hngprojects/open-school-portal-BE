@@ -242,7 +242,8 @@ describe('ClassService', () => {
           is_deleted: false,
         },
         transactionOptions: {
-          useTransaction: false,
+          useTransaction: true,
+          transaction: expect.any(Object),
         },
       });
 
@@ -254,7 +255,8 @@ describe('ClassService', () => {
           teacher: { id: 'teacher-uuid-1' },
         },
         transactionOptions: {
-          useTransaction: false,
+          useTransaction: true,
+          transaction: expect.any(Object),
         },
       });
 
@@ -346,12 +348,18 @@ describe('ClassService', () => {
           academicSession: { id: existingClass.academicSession.id },
           is_deleted: false,
         },
-        transactionOptions: { useTransaction: false },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: expect.any(Object),
+        },
       });
       expect(classModelAction.update).toHaveBeenCalledWith({
         identifierOptions: { id: classId },
         updatePayload: { name: updateDto.name, arm: updateDto.arm },
-        transactionOptions: { useTransaction: false },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: expect.any(Object),
+        },
       });
       expect(result).toEqual({
         message: expect.any(String),
@@ -414,6 +422,29 @@ describe('ClassService', () => {
       await expect(service.updateClass(classId, updateDto)).rejects.toThrow(
         ConflictException,
       );
+    });
+
+    it('should remove teacher when empty array is provided', async () => {
+      const updateWithEmptyTeachers = { teacherIds: [] };
+
+      const result = await service.updateClass(
+        classId,
+        updateWithEmptyTeachers,
+      );
+
+      expect(classModelAction.update).toHaveBeenCalledWith({
+        identifierOptions: { id: classId },
+        updatePayload: {
+          name: existingClass.name,
+          arm: existingClass.arm,
+          teacher: null,
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: expect.any(Object),
+        },
+      });
+      expect(result.teacher).toBeNull();
     });
   });
 

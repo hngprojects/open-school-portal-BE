@@ -53,6 +53,30 @@ export class ClassService {
   }
 
   /**
+   * Maps a Teacher entity to a TeacherInfoDto.
+   * Returns null if teacher is null or undefined.
+   */
+  private mapTeacherToDetailsDto(
+    teacher: {
+      id: string;
+      employment_id: string;
+      user?: { first_name: string; last_name: string };
+    } | null,
+  ): { id: string; name: string; employment_id: string } | null {
+    if (!teacher) {
+      return null;
+    }
+
+    return {
+      id: teacher.id,
+      name: teacher.user
+        ? `${teacher.user.first_name} ${teacher.user.last_name}`
+        : `Teacher ${teacher.employment_id}`,
+      employment_id: teacher.employment_id,
+    };
+  }
+
+  /**
    * Fetches the form teacher for a specific class.
    * Optionally filters by session ID.
    */
@@ -120,59 +144,61 @@ export class ClassService {
         throw new NotFoundException(sysMsg.TEACHER_NOT_FOUND);
       }
 
-      teacherDetails = {
-        id: teacher.id,
-        name: teacher.user
-          ? `${teacher.user.first_name} ${teacher.user.last_name}`
-          : `Teacher ${teacher.employment_id}`,
-        employment_id: teacher.employment_id,
-      };
+      teacherDetails = this.mapTeacherToDetailsDto(teacher);
     }
 
     // Fetch active academic session
     const academicSession = await this.getActiveSession();
 
-    const { payload } = await this.classModelAction.find({
-      findOptions: {
-        name,
-        arm,
-        academicSession: { id: academicSession.id },
-        is_deleted: false,
-      },
-      transactionOptions: {
-        useTransaction: false,
-      },
+    // Normalize arm: treat undefined, null, and empty string as equivalent
+    const normalizedArm = arm || '';
+
+    // Use transaction to ensure atomicity between check and create
+    return this.dataSource.transaction(async (manager) => {
+      const { payload } = await this.classModelAction.find({
+        findOptions: {
+          name,
+          arm: normalizedArm,
+          academicSession: { id: academicSession.id },
+          is_deleted: false,
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+      if (payload.length > 0) {
+        throw new ConflictException(sysMsg.CLASS_ALREADY_EXIST);
+      }
+
+      // Create class with optional teacher
+      const createdClass = await this.classModelAction.create({
+        createPayload: {
+          name,
+          arm: normalizedArm,
+          academicSession,
+          ...(teacherId && { teacher: { id: teacherId } }),
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      this.logger.info(sysMsg.CLASS_CREATED, createdClass);
+
+      return {
+        message: sysMsg.CLASS_CREATED,
+        id: createdClass.id,
+        name: createdClass.name,
+        arm: createdClass.arm,
+        academicSession: {
+          id: academicSession.id,
+          name: academicSession.name,
+        },
+        teacher: teacherDetails,
+      };
     });
-    if (payload.length > 0) {
-      throw new ConflictException(sysMsg.CLASS_ALREADY_EXIST);
-    }
-
-    // Create class with optional teacher
-    const createdClass = await this.classModelAction.create({
-      createPayload: {
-        name,
-        arm,
-        academicSession,
-        ...(teacherId && { teacher: { id: teacherId } }),
-      },
-      transactionOptions: {
-        useTransaction: false,
-      },
-    });
-
-    this.logger.info(sysMsg.CLASS_CREATED, createdClass);
-
-    return {
-      message: sysMsg.CLASS_CREATED,
-      id: createdClass.id,
-      name: createdClass.name,
-      arm: createdClass.arm,
-      academicSession: {
-        id: academicSession.id,
-        name: academicSession.name,
-      },
-      teacher: teacherDetails,
-    };
   }
 
   /**
@@ -207,11 +233,9 @@ export class ClassService {
     // 2. Prepare new values
     const { name, arm, teacherIds } = updateClassDto;
 
-    // Extract first teacher ID from array if provided
-    const teacherId =
-      teacherIds && teacherIds.length > 0 ? teacherIds[0] : undefined;
     const newName = name ?? existingClass.name;
-    const newArm = arm ?? existingClass.arm;
+    // Normalize arm: treat undefined, null, and empty string as equivalent
+    const newArm = (arm ?? existingClass.arm) || '';
     const sessionId = existingClass.academicSession.id;
 
     // Prevent empty class name
@@ -219,80 +243,74 @@ export class ClassService {
       throw new BadRequestException(sysMsg.CLASS_NAME_EMPTY);
     }
 
-    // 3. Check uniqueness
-    const { payload } = await this.classModelAction.find({
-      findOptions: {
-        name: newName,
-        arm: newArm,
-        academicSession: { id: sessionId },
-        is_deleted: false,
-      },
-      transactionOptions: { useTransaction: false },
-    });
-    if (payload.length > 0 && payload[0].id !== classId) {
-      throw new ConflictException(sysMsg.CLASS_ALREADY_EXIST);
-    }
-
-    // 4. Validate teacher exists if teacherId is provided and prepare teacher details
-    let teacherDetails = null;
-    if (teacherId) {
-      const teacher = await this.teacherModelAction.get({
-        identifierOptions: { id: teacherId },
-        relations: { user: true },
+    // Use transaction to ensure atomicity
+    return this.dataSource.transaction(async (manager) => {
+      // 3. Check uniqueness
+      const { payload } = await this.classModelAction.find({
+        findOptions: {
+          name: newName,
+          arm: newArm,
+          academicSession: { id: sessionId },
+          is_deleted: false,
+        },
+        transactionOptions: { useTransaction: true, transaction: manager },
       });
-      if (!teacher) {
-        throw new NotFoundException(sysMsg.TEACHER_NOT_FOUND);
+      if (payload.length > 0 && payload[0].id !== classId) {
+        throw new ConflictException(sysMsg.CLASS_ALREADY_EXIST);
       }
 
-      teacherDetails = {
-        id: teacher.id,
-        name: teacher.user
-          ? `${teacher.user.first_name} ${teacher.user.last_name}`
-          : `Teacher ${teacher.employment_id}`,
-        employment_id: teacher.employment_id,
+      // 4. Handle teacher assignment logic
+      let teacherDetails = null;
+      const updatePayload: Partial<{
+        name: string;
+        arm: string;
+        teacher: { id: string } | null;
+      }> = { name: newName, arm: newArm };
+
+      if (teacherIds !== undefined) {
+        if (teacherIds.length > 0) {
+          // Assign new teacher
+          const teacherId = teacherIds[0];
+          const teacher = await this.teacherModelAction.get({
+            identifierOptions: { id: teacherId },
+            relations: { user: true },
+          });
+          if (!teacher) {
+            throw new NotFoundException(sysMsg.TEACHER_NOT_FOUND);
+          }
+
+          updatePayload.teacher = { id: teacherId };
+          teacherDetails = this.mapTeacherToDetailsDto(teacher);
+        } else {
+          // Empty array = remove teacher
+          updatePayload.teacher = null;
+          teacherDetails = null;
+        }
+      } else {
+        // Field not provided = keep existing teacher
+        teacherDetails = this.mapTeacherToDetailsDto(existingClass.teacher);
+      }
+
+      // 5. Update class
+      await this.classModelAction.update({
+        identifierOptions: { id: classId },
+        updatePayload,
+        transactionOptions: { useTransaction: true, transaction: manager },
+      });
+
+      // 6. Return response
+      return {
+        message: sysMsg.CLASS_UPDATED,
+        id: classId,
+        name: newName,
+        arm: newArm,
+        academicSession: {
+          id: sessionId,
+          name: existingClass.academicSession.name,
+        },
+        teacher: teacherDetails,
       };
-    } else if (teacherId === undefined && existingClass.teacher) {
-      // Keep existing teacher details if not updating
-      teacherDetails = {
-        id: existingClass.teacher.id,
-        name: existingClass.teacher.user
-          ? `${existingClass.teacher.user.first_name} ${existingClass.teacher.user.last_name}`
-          : `Teacher ${existingClass.teacher.employment_id}`,
-        employment_id: existingClass.teacher.employment_id,
-      };
-    }
-
-    // 5. Build update payload
-    const updatePayload: Partial<{
-      name: string;
-      arm: string;
-      teacher: { id: string } | null;
-    }> = { name: newName, arm: newArm };
-
-    // Handle teacher update if provided
-    if (teacherId !== undefined) {
-      updatePayload.teacher = teacherId ? { id: teacherId } : null;
-    }
-
-    // 6. Update class
-    await this.classModelAction.update({
-      identifierOptions: { id: classId },
-      updatePayload,
-      transactionOptions: { useTransaction: false },
     });
-
-    // 7. Return response
-    return {
-      message: sysMsg.CLASS_UPDATED,
-      id: classId,
-      name: newName,
-      arm: newArm,
-      academicSession: {
-        id: sessionId,
-        name: existingClass.academicSession.name,
-      },
-      teacher: teacherDetails,
-    };
   }
 
   /**
@@ -336,15 +354,7 @@ export class ClassService {
         };
       }
 
-      const teacherDetails = cls.teacher
-        ? {
-            id: cls.teacher.id,
-            name: cls.teacher.user
-              ? `${cls.teacher.user.first_name} ${cls.teacher.user.last_name}`
-              : `Teacher ${cls.teacher.employment_id}`,
-            employment_id: cls.teacher.employment_id,
-          }
-        : null;
+      const teacherDetails = this.mapTeacherToDetailsDto(cls.teacher);
 
       grouped[key].classes.push({
         id: cls.id,
@@ -372,15 +382,7 @@ export class ClassService {
       throw new NotFoundException(sysMsg.CLASS_NOT_FOUND);
     }
 
-    const teacherDetails = classEntity.teacher
-      ? {
-          id: classEntity.teacher.id,
-          name: classEntity.teacher.user
-            ? `${classEntity.teacher.user.first_name} ${classEntity.teacher.user.last_name}`
-            : `Teacher ${classEntity.teacher.employment_id}`,
-          employment_id: classEntity.teacher.employment_id,
-        }
-      : null;
+    const teacherDetails = this.mapTeacherToDetailsDto(classEntity.teacher);
 
     return {
       message: sysMsg.CLASS_FETCHED,
@@ -419,6 +421,7 @@ export class ClassService {
       total: paginationMeta.total,
     };
   }
+
   /**
    * Soft deletes a class by ID.
    * Only allows deletion of classes from the active session.
