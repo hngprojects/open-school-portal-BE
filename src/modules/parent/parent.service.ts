@@ -11,12 +11,15 @@ import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../constants/system.messages';
+import { ClassStudentModelAction } from '../class/model-actions/class-student.action';
+import { ClassSubjectModelAction } from '../class/model-actions/class-subject.action';
 import { UserRole } from '../shared/enums';
 import { FileService } from '../shared/file/file.service';
 import {
   generateStrongPassword,
   hashPassword,
 } from '../shared/utils/password.util';
+import { StudentModelAction } from '../student/model-actions/student-actions';
 import { User } from '../user/entities/user.entity';
 import { UserModelAction } from '../user/model-actions/user-actions';
 
@@ -25,9 +28,16 @@ import {
   ListParentsDto,
   ParentResponseDto,
   UpdateParentDto,
+  StudentSubjectResponseDto,
 } from './dto';
 import { Parent } from './entities/parent.entity';
 import { ParentModelAction } from './model-actions/parent-actions';
+
+export interface IUserPayload {
+  id: string;
+  email: string;
+  roles: string[];
+}
 
 @Injectable()
 export class ParentService {
@@ -35,6 +45,9 @@ export class ParentService {
   constructor(
     private readonly parentModelAction: ParentModelAction,
     private readonly userModelAction: UserModelAction,
+    private readonly studentModelAction: StudentModelAction,
+    private readonly classStudentModelAction: ClassStudentModelAction,
+    private readonly classSubjectModelAction: ClassSubjectModelAction,
     private readonly dataSource: DataSource,
     private readonly fileService: FileService,
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
@@ -322,6 +335,74 @@ export class ParentService {
         parentId: id,
         userId: parent.user_id,
       });
+    });
+  }
+
+  // --- GET STUDENT SUBJECTS ---
+  async getStudentSubjects(
+    studentId: string,
+    user: IUserPayload,
+  ): Promise<StudentSubjectResponseDto[]> {
+    const isAdmin = user.roles.includes(UserRole.ADMIN);
+    let parentId: string;
+
+    if (!isAdmin) {
+      const parent = await this.parentModelAction.get({
+        identifierOptions: { user_id: user.id },
+      });
+
+      if (!parent) {
+        throw new NotFoundException('Parent profile not found for this user');
+      }
+      parentId = parent.id;
+    }
+
+    if (!isAdmin) {
+      const student = await this.studentModelAction.get({
+        identifierOptions: { id: studentId, parent: { id: parentId } },
+      });
+
+      if (!student) {
+        throw new NotFoundException(
+          'Student not found or does not belong to this parent',
+        );
+      }
+    }
+
+    const classStudent = await this.classStudentModelAction.get({
+      identifierOptions: { student: { id: studentId }, is_active: true },
+      relations: { class: true },
+    });
+
+    if (!classStudent) {
+      this.logger.warn(
+        `Student ${studentId} is not assigned to any active class`,
+      );
+      return [];
+    }
+
+    const classId = classStudent.class.id;
+
+    const classSubjectsList = await this.classSubjectModelAction[
+      'repository'
+    ].find({
+      where: { class: { id: classId } },
+      relations: ['subject', 'teacher', 'teacher.user'],
+    });
+
+    return classSubjectsList.map((cs) => {
+      const teacherUser = cs.teacher?.user;
+      return plainToInstance(
+        StudentSubjectResponseDto,
+        {
+          subject_name: cs.subject.name,
+          teacher_name: teacherUser
+            ? `${teacherUser.first_name} ${teacherUser.last_name}`
+            : 'Not Assigned',
+          teacher_email: teacherUser ? teacherUser.email : 'N/A',
+        },
+        { excludeExtraneousValues: true },
+      );
     });
   }
 

@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 
 import * as sysMsg from '../../constants/system.messages';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -29,8 +30,13 @@ import {
   ApiUpdateParent,
   ApiDeleteParent,
 } from './docs/parent.swagger';
-import { CreateParentDto, ParentResponseDto, UpdateParentDto } from './dto';
-import { ParentService } from './parent.service';
+import {
+  CreateParentDto,
+  ParentResponseDto,
+  StudentSubjectResponseDto,
+  UpdateParentDto,
+} from './dto';
+import { ParentService, IUserPayload } from './parent.service';
 
 @Controller('parents')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -136,6 +142,25 @@ export class ParentController {
     return {
       message: sysMsg.PARENT_DELETED,
       status_code: HttpStatus.OK,
+    };
+  }
+
+  // --- GET: VIEW CHILD'S SUBJECTS AND TEACHERS (PARENT OR ADMIN) ---
+  @Get('children/:studentId/subjects')
+  @Roles(UserRole.PARENT, UserRole.ADMIN)
+  async getStudentSubjects(
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+    @CurrentUser() user: IUserPayload,
+  ): Promise<{
+    message: string;
+    status_code: number;
+    data: StudentSubjectResponseDto[];
+  }> {
+    const data = await this.parentService.getStudentSubjects(studentId, user);
+    return {
+      message: sysMsg.SUBJECTS_RETRIEVED,
+      status_code: HttpStatus.OK,
+      data,
     };
   }
 }
