@@ -59,14 +59,12 @@ export const ClassSwagger = {
           enum: ['A', 'B', 'C'],
           required: false,
         },
-        teacherIds: {
-          name: 'teacherIds',
-          description:
-            'Array of teacher UUIDs. Only the first teacher will be assigned as the form teacher (optional)',
-          type: 'array',
-          items: { type: 'string' },
+        teacherId: {
+          name: 'teacherId',
+          description: 'Teacher UUID to assign as the form teacher (optional)',
+          type: 'string',
           required: false,
-          example: ['teacher-uuid-1'],
+          example: 'teacher-uuid-1',
         },
       },
       responses: {
@@ -174,14 +172,14 @@ export const ClassSwagger = {
           description: 'The new arm of the class (optional).',
           required: false,
         },
-        teacherIds: {
-          name: 'teacherIds',
+        teacherId: {
+          name: 'teacherId',
           description:
-            'Array of teacher UUIDs. Only the first teacher will be assigned as the form teacher (optional). Pass empty array to remove teacher assignment.',
-          type: 'array',
-          items: { type: 'string' },
+            'Teacher UUID to assign as the form teacher (optional). Set to null to remove teacher assignment.',
+          type: 'string',
           required: false,
-          example: ['teacher-uuid-1'],
+          example: 'teacher-uuid-1',
+          nullable: true,
         },
       },
       responses: {

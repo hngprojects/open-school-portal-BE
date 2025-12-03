@@ -201,7 +201,7 @@ describe('ClassService', () => {
     const createClassDto = {
       name: 'Grade 10',
       arm: 'A',
-      teacherIds: ['teacher-uuid-1'],
+      teacherId: 'teacher-uuid-1',
     };
     const mockCreatedClass = {
       id: 'class-uuid-1',
@@ -377,7 +377,7 @@ describe('ClassService', () => {
     it('should throw NotFoundException if teacher does not exist when updating', async () => {
       const updateWithTeacher = {
         ...updateDto,
-        teacherIds: ['invalid-teacher-id'],
+        teacherId: 'invalid-teacher-id',
       };
       (mockTeacherModelAction.get as jest.Mock).mockResolvedValue(null);
 
@@ -424,13 +424,10 @@ describe('ClassService', () => {
       );
     });
 
-    it('should remove teacher when empty array is provided', async () => {
-      const updateWithEmptyTeachers = { teacherIds: [] };
+    it('should remove teacher when null is provided', async () => {
+      const updateWithNullTeacher = { teacherId: null };
 
-      const result = await service.updateClass(
-        classId,
-        updateWithEmptyTeachers,
-      );
+      const result = await service.updateClass(classId, updateWithNullTeacher);
 
       expect(classModelAction.update).toHaveBeenCalledWith({
         identifierOptions: { id: classId },

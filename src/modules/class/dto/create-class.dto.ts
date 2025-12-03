@@ -36,15 +36,13 @@ export class CreateClassDto {
   arm?: string;
 
   @ApiPropertyOptional({
-    type: [String],
-    description:
-      'Array of teacher UUIDs. Only the first teacher will be assigned as the form teacher (optional)',
+    description: 'Teacher UUID to assign as the form teacher (optional)',
     required: false,
-    example: ['550e8400-e29b-41d4-a716-446655440000'],
+    example: '550e8400-e29b-41d4-a716-446655440000',
   })
   @IsOptional()
-  @IsUUID('4', { each: true })
-  teacherIds?: string[];
+  @IsUUID('4')
+  teacherId?: string;
 }
 
 export class AcademicSessionDto {

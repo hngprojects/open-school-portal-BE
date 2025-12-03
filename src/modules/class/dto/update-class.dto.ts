@@ -30,12 +30,12 @@ export class UpdateClassDto {
   arm?: string;
 
   @ApiProperty({
-    example: ['550e8400-e29b-41d4-a716-446655440000'],
+    example: '550e8400-e29b-41d4-a716-446655440000',
     description:
-      'Array of teacher UUIDs. Only the first teacher will be assigned as the form teacher (optional).',
+      'Teacher UUID to assign as the form teacher. Set to null to remove the teacher (optional).',
     required: false,
   })
   @IsOptional()
-  @IsUUID('4', { each: true })
-  teacherIds?: string[];
+  @IsUUID('4')
+  teacherId?: string | null;
 }

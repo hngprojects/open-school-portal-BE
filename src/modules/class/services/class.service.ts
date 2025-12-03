@@ -127,11 +127,7 @@ export class ClassService {
    * Creates a class and links it to the active academic session.
    */
   async create(createClassDto: CreateClassDto): Promise<ICreateClassResponse> {
-    const { name, arm, teacherIds } = createClassDto;
-
-    // Extract first teacher ID from array if provided
-    const teacherId =
-      teacherIds && teacherIds.length > 0 ? teacherIds[0] : undefined;
+    const { name, arm, teacherId } = createClassDto;
 
     let teacherDetails = null;
     // Validate teacher exists if teacherId is provided
@@ -231,7 +227,7 @@ export class ClassService {
     }
 
     // 2. Prepare new values
-    const { name, arm, teacherIds } = updateClassDto;
+    const { name, arm, teacherId } = updateClassDto;
 
     const newName = name ?? existingClass.name;
     // Normalize arm: treat undefined, null, and empty string as equivalent
@@ -267,10 +263,9 @@ export class ClassService {
         teacher: { id: string } | null;
       }> = { name: newName, arm: newArm };
 
-      if (teacherIds !== undefined) {
-        if (teacherIds.length > 0) {
+      if (teacherId !== undefined) {
+        if (teacherId !== null) {
           // Assign new teacher
-          const teacherId = teacherIds[0];
           const teacher = await this.teacherModelAction.get({
             identifierOptions: { id: teacherId },
             relations: { user: true },
@@ -282,7 +277,7 @@ export class ClassService {
           updatePayload.teacher = { id: teacherId };
           teacherDetails = this.mapTeacherToDetailsDto(teacher);
         } else {
-          // Empty array = remove teacher
+          // null: remove teacher
           updatePayload.teacher = null;
           teacherDetails = null;
         }
