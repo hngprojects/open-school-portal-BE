@@ -408,3 +408,4 @@ export const SUPERADMIN_CONFLICT_GENERAL_MSG =
   'conflict - request cannot be processed. See examples for possible causes.';
 export const SUPERADMIN_ALREADY_EXISTS =
   'a superadmin account already exists. Only one is allowed.';
+export const SUPERADMIN_ACCOUNT_UPDATED = 'superadmin account updated';

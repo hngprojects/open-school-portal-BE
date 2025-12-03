@@ -90,27 +90,58 @@ export class SuperadminService {
       identifierOptions: { email: createSuperadminDto.email },
     });
 
-    if (existing) {
-      throw new ConflictException(sysMsg.SUPERADMIN_EMAIL_EXISTS);
-    }
+    // if (existing) {
+    //   throw new ConflictException(sysMsg.SUPERADMIN_EMAIL_EXISTS);
+    // }
 
     const passwordHash: string = await bcrypt.hash(password, 10);
 
-    const createdSuperadmin = await this.dataSource.transaction(
-      async (manager) => {
-        const newSuperadmin = await this.superadminModelAction.create({
-          createPayload: {
-            ...restData,
-            email,
-            password: passwordHash,
-            role: Role.SUPERADMIN,
-            is_active: createSuperadminDto.school_name ? true : false,
-          },
-          transactionOptions: { useTransaction: true, transaction: manager },
-        });
-        return newSuperadmin;
-      },
-    );
+    const createNewRecord = async (manager) => {
+      const newSuperadmin = await this.superadminModelAction.create({
+        createPayload: {
+          ...restData,
+          email,
+          password: passwordHash,
+          role: Role.SUPERADMIN,
+          is_active: createSuperadminDto.school_name ? true : false,
+        },
+        transactionOptions: { useTransaction: true, transaction: manager },
+      });
+
+      return newSuperadmin;
+    };
+
+    const updateRecord = async (manager) => {
+      const updatedSuperadminRecord = await this.superadminModelAction.update({
+        updatePayload: {
+          ...restData,
+          email,
+          password: passwordHash,
+          role: Role.SUPERADMIN,
+          is_active: createSuperadminDto.school_name ? true : false,
+        },
+        identifierOptions: { email: createSuperadminDto.email },
+        transactionOptions: { useTransaction: true, transaction: manager },
+      });
+      return updatedSuperadminRecord;
+    };
+
+    if (existing) {
+      const updatedSuperadmin = await this.dataSource.transaction(updateRecord);
+
+      if (updatedSuperadmin.password) delete updatedSuperadmin.password;
+
+      this.logger.info(sysMsg.SUPERADMIN_ACCOUNT_UPDATED);
+
+      return {
+        message: sysMsg.SUPERADMIN_ACCOUNT_UPDATED,
+        status_code: HttpStatus.OK,
+        data: updatedSuperadmin,
+      };
+    }
+
+    const createdSuperadmin =
+      await this.dataSource.transaction(createNewRecord);
 
     if (createdSuperadmin.password) delete createdSuperadmin.password;
 
