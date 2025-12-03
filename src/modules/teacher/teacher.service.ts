@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
@@ -99,6 +100,9 @@ export class TeacherService {
         `Employment ID ${employment_id} already exists.`,
       );
     }
+
+    // Validate Teacher Age to be at least 18 years old
+    this.validateTeacherAge(createDto.date_of_birth);
 
     // 3. Prepare User data
     const rawPassword = createDto.password || generateStrongPassword(12);
@@ -452,5 +456,29 @@ export class TeacherService {
         userId: teacher.user_id,
       });
     });
+  }
+
+  /**
+   * Validates that a person is at least the minimum required age
+   * @param dateOfBirth - Date of birth string in YYYY-MM-DD format
+   * @param minAge - Minimum required age (default: 18)
+   * @throws BadRequestException if age requirement is not met
+   */
+  private validateTeacherAge(dateOfBirth: string, minAge: number = 18): void {
+    const birthDate = new Date(dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
+      age--;
+    }
+
+    if (age < minAge) {
+      throw new BadRequestException(sysMsg.INVALID_TEACHER_AGE(minAge));
+    }
   }
 }
