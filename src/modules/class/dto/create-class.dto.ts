@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsNumber,
   Min,
+  IsUUID,
 } from 'class-validator';
 
 export class CreateClassDto {
@@ -35,14 +36,14 @@ export class CreateClassDto {
   arm?: string;
 
   @ApiPropertyOptional({
-    type: String,
-    isArray: true,
-    description: 'Array of teacher IDs to assign to the class (optional)',
+    type: [String],
+    description:
+      'Array of teacher UUIDs. Only the first teacher will be assigned as the form teacher (optional)',
     required: false,
-    example: ['teacher-uuid-1', 'teacher-uuid-2'],
+    example: ['550e8400-e29b-41d4-a716-446655440000'],
   })
   @IsOptional()
-  @IsString({ each: true })
+  @IsUUID('4', { each: true })
   teacherIds?: string[];
 }
 
@@ -52,6 +53,26 @@ export class AcademicSessionDto {
 
   @ApiProperty()
   name: string;
+}
+
+export class TeacherInfoDto {
+  @ApiProperty({
+    description: 'Teacher UUID',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  id: string;
+
+  @ApiProperty({
+    description: 'Teacher full name',
+    example: 'John Doe',
+  })
+  name: string;
+
+  @ApiProperty({
+    description: 'Teacher employment ID',
+    example: 'EMP-2025-001',
+  })
+  employment_id: string;
 }
 
 export class ClassResponseDto {
@@ -68,13 +89,11 @@ export class ClassResponseDto {
   academicSession?: AcademicSessionDto;
 
   @ApiPropertyOptional({
-    type: String,
-    isArray: true,
-    description: 'Array of teacher IDs assigned to the class',
-    required: false,
-    example: ['teacher-uuid-1', 'teacher-uuid-2'],
+    type: () => TeacherInfoDto,
+    description: 'Form teacher assigned to the class (null if not assigned)',
+    nullable: true,
   })
-  teacherIds?: string[];
+  teacher?: TeacherInfoDto | null;
 }
 
 export class ClassItemDto {
@@ -83,6 +102,13 @@ export class ClassItemDto {
 
   @ApiProperty({ required: false, nullable: true })
   arm?: string;
+
+  @ApiPropertyOptional({
+    type: () => TeacherInfoDto,
+    description: 'Form teacher assigned to the class (null if not assigned)',
+    nullable: true,
+  })
+  teacher?: TeacherInfoDto | null;
 }
 
 export class GroupedClassDto {
