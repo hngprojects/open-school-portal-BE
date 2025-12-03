@@ -28,8 +28,9 @@ import {
   ApiListParents,
   ApiUpdateParent,
   ApiDeleteParent,
+  ApiLinkStudents,
 } from './docs/parent.swagger';
-import { CreateParentDto, ParentResponseDto, UpdateParentDto } from './dto';
+import { CreateParentDto, LinkStudentsDto, ParentResponseDto, ParentStudentLinkResponseDto, UpdateParentDto } from './dto';
 import { ParentService } from './parent.service';
 
 @Controller('parents')
@@ -37,7 +38,7 @@ import { ParentService } from './parent.service';
 @ApiParentTags()
 @ApiParentBearerAuth()
 export class ParentController {
-  constructor(private readonly parentService: ParentService) {}
+  constructor(private readonly parentService: ParentService) { }
 
   // --- POST: CREATE PARENT (ADMIN ONLY) ---
   @Post()
@@ -136,6 +137,30 @@ export class ParentController {
     return {
       message: sysMsg.PARENT_DELETED,
       status_code: HttpStatus.OK,
+    };
+  }
+
+  // --- POST: LINK STUDENTS TO PARENT (ADMIN ONLY) ---
+  @Post(':parentId/link-students')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiLinkStudents()
+  async linkStudents(
+    @Param('parentId', ParseUUIDPipe) parentId: string,
+    @Body() linkDto: LinkStudentsDto,
+  ): Promise<{
+    message: string;
+    status_code: number;
+    data: ParentStudentLinkResponseDto;
+  }> {
+    const data = await this.parentService.linkStudentsToParent(
+      parentId,
+      linkDto,
+    );
+    return {
+      message: sysMsg.STUDENTS_LINKED_TO_PARENT,
+      status_code: HttpStatus.CREATED,
+      data,
     };
   }
 }
