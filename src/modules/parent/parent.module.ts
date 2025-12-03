@@ -22,4 +22,4 @@ import { ParentService } from './parent.service';
   providers: [ParentService, ParentModelAction, RateLimitGuard],
   exports: [ParentService, ParentModelAction],
 })
-export class ParentModule { }
+export class ParentModule {}

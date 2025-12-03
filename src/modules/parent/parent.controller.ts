@@ -30,7 +30,13 @@ import {
   ApiDeleteParent,
   ApiLinkStudents,
 } from './docs/parent.swagger';
-import { CreateParentDto, LinkStudentsDto, ParentResponseDto, ParentStudentLinkResponseDto, UpdateParentDto } from './dto';
+import {
+  CreateParentDto,
+  LinkStudentsDto,
+  ParentResponseDto,
+  ParentStudentLinkResponseDto,
+  UpdateParentDto,
+} from './dto';
 import { ParentService } from './parent.service';
 
 @Controller('parents')
@@ -38,7 +44,7 @@ import { ParentService } from './parent.service';
 @ApiParentTags()
 @ApiParentBearerAuth()
 export class ParentController {
-  constructor(private readonly parentService: ParentService) { }
+  constructor(private readonly parentService: ParentService) {}
 
   // --- POST: CREATE PARENT (ADMIN ONLY) ---
   @Post()

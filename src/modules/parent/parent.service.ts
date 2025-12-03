@@ -417,9 +417,7 @@ export class ParentService {
 
         if (!student || student.is_deleted) {
           this.logger.warn(`Student not found with ID: ${studentId}`);
-          throw new NotFoundException(
-            `Student with ID ${studentId} not found`,
-          );
+          throw new NotFoundException(`Student with ID ${studentId} not found`);
         }
 
         return student;

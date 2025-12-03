@@ -9,7 +9,13 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 
-import { CreateParentDto, LinkStudentsDto, ParentResponseDto, ParentStudentLinkResponseDto, UpdateParentDto } from '../dto';
+import {
+  CreateParentDto,
+  LinkStudentsDto,
+  ParentResponseDto,
+  ParentStudentLinkResponseDto,
+  UpdateParentDto,
+} from '../dto';
 
 /**
  * Swagger decorators for Parent endpoints
