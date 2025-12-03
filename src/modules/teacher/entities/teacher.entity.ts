@@ -1,9 +1,11 @@
 import { Entity, Column, OneToOne, JoinColumn, OneToMany } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
-import { ClassTeacher, ClassSubject } from '../../class/entities';
+import { ClassSubject } from '../../class/entities';
 import { User } from '../../user/entities/user.entity';
 import { TeacherTitle } from '../enums/teacher.enum';
+
+import type { Class } from '../../class/entities/class.entity';
 
 @Entity('teachers')
 export class Teacher extends BaseEntity {
@@ -27,8 +29,8 @@ export class Teacher extends BaseEntity {
   @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })
   user: User;
 
-  @OneToMany(() => ClassTeacher, (assignment) => assignment.teacher)
-  class_assignments: ClassTeacher[];
+  @OneToMany('Class', (cls: Class) => cls.teacher)
+  classes: Class[];
 
   @OneToMany(() => ClassSubject, (assignment) => assignment.teacher)
   subject_assignments: ClassSubject[];
