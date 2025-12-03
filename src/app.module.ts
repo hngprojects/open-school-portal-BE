@@ -22,6 +22,7 @@ import { FeesModule } from './modules/fees/fees.module';
 import { GradeModule } from './modules/grade/grade.module';
 import { InviteModule } from './modules/invites/invites.module';
 import { ParentModule } from './modules/parent/parent.module';
+import { PaymentModule } from './modules/payment/payment.module';
 import { ResultModule } from './modules/result/result.module';
 import { RoomModule } from './modules/room/room.module';
 import { SchoolModule } from './modules/school/school.module';
@@ -86,6 +87,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     GradeModule,
     ResultModule,
     SuperadminModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [
