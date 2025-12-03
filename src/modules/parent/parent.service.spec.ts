@@ -13,10 +13,12 @@ import { Logger } from 'winston';
 import { UserRole } from '../shared/enums';
 import { FileService } from '../shared/file/file.service';
 import * as passwordUtil from '../shared/utils/password.util';
+import { Student } from '../student/entities/student.entity';
+import { StudentModelAction } from '../student/model-actions/student-actions';
 import { User } from '../user/entities/user.entity';
 import { UserModelAction } from '../user/model-actions/user-actions';
 
-import { CreateParentDto, UpdateParentDto } from './dto';
+import { CreateParentDto, LinkStudentsDto, UpdateParentDto } from './dto';
 import { Parent } from './entities/parent.entity';
 import { ParentModelAction } from './model-actions/parent-actions';
 import { ParentService } from './parent.service';
@@ -46,6 +48,7 @@ describe('ParentService', () => {
   let fileService: jest.Mocked<FileService>;
   let parentModelAction: jest.Mocked<ParentModelAction>;
   let userModelAction: jest.Mocked<UserModelAction>;
+  let studentModelAction: jest.Mocked<StudentModelAction>;
   let queryRunner: jest.Mocked<QueryRunner>;
   let mockLogger: jest.Mocked<Logger>;
 
@@ -142,6 +145,11 @@ describe('ParentService', () => {
       update: jest.fn(),
     } as unknown as jest.Mocked<UserModelAction>;
 
+    studentModelAction = {
+      get: jest.fn(),
+      update: jest.fn(),
+    } as unknown as jest.Mocked<StudentModelAction>;
+
     // Mock Logger
     mockLogger = {
       info: jest.fn(),
@@ -174,6 +182,10 @@ describe('ParentService', () => {
         {
           provide: FileService,
           useValue: fileService,
+        },
+        {
+          provide: StudentModelAction,
+          useValue: studentModelAction,
         },
         {
           provide: WINSTON_MODULE_PROVIDER,
@@ -878,6 +890,198 @@ describe('ParentService', () => {
           userId: mockParent.user_id,
         }),
       );
+    });
+  });
+
+  describe('linkStudentsToParent', () => {
+    const mockParentId = 'parent-uuid-123';
+    const mockStudentId1 = 'student-uuid-001';
+    const mockStudentId2 = 'student-uuid-002';
+
+    const mockStudent1: Partial<Student> = {
+      id: mockStudentId1,
+      registration_number: 'STU-2025-0001',
+      is_deleted: false,
+    };
+
+    const mockStudent2: Partial<Student> = {
+      id: mockStudentId2,
+      registration_number: 'STU-2025-0002',
+      is_deleted: false,
+    };
+
+    const linkDto: LinkStudentsDto = {
+      student_ids: [mockStudentId1, mockStudentId2],
+    };
+
+    beforeEach(() => {
+      parentModelAction.get.mockResolvedValue(mockParent as Parent);
+      studentModelAction.get.mockImplementation(async (options) => {
+        const id = options.identifierOptions?.id;
+        if (id === mockStudentId1) return mockStudent1 as Student;
+        if (id === mockStudentId2) return mockStudent2 as Student;
+        return null;
+      });
+      studentModelAction.update.mockResolvedValue({} as Student);
+    });
+
+    it('should link multiple students to parent successfully', async () => {
+      const result = await service.linkStudentsToParent(mockParentId, linkDto);
+
+      expect(result).toBeDefined();
+      expect(result.parent_id).toBe(mockParentId);
+      expect(result.linked_students).toEqual([mockStudentId1, mockStudentId2]);
+      expect(result.total_linked).toBe(2);
+      expect(dataSource.transaction).toHaveBeenCalled();
+    });
+
+    it('should validate parent exists', async () => {
+      parentModelAction.get.mockResolvedValue(mockParent as Parent);
+
+      await service.linkStudentsToParent(mockParentId, linkDto);
+
+      expect(parentModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: mockParentId },
+      });
+    });
+
+    it('should throw NotFoundException if parent not found', async () => {
+      parentModelAction.get.mockResolvedValue(null);
+
+      await expect(
+        service.linkStudentsToParent(mockParentId, linkDto),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        service.linkStudentsToParent(mockParentId, linkDto),
+      ).rejects.toThrow('Parent not found');
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        `Parent not found with ID: ${mockParentId}`,
+      );
+    });
+
+    it('should throw NotFoundException if parent is deleted', async () => {
+      const deletedParent = {
+        ...mockParent,
+        deleted_at: new Date(),
+      } as Parent;
+
+      parentModelAction.get.mockResolvedValue(deletedParent);
+
+      await expect(
+        service.linkStudentsToParent(mockParentId, linkDto),
+      ).rejects.toThrow(NotFoundException);
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        `Parent not found with ID: ${mockParentId}`,
+      );
+    });
+
+    it('should validate all students exist', async () => {
+      await service.linkStudentsToParent(mockParentId, linkDto);
+
+      expect(studentModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: mockStudentId1 },
+      });
+      expect(studentModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: mockStudentId2 },
+      });
+    });
+
+    it('should throw NotFoundException if any student not found', async () => {
+      studentModelAction.get.mockImplementation(async (options) => {
+        const id = options.identifierOptions?.id;
+        if (id === mockStudentId1) return mockStudent1 as Student;
+        return null; // Second student not found
+      });
+
+      await expect(
+        service.linkStudentsToParent(mockParentId, linkDto),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        service.linkStudentsToParent(mockParentId, linkDto),
+      ).rejects.toThrow(`Student with ID ${mockStudentId2} not found`);
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        `Student not found with ID: ${mockStudentId2}`,
+      );
+    });
+
+    it('should throw NotFoundException if student is deleted', async () => {
+      const deletedStudent = {
+        ...mockStudent1,
+        is_deleted: true,
+      } as Student;
+
+      studentModelAction.get.mockImplementation(async (options) => {
+        const id = options.identifierOptions?.id;
+        if (id === mockStudentId1) return deletedStudent;
+        if (id === mockStudentId2) return mockStudent2 as Student;
+        return null;
+      });
+
+      await expect(
+        service.linkStudentsToParent(mockParentId, linkDto),
+      ).rejects.toThrow(NotFoundException);
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        `Student not found with ID: ${mockStudentId1}`,
+      );
+    });
+
+    it('should update students with parent_id in a transaction', async () => {
+      await service.linkStudentsToParent(mockParentId, linkDto);
+
+      expect(dataSource.transaction).toHaveBeenCalledTimes(1);
+      expect(studentModelAction.update).toHaveBeenCalledTimes(2);
+      expect(studentModelAction.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          identifierOptions: { id: mockStudentId1 },
+          updatePayload: {
+            parent: { id: mockParentId },
+          },
+          transactionOptions: {
+            useTransaction: true,
+            transaction: expect.anything(),
+          },
+        }),
+      );
+      expect(studentModelAction.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          identifierOptions: { id: mockStudentId2 },
+          updatePayload: {
+            parent: { id: mockParentId },
+          },
+          transactionOptions: {
+            useTransaction: true,
+            transaction: expect.anything(),
+          },
+        }),
+      );
+    });
+
+    it('should log successful linking', async () => {
+      await service.linkStudentsToParent(mockParentId, linkDto);
+
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        'Students successfully linked to parent',
+        {
+          parentId: mockParentId,
+          studentIds: [mockStudentId1, mockStudentId2],
+          totalLinked: 2,
+        },
+      );
+    });
+
+    it('should handle single student linking', async () => {
+      const singleStudentDto: LinkStudentsDto = {
+        student_ids: [mockStudentId1],
+      };
+
+      const result = await service.linkStudentsToParent(
+        mockParentId,
+        singleStudentDto,
+      );
+
+      expect(result.total_linked).toBe(1);
+      expect(result.linked_students).toEqual([mockStudentId1]);
+      expect(studentModelAction.update).toHaveBeenCalledTimes(1);
     });
   });
 });
