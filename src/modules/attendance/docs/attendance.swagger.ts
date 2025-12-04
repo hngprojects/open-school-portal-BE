@@ -963,6 +963,20 @@ export const ApiGetStudentMonthlyAttendance = () =>
                       format: 'date',
                       example: '2025-12-01',
                     },
+                    weekday: {
+                      type: 'string',
+                      example: 'Monday',
+                      description: 'Day of the week',
+                      enum: [
+                        'Sunday',
+                        'Monday',
+                        'Tuesday',
+                        'Wednesday',
+                        'Thursday',
+                        'Friday',
+                        'Saturday',
+                      ],
+                    },
                     status: {
                       type: 'string',
                       enum: [
