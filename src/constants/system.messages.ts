@@ -358,6 +358,8 @@ export const INVALID_DATE_RANGE_TIMETABLE =
 export const TIMETABLE_ARCHIVED = 'Timetable archived successfully';
 export const TIMETABLE_INTERNAL_OVERLAP =
   'Timetable contains overlapping schedules.';
+export const TIMETABLE_ROOM_DOUBLE_BOOKED =
+  'Room is already booked for another class at this time';
 
 // Fees messages
 export const FEE_CREATED_SUCCESSFULLY = 'Fee component created successfully';
@@ -451,6 +453,7 @@ export const STUDENTS_CAN_ONLY_VIEW_OWN_ATTENDANCE =
 export const RESULT_NOT_FOUND = 'Result not found';
 export const RESULT_GENERATED_SUCCESS = (count: number) =>
   `Successfully generated ${count} result(s)`;
+export const RESULTS_RETRIEVED_SUCCESS = 'Results retrieved successfully';
 
 export const ACADEMIC_SESSION_NOT_FOUND = 'Academic session not found';
 export const TERM_NOT_IN_SESSION =
