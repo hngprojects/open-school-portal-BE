@@ -4,9 +4,8 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { DataSource, In, Repository } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../constants/system.messages';
@@ -15,7 +14,6 @@ import { ClassModelAction } from '../class/model-actions/class.actions';
 
 import { FeeStudentResponseDto } from './dto/fee-students-response.dto';
 import { CreateFeesDto, QueryFeesDto, UpdateFeesDto } from './dto/fees.dto';
-import { FeeAssignment } from './entities/fee-assignment.entity';
 import { Fees } from './entities/fees.entity';
 import { FeeStatus } from './enums/fees.enums';
 import { FeesModelAction } from './model-action/fees.model-action';
@@ -29,10 +27,6 @@ export class FeesService {
     private readonly termModelAction: TermModelAction,
     private readonly classModelAction: ClassModelAction,
     private readonly dataSource: DataSource,
-    @InjectRepository(Fees)
-    private readonly feesRepository: Repository<Fees>,
-    @InjectRepository(FeeAssignment)
-    private readonly feeAssignmentRepository: Repository<FeeAssignment>,
     @Inject(WINSTON_MODULE_PROVIDER) logger: Logger,
   ) {
     this.logger = logger.child({ context: FeesService.name });
@@ -99,76 +93,16 @@ export class FeesService {
     limit: number;
     totalPages: number;
   }> {
-    const {
-      status,
-      class_id,
-      term_id,
-      search,
-      page = 1,
-      limit = 20,
-    } = queryDto;
-
-    const skip = (page - 1) * limit;
-
-    // Use query builder for complex filtering, especially for many-to-many class relationship
-    const queryBuilder = this.feesRepository
-      .createQueryBuilder('fee')
-      .leftJoinAndSelect('fee.term', 'term')
-      .leftJoinAndSelect('fee.classes', 'classes')
-      .leftJoin('fee.createdBy', 'createdBy')
-      .addSelect([
-        'createdBy.id',
-        'createdBy.first_name',
-        'createdBy.last_name',
-        'createdBy.middle_name',
-      ])
-      .orderBy('fee.createdAt', 'DESC');
-
-    // Only filter by status if explicitly provided
-    if (status) {
-      queryBuilder.andWhere('fee.status = :status', { status });
-    }
-
-    // Filter by term_id
-    if (term_id) {
-      queryBuilder.andWhere('fee.term_id = :term_id', { term_id });
-    }
-
-    // Filter by class_id (many-to-many relationship)
-    if (class_id) {
-      queryBuilder.andWhere('classes.id = :class_id', { class_id });
-    }
-
-    // Search filter for component_name or description
-    if (search && search.trim()) {
-      queryBuilder.andWhere(
-        '(fee.component_name ILIKE :search OR fee.description ILIKE :search)',
-        { search: `%${search}%` },
-      );
-    }
-
-    // Get total count before pagination
-    const total = await queryBuilder.getCount();
-
-    // Apply pagination
-    const fees = await queryBuilder.skip(skip).take(limit).getMany();
-
-    const totalPages = Math.ceil(total / limit);
+    const result = await this.feesModelAction.findAllFees(queryDto);
 
     this.logger.info('Fetched fee components', {
-      total,
-      page,
-      limit,
-      filters: { status, class_id, term_id, search },
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+      filters: queryDto,
     });
 
-    return {
-      fees,
-      total,
-      page,
-      limit,
-      totalPages,
-    };
+    return result;
   }
 
   async update(id: string, updateFeesDto: UpdateFeesDto): Promise<Fees> {
@@ -363,19 +297,7 @@ export class FeesService {
   }
 
   async getStudentsForFee(feeId: string): Promise<FeeStudentResponseDto[]> {
-    const fee = await this.feesRepository.findOne({
-      where: { id: feeId },
-      relations: [
-        'classes',
-        'classes.student_assignments',
-        'classes.student_assignments.student',
-        'classes.student_assignments.student.user',
-        'classes.academicSession',
-        'direct_assignments',
-        'direct_assignments.student',
-        'direct_assignments.student.user',
-      ],
-    });
+    const fee = await this.feesModelAction.getFeeWithStudentAssignments(feeId);
 
     if (!fee) {
       throw new NotFoundException(sysMsg.FEE_NOT_FOUND);
@@ -383,7 +305,6 @@ export class FeesService {
 
     const studentMap = new Map<string, FeeStudentResponseDto>();
 
-    // Process class assignments
     if (fee.classes) {
       for (const cls of fee.classes) {
         if (cls.student_assignments) {
@@ -407,25 +328,16 @@ export class FeesService {
       }
     }
 
-    // Process direct assignments
     if (fee.direct_assignments) {
       for (const assignment of fee.direct_assignments) {
         if (assignment.student && assignment.student.user) {
           const student = assignment.student;
-          // Direct assignment might override class info or be standalone
-          // If already exists, we keep the class info (or update if needed? Requirement says "associated with classes linked... or direct assignments")
-          // If it's a direct assignment, it might not have a class context in this fee's context, but the student belongs to a class generally.
-          // However, the requirement asks for "class". If direct assignment, we might need to fetch their current class separately if not already in the map.
-          // But for now, let's assume if they are in the map, we keep them. If not, we add them.
-          // If added via direct assignment, "class" might be ambiguous if they are not in one of the linked classes.
-          // Let's check if we have class info. If not, we might leave it empty or fetch it.
-          // For simplicity and performance, if they are not in the map (meaning not in a linked class), we add them.
           if (!studentMap.has(student.id)) {
             studentMap.set(student.id, {
               id: student.id,
               name: `${student.user.first_name} ${student.user.last_name}`,
-              class: 'N/A', // Or fetch their primary class if possible, but that requires more queries.
-              session: '', // Same here
+              class: 'N/A',
+              session: '',
               registration_number: student.registration_number,
               photo_url: student.photo_url,
             });
