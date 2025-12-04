@@ -336,6 +336,8 @@ export const TERM_ID_INVALID = 'Invalid term ID.';
 export const DASHBOARD_RESOLVED = 'Dashboard resolved successfully';
 export const TODAYS_CLASSES_FETCHED = "Today's classes retrieved successfully";
 export const NO_CLASSES_TODAY = 'No classes scheduled for today';
+export const DASHBOARD_ANALYTICS_FETCHED =
+  'Dashboard analytics fetched successfully';
 
 // Teacher messages
 export const INVALID_TEACHER_ID = 'Invalid teacher ID provided';
