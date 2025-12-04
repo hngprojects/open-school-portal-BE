@@ -412,3 +412,6 @@ export const SUPERADMIN_CONFLICT_GENERAL_MSG =
 export const SUPERADMIN_ALREADY_EXISTS =
   'a superadmin account already exists. Only one is allowed.';
 export const SUPERADMIN_ACCOUNT_UPDATED = 'superadmin account updated';
+//payment messages
+export const PAYMENTS_FETCHED_SUCCESSFULLY =
+  'Fee payments retrieved successfully.';
