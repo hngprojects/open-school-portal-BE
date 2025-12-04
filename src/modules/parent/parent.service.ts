@@ -355,7 +355,7 @@ export class ParentService {
       });
 
       if (!parent) {
-        throw new NotFoundException('Parent profile not found for this user');
+        throw new NotFoundException(sysMsg.PARENT_PROFILE_NOT_FOUND);
       }
       parentId = parent.id;
     }
@@ -366,9 +366,7 @@ export class ParentService {
       });
 
       if (!student) {
-        throw new NotFoundException(
-          'Student not found or does not belong to this parent',
-        );
+        throw new NotFoundException(sysMsg.STUDENT_NOT_BELONG_TO_PARENT);
       }
     }
 

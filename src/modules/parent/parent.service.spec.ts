@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { Logger } from 'winston';
 
+import * as sysMsg from '../../constants/system.messages';
 import { ClassStudent } from '../class/entities/class-student.entity';
 import { ClassSubject } from '../class/entities/class-subject.entity';
 import { ClassStudentModelAction } from '../class/model-actions/class-student.action';
@@ -1365,23 +1366,25 @@ describe('ParentService', () => {
 
       await expect(
         service.getStudentSubjects(mockStudentId, mockUserPayload),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(sysMsg.PARENT_PROFILE_NOT_FOUND);
     });
 
     it('should throw NotFoundException if student not linked to parent', async () => {
-      parentModelAction.get.mockResolvedValue({ id: mockParentId } as Parent);
+      parentModelAction.get.mockResolvedValue(mockParent as Parent);
       studentModelAction.get.mockResolvedValue(null);
 
       await expect(
         service.getStudentSubjects(mockStudentId, mockUserPayload),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(sysMsg.STUDENT_NOT_BELONG_TO_PARENT);
     });
 
     it('should return empty array if student has no active class', async () => {
-      parentModelAction.get.mockResolvedValue({ id: mockParentId } as Parent);
-      studentModelAction.get.mockResolvedValue({
-        id: mockStudentId,
-      } as Student);
+      parentModelAction.get.mockResolvedValue(mockParent as Parent);
+      studentModelAction.get.mockImplementation(async (options) => {
+        const id = options.identifierOptions?.id;
+        if (id === mockStudentId) return { id: mockStudentId } as Student;
+        return null;
+      });
       classStudentModelAction.get.mockResolvedValue(null);
 
       const result = await service.getStudentSubjects(
@@ -1390,7 +1393,9 @@ describe('ParentService', () => {
       );
 
       expect(result).toEqual([]);
-      expect(mockLogger.warn).toHaveBeenCalled();
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        `Student ${mockStudentId} is not assigned to any active class`,
+      );
     });
   });
 });
