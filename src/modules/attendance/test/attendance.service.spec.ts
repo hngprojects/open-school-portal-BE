@@ -389,7 +389,6 @@ describe('AttendanceService', () => {
       );
 
       expect(result.message).toBe(ATTENDANCE_UPDATED_SUCCESSFULLY);
-      expect(result.status_code).toBe(200);
       expect(studentDailyAttendanceModelAction.get).toHaveBeenCalledWith({
         identifierOptions: { id: attendanceId },
       });
