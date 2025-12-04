@@ -464,3 +464,16 @@ export const NO_APPROVED_GRADES_STUDENT =
   'No approved grades found for this student in the specified term. Ensure grades are submitted and approved.';
 export const NO_VALID_GRADES_STUDENT =
   'No valid grades found for this student in the specified term';
+
+// MANUAL TEACHER CHECKIN MESSAGES
+export const TEACHER_ID_NOT_FOUND = 'Teacher id not found in the request';
+export const TEACHER_IS_NOT_ACTIVE = 'Teacher profile is not active';
+export const CHECK_IN_DATE_IS_IN_THE_FUTURE = 'Check in date is in the future';
+export const CHECK_IN_DATE_IS_IN_THE_PAST = 'Check in date is in the past';
+export const REASON_IS_EMPTY = 'Reason is required';
+export const ALREADY_CHECKED_IN_FOR_THE_SAME_DATE =
+  'You have already checked in for this date';
+export const CHECK_IN_TIME_NOT_WITHIN_SCHOOL_HOURS =
+  'Check in time is not within school hours';
+export const TEACHER_MANUAL_CHECKIN_CREATED_SUCCESSFULLY =
+  'Teacher manual checkin created successfully';
