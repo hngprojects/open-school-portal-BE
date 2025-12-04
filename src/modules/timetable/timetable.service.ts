@@ -162,12 +162,6 @@ export class TimetableService {
   }> {
     const timetables = await this.timetableModelAction.findAllTimetables();
 
-    if (day && !Object.values(DayOfWeek).includes(day)) {
-      throw new BadRequestException(
-        `Invalid day '${day}'. Allowed values are: ${Object.values(DayOfWeek).join(', ')}`,
-      );
-    }
-
     // Filter schedules by day if provided
     let filteredTimetables = timetables;
     if (day) {
