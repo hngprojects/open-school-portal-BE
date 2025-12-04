@@ -1,5 +1,5 @@
-import { PaginationMeta } from '@hng-sdk/orm';
 import {
+  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
@@ -10,7 +10,10 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
+import { IPaginationMeta } from '../../common/types/base-response.interface';
 import * as sysMsg from '../../constants/system.messages';
+import { ClassStudentModelAction } from '../class/model-actions/class-student.action';
+import { ClassSubjectModelAction } from '../class/model-actions/class-subject.action';
 import { UserRole } from '../shared/enums';
 import { FileService } from '../shared/file/file.service';
 import {
@@ -29,9 +32,16 @@ import {
   ParentStudentLinkResponseDto,
   StudentBasicDto,
   UpdateParentDto,
+  StudentSubjectResponseDto,
 } from './dto';
 import { Parent } from './entities/parent.entity';
 import { ParentModelAction } from './model-actions/parent-actions';
+
+export interface IUserPayload {
+  id: string;
+  email: string;
+  roles: string[];
+}
 
 @Injectable()
 export class ParentService {
@@ -40,6 +50,8 @@ export class ParentService {
     private readonly parentModelAction: ParentModelAction,
     private readonly userModelAction: UserModelAction,
     private readonly studentModelAction: StudentModelAction,
+    private readonly classStudentModelAction: ClassStudentModelAction,
+    private readonly classSubjectModelAction: ClassSubjectModelAction,
     private readonly dataSource: DataSource,
     private readonly fileService: FileService,
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
@@ -138,7 +150,7 @@ export class ParentService {
 
   async findAll(listParentsDto: ListParentsDto): Promise<{
     data: ParentResponseDto[];
-    paginationMeta: Partial<PaginationMeta>;
+    paginationMeta: Partial<IPaginationMeta>;
   }> {
     const { page = 1, limit = 10, search } = listParentsDto;
 
@@ -330,6 +342,72 @@ export class ParentService {
     });
   }
 
+  // --- GET STUDENT SUBJECTS ---
+  async getStudentSubjects(
+    studentId: string,
+    user: IUserPayload,
+  ): Promise<StudentSubjectResponseDto[]> {
+    const isAdmin = user.roles.includes(UserRole.ADMIN);
+    let parentId: string;
+
+    if (!isAdmin) {
+      const parent = await this.parentModelAction.get({
+        identifierOptions: { user_id: user.id },
+      });
+
+      if (!parent) {
+        throw new NotFoundException(sysMsg.PARENT_PROFILE_NOT_FOUND);
+      }
+      parentId = parent.id;
+    }
+
+    if (!isAdmin) {
+      const student = await this.studentModelAction.get({
+        identifierOptions: { id: studentId, parent: { id: parentId } },
+      });
+
+      if (!student) {
+        throw new NotFoundException(sysMsg.STUDENT_NOT_BELONG_TO_PARENT);
+      }
+    }
+
+    const classStudent = await this.classStudentModelAction.get({
+      identifierOptions: { student: { id: studentId }, is_active: true },
+      relations: { class: true },
+    });
+
+    if (!classStudent) {
+      this.logger.warn(
+        `Student ${studentId} is not assigned to any active class`,
+      );
+      return [];
+    }
+
+    const classId = classStudent.class.id;
+
+    const classSubjectsList = await this.classSubjectModelAction[
+      'repository'
+    ].find({
+      where: { class: { id: classId } },
+      relations: ['subject', 'teacher', 'teacher.user'],
+    });
+
+    return classSubjectsList.map((cs) => {
+      const teacherUser = cs.teacher?.user;
+      return plainToInstance(
+        StudentSubjectResponseDto,
+        {
+          subject_name: cs.subject.name,
+          teacher_name: teacherUser
+            ? `${teacherUser.first_name} ${teacherUser.last_name}`
+            : 'Not Assigned',
+          teacher_email: teacherUser ? teacherUser.email : 'N/A',
+        },
+        { excludeExtraneousValues: true },
+      );
+    });
+  }
+
   // --- HELPER METHOD TO TRANSFORM ENTITY TO DTO ---
   private transformToParentResponseDto(parent: Parent): ParentResponseDto {
     const { user } = parent;
@@ -364,7 +442,7 @@ export class ParentService {
     limit: number = 10,
   ): Promise<{
     payload: Parent[];
-    paginationMeta: Partial<PaginationMeta>;
+    paginationMeta: Partial<IPaginationMeta>;
   }> {
     const skip = (page - 1) * limit;
 
@@ -503,6 +581,57 @@ export class ParentService {
         },
         { excludeExtraneousValues: true },
       );
+    });
+  }
+
+  // --- UNLINK STUDENT FROM PARENT (ADMIN VERSION) ---
+  async unlinkStudentFromParent(
+    parentId: string,
+    studentId: string,
+  ): Promise<void> {
+    // 1. Validate parent exists
+    const parent = await this.parentModelAction.get({
+      identifierOptions: { id: parentId },
+    });
+
+    if (!parent || parent.deleted_at) {
+      this.logger.warn(`Parent not found with ID: ${parentId}`);
+      throw new NotFoundException(sysMsg.PARENT_NOT_FOUND);
+    }
+
+    // 2. Validate student exists
+    const student = await this.studentModelAction.get({
+      identifierOptions: { id: studentId },
+      relations: { parent: true },
+    });
+
+    if (!student || student.is_deleted) {
+      this.logger.warn(`Student not found with ID: ${studentId}`);
+      throw new NotFoundException(`Student with ID ${studentId} not found`);
+    }
+
+    // 3. Verify student is linked to this parent
+    if (!student.parent || student.parent.id !== parentId) {
+      this.logger.warn(
+        `Student ${studentId} is not linked to parent ${parentId}`,
+      );
+      throw new BadRequestException(sysMsg.STUDENT_NOT_LINKED_TO_PARENT);
+    }
+
+    // 4. Unlink student (set parent to null)
+    await this.studentModelAction.update({
+      identifierOptions: { id: studentId },
+      updatePayload: {
+        parent: null,
+      },
+      transactionOptions: {
+        useTransaction: false,
+      },
+    });
+
+    this.logger.info(sysMsg.STUDENT_UNLINKED_FROM_PARENT, {
+      parentId,
+      studentId,
     });
   }
 }

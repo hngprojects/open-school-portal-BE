@@ -14,8 +14,10 @@ import {
   ParseUUIDPipe,
   Request,
 } from '@nestjs/common';
+import { ApiOperation } from '@nestjs/swagger';
 
 import * as sysMsg from '../../constants/system.messages';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -31,17 +33,20 @@ import {
   ApiDeleteParent,
   ApiLinkStudents,
   ApiGetLinkedStudents,
+  ApiGetStudentSubjects,
   ApiGetMyStudents,
+  ApiUnlinkStudent,
 } from './docs/parent.swagger';
 import {
   CreateParentDto,
   LinkStudentsDto,
   ParentResponseDto,
+  StudentSubjectResponseDto,
+  UpdateParentDto,
   ParentStudentLinkResponseDto,
   StudentBasicDto,
-  UpdateParentDto,
 } from './dto';
-import { ParentService } from './parent.service';
+import { ParentService, IUserPayload } from './parent.service';
 
 @Controller('parents')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -169,6 +174,26 @@ export class ParentController {
     };
   }
 
+  // --- GET: VIEW CHILD'S SUBJECTS AND TEACHERS (PARENT OR ADMIN) ---
+  @Get('children/:studentId/subjects')
+  @Roles(UserRole.PARENT, UserRole.ADMIN)
+  @ApiOperation({ summary: "View child's subjects and teachers" })
+  @ApiGetStudentSubjects()
+  async getStudentSubjects(
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+    @CurrentUser() user: IUserPayload,
+  ): Promise<{
+    message: string;
+    status_code: number;
+    data: StudentSubjectResponseDto[];
+  }> {
+    const data = await this.parentService.getStudentSubjects(studentId, user);
+    return {
+      message: sysMsg.SUBJECTS_RETRIEVED,
+      status_code: HttpStatus.OK,
+      data,
+    };
+  }
   // --- POST: LINK STUDENTS TO PARENT (ADMIN ONLY) ---
   @Post(':parentId/link-students')
   @Roles(UserRole.ADMIN)
@@ -190,6 +215,25 @@ export class ParentController {
       message: sysMsg.STUDENTS_LINKED_TO_PARENT,
       status_code: HttpStatus.CREATED,
       data,
+    };
+  }
+
+  // --- DELETE: UNLINK STUDENT FROM PARENT (ADMIN ONLY) ---
+  @Delete(':parentId/students/:studentId')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiUnlinkStudent()
+  async unlinkStudent(
+    @Param('parentId', ParseUUIDPipe) parentId: string,
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+  ): Promise<{
+    message: string;
+    status_code: number;
+  }> {
+    await this.parentService.unlinkStudentFromParent(parentId, studentId);
+    return {
+      message: sysMsg.STUDENT_UNLINKED_FROM_PARENT,
+      status_code: HttpStatus.OK,
     };
   }
 

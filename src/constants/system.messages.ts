@@ -277,6 +277,12 @@ export const STUDENT_NOT_LINKED_TO_PARENT =
   'Student is not linked to this parent';
 export const STUDENT_ACADEMIC_PROFILE_FETCHED =
   'Student academic profile fetched successfully';
+export const PARENT_PROFILE_NOT_FOUND =
+  'Parent profile not found for this user';
+export const STUDENT_NOT_BELONG_TO_PARENT =
+  'Student not found or does not belong to this parent';
+export const STUDENT_UNLINKED_FROM_PARENT =
+  'Student successfully unlinked from parent';
 
 // Contact messages
 export const CONTACT_MESSAGE_SENT = 'Contact message sent successfully';
@@ -334,6 +340,8 @@ export const TERM_ID_INVALID = 'Invalid term ID.';
 export const DASHBOARD_RESOLVED = 'Dashboard resolved successfully';
 export const TODAYS_CLASSES_FETCHED = "Today's classes retrieved successfully";
 export const NO_CLASSES_TODAY = 'No classes scheduled for today';
+export const DASHBOARD_ANALYTICS_FETCHED =
+  'Dashboard analytics fetched successfully';
 
 // Teacher messages
 export const INVALID_TEACHER_ID = 'Invalid teacher ID provided';
