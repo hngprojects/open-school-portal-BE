@@ -1,12 +1,11 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { DataSource, EntityManager } from 'typeorm';
+import { DataSource, EntityManager, SelectQueryBuilder } from 'typeorm';
 
 import {
   ATTENDANCE_RECORDS_RETRIEVED,
   ATTENDANCE_UPDATED_SUCCESSFULLY,
-  ATTENDANCE_MARKED_SUCCESSFULLY,
 } from 'src/constants/system.messages';
 
 import {
@@ -14,6 +13,7 @@ import {
   SessionStatus,
 } from '../../academic-session/entities/academic-session.entity';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
+import { TermModelAction } from '../../academic-term/model-actions';
 import { ScheduleBasedAttendance, StudentDailyAttendance } from '../entities';
 import { AttendanceStatus, DailyAttendanceStatus } from '../enums';
 import {
@@ -27,6 +27,20 @@ describe('AttendanceService', () => {
   let attendanceModelAction: jest.Mocked<AttendanceModelAction>;
   let studentDailyAttendanceModelAction: jest.Mocked<StudentDailyAttendanceModelAction>;
   let academicSessionModelAction: jest.Mocked<AcademicSessionModelAction>;
+
+  const mockCreate = jest.fn();
+  const mockSave = jest.fn();
+  const mockFindOne = jest.fn();
+  const mockFind = jest.fn();
+  const mockUpdate = jest.fn();
+
+  const mockEntityManager = {
+    create: mockCreate,
+    save: mockSave,
+    findOne: mockFindOne,
+    find: mockFind,
+    update: mockUpdate,
+  } as unknown as EntityManager;
 
   const mockLogger = {
     info: jest.fn(),
@@ -60,15 +74,25 @@ describe('AttendanceService', () => {
       get: jest.fn(),
     };
 
+    const mockTermModelAction = {
+      get: jest.fn(),
+      list: jest.fn(),
+    };
+
     const mockDataSource = {
-      transaction: jest.fn(
-        (callback: (manager: EntityManager) => Promise<unknown>) =>
-          callback({
-            findOne: jest.fn(),
-            update: jest.fn(),
-            save: jest.fn(),
-          } as unknown as EntityManager),
-      ),
+      transaction: jest.fn((callback) => callback(mockEntityManager)),
+      manager: {
+        findOne: mockFindOne,
+        find: mockFind,
+        createQueryBuilder: jest.fn(() => ({
+          innerJoin: jest.fn().mockReturnThis(),
+          leftJoinAndSelect: jest.fn().mockReturnThis(),
+          where: jest.fn().mockReturnThis(),
+          andWhere: jest.fn().mockReturnThis(),
+          getMany: jest.fn().mockResolvedValue([]),
+          getRawMany: jest.fn().mockResolvedValue([]),
+        })),
+      },
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -85,6 +109,10 @@ describe('AttendanceService', () => {
         {
           provide: AcademicSessionModelAction,
           useValue: mockAcademicSessionModelAction,
+        },
+        {
+          provide: TermModelAction,
+          useValue: mockTermModelAction,
         },
         {
           provide: DataSource,
@@ -245,6 +273,7 @@ describe('AttendanceService', () => {
     });
 
     it('should throw NotFoundException when no active session exists', async () => {
+      mockFindOne.mockResolvedValue({ id: 'teacher-123' });
       academicSessionModelAction.list.mockResolvedValue({
         payload: [],
         paginationMeta: null,
@@ -297,9 +326,15 @@ describe('AttendanceService', () => {
         paginationMeta: null,
       });
 
+      // Mock transaction to handle enrollment checks within transaction
+      mockFindOne.mockResolvedValue({ id: 'enrollment-1', is_active: true });
+      mockSave.mockResolvedValue({});
+
       const result = await service.markStudentDailyAttendance(teacherId, dto);
 
-      expect(result.message).toBe(ATTENDANCE_MARKED_SUCCESSFULLY);
+      expect(result.message).toBe(
+        'Student daily attendance marked successfully',
+      );
       expect(result.data.marked).toBeGreaterThanOrEqual(0);
       expect(result.data.total).toBe(2);
     });
@@ -361,10 +396,47 @@ describe('AttendanceService', () => {
       const classId = 'class-123';
       const date = '2025-12-02';
 
+      mockFind.mockResolvedValue([
+        {
+          student: {
+            id: 'student-001',
+            user: { first_name: 'John', middle_name: 'A', last_name: 'Doe' },
+          },
+          is_active: true,
+        },
+        {
+          student: {
+            id: 'student-002',
+            user: { first_name: 'Jane', middle_name: 'B', last_name: 'Smith' },
+          },
+          is_active: true,
+        },
+      ]);
+
+      // Mock createQueryBuilder to return schedules for the class
+      const mockQueryBuilder: Partial<SelectQueryBuilder<unknown>> = {
+        innerJoin: jest.fn().mockReturnThis(),
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([
+          { id: 'schedule-1', period_order: 1 },
+          { id: 'schedule-2', period_order: 2 },
+        ]),
+        getRawMany: jest.fn().mockResolvedValue([]),
+      };
+
+      jest
+        .spyOn(service['dataSource'].manager, 'createQueryBuilder')
+        .mockReturnValue(mockQueryBuilder as SelectQueryBuilder<unknown>);
+
       const result = await service.getClassDailyAttendance(classId, date);
 
-      expect(result.message).toBe(ATTENDANCE_RECORDS_RETRIEVED);
-      expect(Array.isArray(result.data)).toBe(true);
+      expect(result.message).toBe(
+        'Class daily attendance retrieved successfully',
+      );
+      expect(result.data).toHaveProperty('students');
+      expect(Array.isArray(result.data.students)).toBe(true);
     });
   });
 
@@ -374,14 +446,63 @@ describe('AttendanceService', () => {
       const startDate = '2025-09-01';
       const endDate = '2025-12-31';
 
+      mockFind.mockResolvedValue([
+        {
+          student: {
+            id: 'student-001',
+            user: { first_name: 'John', middle_name: 'A', last_name: 'Doe' },
+          },
+          is_active: true,
+        },
+        {
+          student: {
+            id: 'student-002',
+            user: { first_name: 'Jane', middle_name: 'B', last_name: 'Smith' },
+          },
+          is_active: true,
+        },
+      ]);
+
+      // Mock createQueryBuilder to return schedules and attendance records
+      let callCount = 0;
+      const mockQueryBuilder: Partial<SelectQueryBuilder<unknown>> = {
+        innerJoin: jest.fn().mockReturnThis(),
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getMany: jest.fn(() => {
+          callCount++;
+          if (callCount === 1) {
+            // First call returns schedules
+            return Promise.resolve([
+              { id: 'schedule-1', period_order: 1 },
+              { id: 'schedule-2', period_order: 2 },
+            ]);
+          }
+          // Second call returns attendance records with dates
+          return Promise.resolve([
+            { id: 'att-1', date: new Date('2025-09-01'), status: 'PRESENT' },
+            { id: 'att-2', date: new Date('2025-09-02'), status: 'PRESENT' },
+          ]);
+        }),
+        getRawMany: jest.fn().mockResolvedValue([]),
+      };
+
+      jest
+        .spyOn(service['dataSource'].manager, 'createQueryBuilder')
+        .mockReturnValue(mockQueryBuilder as SelectQueryBuilder<unknown>);
+
       const result = await service.getClassTermAttendance(
         classId,
         startDate,
         endDate,
       );
 
-      expect(result.message).toBe(ATTENDANCE_RECORDS_RETRIEVED);
-      expect(Array.isArray(result.data)).toBe(true);
+      expect(result.message).toBe(
+        'Class term attendance retrieved successfully',
+      );
+      expect(result.data).toHaveProperty('students');
+      expect(Array.isArray(result.data.students)).toBe(true);
     });
   });
 });
