@@ -1,8 +1,10 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Get,
   Param,
+  ParseIntPipe,
   ParseUUIDPipe,
   Post,
   Query,
@@ -55,15 +57,15 @@ export class ResultController {
     @Query('term_id', ParseUUIDPipe) termId: string,
     @Query('academic_session_id', new ParseUUIDPipe({ optional: true }))
     academicSessionId?: string,
-    @Query('page') page = 1,
-    @Query('limit') limit = 20,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number = 20,
   ) {
     return this.resultService.getClassResults(
       classId,
       termId,
       academicSessionId,
-      Number(page),
-      Number(limit),
+      page,
+      limit,
     );
   }
 

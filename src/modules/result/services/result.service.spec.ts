@@ -45,6 +45,14 @@ describe('ResultService', () => {
     },
   };
 
+  const mockQueryBuilder = {
+    select: jest.fn().mockReturnThis(),
+    addSelect: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    getRawOne: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -109,6 +117,9 @@ describe('ResultService', () => {
           provide: DataSource,
           useValue: {
             createQueryRunner: jest.fn().mockReturnValue(mockQueryRunner),
+            getRepository: jest.fn().mockReturnValue({
+              createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
+            }),
           },
         },
       ],
@@ -321,6 +332,14 @@ describe('ResultService', () => {
         >,
       );
 
+      // Mock the statistics query
+      mockQueryBuilder.getRawOne.mockResolvedValue({
+        highest_score: 75,
+        lowest_score: 75,
+        class_average: 75,
+        total_students: 1,
+      });
+
       const result = await service.getClassResults(
         classId,
         termId,
@@ -442,6 +461,14 @@ describe('ResultService', () => {
         },
       } as unknown as Awaited<ReturnType<typeof resultModelAction.list>>);
 
+      // Mock empty statistics query
+      mockQueryBuilder.getRawOne.mockResolvedValue({
+        highest_score: null,
+        lowest_score: null,
+        class_average: null,
+        total_students: 0,
+      });
+
       await service.getClassResults(classId, termId);
 
       expect(resultModelAction.list).toHaveBeenCalledWith(
@@ -482,13 +509,18 @@ describe('ResultService', () => {
         },
       } as unknown as Awaited<ReturnType<typeof resultModelAction.list>>);
 
+      // Mock empty statistics query
+      mockQueryBuilder.getRawOne.mockResolvedValue({
+        highest_score: null,
+        lowest_score: null,
+        class_average: null,
+        total_students: 0,
+      });
+
       const result = await service.getClassResults(classId, termId, sessionId);
 
       expect(result.data.results).toHaveLength(0);
-      expect(result.data.class_statistics.highest_score).toBeNull();
-      expect(result.data.class_statistics.lowest_score).toBeNull();
-      expect(result.data.class_statistics.class_average).toBeNull();
-      expect(result.data.class_statistics.total_students).toBe(0);
+      expect(result.data.class_statistics).toBeNull();
       expect(result.pagination.total).toBe(0);
     });
   });

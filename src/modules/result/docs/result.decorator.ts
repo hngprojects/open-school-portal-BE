@@ -1,7 +1,7 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 
-import { ResultResponseDto } from '../dto';
+import { PaginatedClassResultsResponseDto } from '../dto';
 
 /**
  * Swagger decorators for Get Class Results endpoint
@@ -51,7 +51,7 @@ export const DocsGetClassResults = () =>
     ApiResponse({
       status: 200,
       description: 'Class results retrieved successfully',
-      type: [ResultResponseDto],
+      type: PaginatedClassResultsResponseDto,
     }),
     ApiResponse({ status: 404, description: 'Class or term not found' }),
   );

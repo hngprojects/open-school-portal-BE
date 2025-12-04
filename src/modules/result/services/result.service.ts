@@ -16,7 +16,7 @@ import { ClassModelAction } from '../../class/model-actions/class.actions';
 import { GradeSubmissionStatus } from '../../grade/entities';
 import { GradeModelAction } from '../../grade/model-actions';
 import { StudentModelAction } from '../../student/model-actions/student-actions';
-import { ResultResponseDto, ClassStatisticsDto } from '../dto';
+import { ResultResponseDto, PaginatedClassResultsResponseDto } from '../dto';
 import { Result, ResultSubjectLine } from '../entities';
 import { IStudentGradeData, IStudentResultData } from '../interface';
 import {
@@ -524,21 +524,7 @@ export class ResultService {
     academicSessionId?: string,
     page = 1,
     limit = 20,
-  ): Promise<{
-    message: string;
-    data: {
-      results: ResultResponseDto[];
-      class_statistics: ClassStatisticsDto;
-    };
-    pagination: {
-      total: number;
-      page: number;
-      limit: number;
-      total_pages: number;
-      has_next: boolean;
-      has_previous: boolean;
-    };
-  }> {
+  ): Promise<PaginatedClassResultsResponseDto> {
     // Validate class
     const classEntity = await this.classModelAction.get({
       identifierOptions: { id: classId },
@@ -560,48 +546,58 @@ export class ResultService {
       throw new NotFoundException(sysMsg.TERM_NOT_FOUND);
     }
 
-    const results = await this.resultModelAction.list({
-      filterRecordOptions: {
-        class_id: classId,
-        term_id: termId,
-        academic_session_id: sessionId,
-      },
-      relations: {
-        student: { user: true },
-        class: true,
-        term: true,
-        academicSession: true,
-        subject_lines: { subject: true },
-      },
-      order: { position: 'ASC', average_score: 'DESC' },
-      paginationPayload: { page, limit },
-    });
+    // Fetch paginated results and statistics in parallel
+    const [results, statsQuery] = await Promise.all([
+      this.resultModelAction.list({
+        filterRecordOptions: {
+          class_id: classId,
+          term_id: termId,
+          academic_session_id: sessionId,
+        },
+        relations: {
+          student: { user: true },
+          class: true,
+          term: true,
+          academicSession: true,
+          subject_lines: { subject: true },
+        },
+        order: { position: 'ASC', average_score: 'DESC' },
+        paginationPayload: { page, limit },
+      }),
+      // Calculate statistics across ALL results, not just current page
+      this.dataSource
+        .getRepository(Result)
+        .createQueryBuilder('result')
+        .select('MAX(result.average_score)', 'highest_score')
+        .addSelect('MIN(result.average_score)', 'lowest_score')
+        .addSelect('AVG(result.average_score)', 'class_average')
+        .addSelect('COUNT(result.id)', 'total_students')
+        .where('result.class_id = :classId', { classId })
+        .andWhere('result.term_id = :termId', { termId })
+        .andWhere('result.academic_session_id = :sessionId', { sessionId })
+        .getRawOne(),
+    ]);
 
     const transformedResults = results.payload.map((result) =>
       this.transformToResponseDto(result),
     );
 
-    // Calculate class statistics
-    const validResults = transformedResults.filter(
-      (r) => r.average_score !== null && r.average_score !== undefined,
-    );
-
-    const classStatistics = {
-      highest_score:
-        validResults.length > 0
-          ? Math.max(...validResults.map((r) => r.average_score || 0))
-          : null,
-      lowest_score:
-        validResults.length > 0
-          ? Math.min(...validResults.map((r) => r.average_score || 0))
-          : null,
-      class_average:
-        validResults.length > 0
-          ? validResults.reduce((sum, r) => sum + (r.average_score || 0), 0) /
-            validResults.length
-          : null,
-      total_students: transformedResults.length,
-    };
+    // Use aggregated statistics from the entire dataset
+    const classStatistics =
+      statsQuery && statsQuery.total_students > 0
+        ? {
+            highest_score: statsQuery.highest_score
+              ? Number(statsQuery.highest_score)
+              : null,
+            lowest_score: statsQuery.lowest_score
+              ? Number(statsQuery.lowest_score)
+              : null,
+            class_average: statsQuery.class_average
+              ? Number(statsQuery.class_average)
+              : null,
+            total_students: Number(statsQuery.total_students),
+          }
+        : null;
 
     const paginationMeta = {
       total: results.paginationMeta?.total ?? 0,
