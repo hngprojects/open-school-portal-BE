@@ -58,12 +58,6 @@ export class TimetableController {
     return this.timetableService.editSchedule(scheduleId, dto);
   }
 
-  // @ApiExcludeEndpoint()
-  // @Get()
-  // findAll() {
-  //   return this.timetableService.findAll();
-  // }
-
   @Get('view-time-table')
   @UseGuards(JwtAuthGuard)
   @Roles(UserRole.STUDENT, UserRole.ADMIN, UserRole.TEACHER)

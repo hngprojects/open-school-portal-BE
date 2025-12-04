@@ -66,10 +66,6 @@ export class TimetableService {
     return schedule;
   }
 
-  async findAll() {
-    return 'returns findAll response';
-  }
-
   async findByClass(classId: string): Promise<GetTimetableResponseDto> {
     const timetable =
       await this.timetableModelAction.findTimetableByClassId(classId);
