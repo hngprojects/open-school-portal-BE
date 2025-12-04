@@ -6,6 +6,9 @@ import {
   UploadedFile,
   UseGuards,
   BadRequestException,
+  Get,
+  Query,
+  HttpStatus,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -19,8 +22,13 @@ import { RolesGuard } from '../../auth/guards/roles.guard';
 import { UserRole } from '../../shared/enums';
 import { FileService } from '../../shared/file/file.service';
 import { UploadService } from '../../upload/upload.service';
+import { getDashboardAnalyticsDoc } from '../docs/dashboard-analytics.docs';
+import { fetchAllPaymentsDoc } from '../docs/fetch-payments.docs';
 import { recordPaymentDoc } from '../docs/payment.doc';
+import { DashboardAnalyticsQueryDto } from '../dto/dashboard-analytics.dto';
+import { FetchPaymentsDto } from '../dto/get-all-payments.dto';
 import { PaymentResponseDto, RecordPaymentDto } from '../dto/payment.dto';
+import { DashboardAnalyticsService } from '../services/dashboard-analytics.service';
 import { PaymentService } from '../services/payment.service';
 
 @ApiTags('Fee Payments')
@@ -31,6 +39,7 @@ export class PaymentController {
     private readonly paymentService: PaymentService,
     private readonly fileService: FileService,
     private readonly uploadService: UploadService,
+    private readonly dashboardAnalyticsService: DashboardAnalyticsService,
   ) {}
 
   @Post()
@@ -75,8 +84,47 @@ export class PaymentController {
     });
 
     return {
+      status_code: HttpStatus.CREATED,
       message: sysMsg.PAYMENT_SUCCESS,
       response,
+    };
+  }
+
+  @Get()
+  @Roles(UserRole.ADMIN)
+  @fetchAllPaymentsDoc()
+  @ApiBearerAuth()
+  async fetchAllPayments(@Query() dto: FetchPaymentsDto) {
+    const { payments, total } = await this.paymentService.fetchAllPayments(dto);
+
+    const response = payments.map((payment) =>
+      plainToInstance(PaymentResponseDto, payment, {
+        excludeExtraneousValues: true,
+      }),
+    );
+
+    return {
+      status_code: HttpStatus.OK,
+      message: sysMsg.PAYMENTS_FETCHED_SUCCESSFULLY,
+
+      payments: response,
+      total,
+      page: dto.page,
+      limit: dto.limit,
+    };
+  }
+
+  @Get('dashboard/analytics')
+  @Roles(UserRole.ADMIN)
+  @getDashboardAnalyticsDoc()
+  @ApiBearerAuth()
+  async getDashboardAnalytics(@Query() dto: DashboardAnalyticsQueryDto) {
+    const data =
+      await this.dashboardAnalyticsService.getDashboardAnalytics(dto);
+
+    return {
+      message: sysMsg.DASHBOARD_ANALYTICS_FETCHED,
+      data,
     };
   }
 }

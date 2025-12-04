@@ -1,13 +1,15 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { FileService } from '../../shared/file/file.service';
 import { UploadService } from '../../upload/upload.service';
 import { PaymentController } from '../controllers/payment.controller';
+import { DashboardAnalyticsQueryDto } from '../dto/dashboard-analytics.dto';
 import { RecordPaymentDto, PaymentResponseDto } from '../dto/payment.dto';
 import { Payment } from '../entities/payment.entity';
 import { PaymentMethod, PaymentStatus } from '../enums/payment.enums';
+import { DashboardAnalyticsService } from '../services/dashboard-analytics.service';
 import { PaymentService } from '../services/payment.service';
 
 describe('PaymentController', () => {
@@ -15,6 +17,7 @@ describe('PaymentController', () => {
   let paymentService: jest.Mocked<PaymentService>;
   let fileService: jest.Mocked<FileService>;
   let uploadService: jest.Mocked<UploadService>;
+  let dashboardAnalyticsService: jest.Mocked<DashboardAnalyticsService>;
 
   const mockUserId = 'user-uuid-123';
   const mockStudentId = 'student-uuid-456';
@@ -58,8 +61,27 @@ describe('PaymentController', () => {
     term: { id: 'term-1', name: 'First Term' },
   } as unknown as Payment;
 
+  const mockPaymentEntityList = [
+    mockPaymentEntity,
+    {
+      ...mockPaymentEntity,
+      id: 'payment-id-2',
+      amount_paid: 2000,
+      student: {
+        id: 'student-2',
+        user: { first_name: 'Jane', last_name: 'Doe' },
+      },
+    },
+  ] as unknown as Payment[];
+
+  const mockPaginatedResponse = {
+    payments: mockPaymentEntityList,
+    total: 2,
+  };
+
   const mockPaymentServiceValue = {
     recordPayment: jest.fn(),
+    fetchAllPayments: jest.fn(),
   };
 
   const mockFileServiceValue = {
@@ -70,6 +92,10 @@ describe('PaymentController', () => {
     uploadPicture: jest.fn(),
   };
 
+  const mockDashboardAnalyticsServiceValue = {
+    getDashboardAnalytics: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PaymentController],
@@ -77,6 +103,10 @@ describe('PaymentController', () => {
         { provide: PaymentService, useValue: mockPaymentServiceValue },
         { provide: FileService, useValue: mockFileServiceValue },
         { provide: UploadService, useValue: mockUploadServiceValue },
+        {
+          provide: DashboardAnalyticsService,
+          useValue: mockDashboardAnalyticsServiceValue,
+        },
       ],
     }).compile();
 
@@ -84,6 +114,7 @@ describe('PaymentController', () => {
     paymentService = module.get(PaymentService);
     fileService = module.get(FileService);
     uploadService = module.get(UploadService);
+    dashboardAnalyticsService = module.get(DashboardAnalyticsService);
   });
 
   afterEach(() => jest.clearAllMocks());
@@ -119,6 +150,7 @@ describe('PaymentController', () => {
         validatedUrl,
       );
 
+      expect(result.status_code).toEqual(HttpStatus.CREATED);
       expect(result.message).toEqual(sysMsg.PAYMENT_SUCCESS);
       expect(result.response).toBeInstanceOf(PaymentResponseDto);
       expect(result.response.student.first_name).toEqual('John');
@@ -144,6 +176,7 @@ describe('PaymentController', () => {
         undefined,
       );
 
+      expect(result.status_code).toEqual(HttpStatus.CREATED);
       expect(result.message).toEqual(sysMsg.PAYMENT_SUCCESS);
       expect(result.response).toBeInstanceOf(PaymentResponseDto);
     });
@@ -166,6 +199,96 @@ describe('PaymentController', () => {
       await expect(
         controller.recordPayment(mockDto, mockUserId, undefined),
       ).rejects.toThrow(serviceError);
+    });
+  });
+
+  describe('fetchAllPayments', () => {
+    it('should fetch all payments with default pagination and return 200 OK', async () => {
+      mockPaymentServiceValue.fetchAllPayments.mockResolvedValue(
+        mockPaginatedResponse,
+      );
+
+      const defaultDto = { page: 1, limit: 10 };
+
+      const result = await controller.fetchAllPayments(defaultDto);
+
+      expect(paymentService.fetchAllPayments).toHaveBeenCalledWith(defaultDto);
+
+      expect(result.status_code).toEqual(HttpStatus.OK);
+      expect(result.message).toEqual(sysMsg.PAYMENTS_FETCHED_SUCCESSFULLY);
+      expect(result.total).toEqual(2);
+      expect(result.payments.length).toEqual(2);
+      expect(result.payments[0]).toBeInstanceOf(PaymentResponseDto);
+    });
+
+    it('should fetch payments with filters applied', async () => {
+      mockPaymentServiceValue.fetchAllPayments.mockResolvedValue({
+        payments: [mockPaymentEntityList[0]],
+        total: 1,
+      });
+
+      const filteredDto = {
+        page: 1,
+        limit: 10,
+        student_id: mockStudentId,
+        payment_method: PaymentMethod.CASH,
+      };
+
+      const result = await controller.fetchAllPayments(filteredDto);
+
+      expect(paymentService.fetchAllPayments).toHaveBeenCalledWith(
+        expect.objectContaining(filteredDto),
+      );
+      expect(result.total).toEqual(1);
+    });
+
+    it('should handle no results gracefully', async () => {
+      mockPaymentServiceValue.fetchAllPayments.mockResolvedValue({
+        payments: [],
+        total: 0,
+      });
+
+      const result = await controller.fetchAllPayments({});
+
+      expect(result.total).toEqual(0);
+      expect(result.payments.length).toEqual(0);
+    });
+
+    it('should propagate errors from the service layer', async () => {
+      const serviceError = new Error('Database connection error');
+      mockPaymentServiceValue.fetchAllPayments.mockRejectedValue(serviceError);
+
+      await expect(controller.fetchAllPayments({})).rejects.toThrow(
+        serviceError,
+      );
+    });
+  });
+
+  describe('getDashboardAnalytics', () => {
+    it('should return analytics data successfully', async () => {
+      const mockAnalyticsData = {
+        totals: {
+          total_expected_fees: 1000,
+          total_paid: 500,
+          outstanding_balance: 500,
+          transaction_this_month: 10,
+        },
+        monthly_payments: [],
+      };
+
+      mockDashboardAnalyticsServiceValue.getDashboardAnalytics.mockResolvedValue(
+        mockAnalyticsData,
+      );
+
+      const dto: DashboardAnalyticsQueryDto = { year: 2025 };
+
+      const result = await controller.getDashboardAnalytics(dto);
+
+      expect(
+        dashboardAnalyticsService.getDashboardAnalytics,
+      ).toHaveBeenCalledWith(dto);
+      expect(result.message).toEqual(sysMsg.DASHBOARD_ANALYTICS_FETCHED);
+      expect(result.data).toEqual(mockAnalyticsData);
     });
   });
 });
