@@ -7,3 +7,6 @@ export * from './daily-attendance.dto';
 export * from './get-schedule-attendance.dto';
 export * from './get-class-attendance.dto';
 export * from './attendance-response.dto';
+
+// Teacher manual checkin DTOs
+export * from './teacher-manual-checkin.dto';
