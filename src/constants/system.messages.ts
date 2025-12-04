@@ -121,12 +121,14 @@ export const IMAGE_UPLOAD_SUCCESS = 'image uploaded successfully';
 export const IMAGE_UPLOAD_FAILED = 'image upload failed';
 
 // Payment / Billing
-export const PAYMENT_SUCCESS = 'payment success';
+export const PAYMENT_SUCCESS = 'payment recorded successfully';
 export const PAYMENT_FAILED = 'payment failed';
 export const PAYMENT_DECLINED = 'payment declined';
 export const INSUFFICIENT_FUNDS = 'insufficient funds';
 export const SUBSCRIPTION_EXPIRED = 'subscription expired';
 export const SUBSCRIPTION_ACTIVE = 'subscription active';
+export const PAYMENTS_FETCHED_SUCCESSFULLY =
+  'Fee payments retrieved successfully.';
 
 // Notifications
 export const NOTIFICATION_SENT = 'notification sent';
@@ -226,6 +228,7 @@ export const CLASSES_UNASSIGNED_TO_SUBJECT =
 // School Installation messages
 export const INSTALLATION_COMPLETED =
   'school installation completed successfully';
+export const INSTALLATION_UPDATED = 'school installation updated successfully';
 export const INSTALLATION_ALREADY_COMPLETED =
   'school installation already completed';
 export const SCHOOL_NOT_FOUND = 'School not found';
@@ -267,6 +270,14 @@ export const PARENT_UPDATED = 'Parent updated successfully';
 export const PARENT_NOT_FOUND = 'Parent not found';
 export const PARENTS_FETCHED = 'Parents fetched successfully';
 export const PARENT_DELETED = 'Parent deleted successfully';
+export const STUDENTS_LINKED_TO_PARENT =
+  'Students successfully linked to parent';
+export const PARENT_STUDENTS_FETCHED = 'Parent students fetched successfully';
+export const STUDENT_NOT_LINKED_TO_PARENT =
+  'Student is not linked to this parent';
+export const STUDENT_ACADEMIC_PROFILE_FETCHED =
+  'Student academic profile fetched successfully';
+
 // Contact messages
 export const CONTACT_MESSAGE_SENT = 'Contact message sent successfully';
 export const CONTACT_MESSAGE_FAILED = 'Failed to send contact message';
@@ -356,6 +367,8 @@ export const FEE_UPDATED_SUCCESSFULLY = 'Fee component updated successfully';
 export const FEE_STATUS_UPDATED_SUCCESSFULLY =
   'Fee component status updated successfully';
 export const FEE_NOT_FOUND = 'Fees component not found';
+export const FEE_NOT_FOR_TERM =
+  'Fee component does not belong to the specified term';
 
 // Grade messages
 export const GRADE_SUBMISSION_CREATED = 'Grade submission created successfully';
@@ -408,3 +421,30 @@ export const SUPERADMIN_CONFLICT_GENERAL_MSG =
   'conflict - request cannot be processed. See examples for possible causes.';
 export const SUPERADMIN_ALREADY_EXISTS =
   'a superadmin account already exists. Only one is allowed.';
+export const SUPERADMIN_ACCOUNT_UPDATED = 'superadmin account updated';
+
+// Result messages
+export const RESULT_NOT_FOUND = 'Result not found';
+export const RESULT_GENERATED_SUCCESS = (count: number) =>
+  `Successfully generated ${count} result(s)`;
+
+export const ACADEMIC_SESSION_NOT_FOUND = 'Academic session not found';
+export const TERM_NOT_IN_SESSION =
+  'Term does not belong to the specified academic session';
+export const TERM_NOT_IN_STUDENT_SESSION =
+  "Term does not belong to the student's academic session";
+export const NO_ACTIVE_STUDENTS_IN_CLASS =
+  'No active students found in this class';
+export const STUDENT_NOT_ENROLLED = 'Student is not enrolled in any class';
+export const NO_APPROVED_GRADES_CLASS_SUBMITTED =
+  'No approved grades found for any students in this class. Some grades are submitted but not yet approved. Please approve the grade submissions before generating results.';
+export const NO_APPROVED_GRADES_CLASS =
+  'No approved grades found for any students in this class. Please ensure all grade submissions are approved before generating results.';
+export const NO_GRADES_FOUND_CLASS =
+  'No grades found for any students in this class for the specified term and session.';
+export const GRADES_NOT_APPROVED =
+  'Grades exist but are not yet approved. Please approve the grade submissions before generating results.';
+export const NO_APPROVED_GRADES_STUDENT =
+  'No approved grades found for this student in the specified term. Ensure grades are submitted and approved.';
+export const NO_VALID_GRADES_STUDENT =
+  'No valid grades found for this student in the specified term';
