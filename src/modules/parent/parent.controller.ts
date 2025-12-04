@@ -53,7 +53,7 @@ import { ParentService, IUserPayload } from './parent.service';
 @ApiParentTags()
 @ApiParentBearerAuth()
 export class ParentController {
-  constructor(private readonly parentService: ParentService) { }
+  constructor(private readonly parentService: ParentService) {}
 
   // --- POST: CREATE PARENT (ADMIN ONLY) ---
   @Post()

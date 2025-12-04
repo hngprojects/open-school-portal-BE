@@ -1,4 +1,8 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
@@ -1396,6 +1400,128 @@ describe('ParentService', () => {
       expect(mockLogger.warn).toHaveBeenCalledWith(
         `Student ${mockStudentId} is not assigned to any active class`,
       );
+    });
+  });
+
+  describe('unlinkStudentFromParent', () => {
+    it('should unlink a student from a parent successfully', async () => {
+      const parentId = 'parent-id';
+      const studentId = 'student-id';
+
+      parentModelAction.get.mockResolvedValue({
+        id: parentId,
+      } as Partial<Parent> as Parent);
+      studentModelAction.get.mockResolvedValue({
+        id: studentId,
+        parent: { id: parentId } as Partial<Parent> as Parent,
+      } as Partial<Student> as Student);
+      studentModelAction.update.mockResolvedValue({
+        id: studentId,
+      } as Partial<Student> as Student);
+
+      await service.unlinkStudentFromParent(parentId, studentId);
+
+      expect(parentModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: parentId },
+      });
+      expect(studentModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: studentId },
+        relations: { parent: true },
+      });
+      expect(studentModelAction.update).toHaveBeenCalledWith({
+        identifierOptions: { id: studentId },
+        updatePayload: { parent: null },
+        transactionOptions: { useTransaction: false },
+      });
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        sysMsg.STUDENT_UNLINKED_FROM_PARENT,
+        {
+          parentId,
+          studentId,
+        },
+      );
+    });
+
+    it('should throw NotFoundException if parent does not exist', async () => {
+      const parentId = 'non-existent-parent-id';
+      const studentId = 'student-id';
+
+      parentModelAction.get.mockResolvedValue(null);
+
+      await expect(
+        service.unlinkStudentFromParent(parentId, studentId),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(parentModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: parentId },
+      });
+      expect(studentModelAction.get).not.toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException if student does not exist', async () => {
+      const parentId = 'parent-id';
+      const studentId = 'non-existent-student-id';
+
+      parentModelAction.get.mockResolvedValue({
+        id: parentId,
+      } as Partial<Parent> as Parent);
+      studentModelAction.get.mockResolvedValue(null);
+
+      await expect(
+        service.unlinkStudentFromParent(parentId, studentId),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(parentModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: parentId },
+      });
+      expect(studentModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: studentId },
+        relations: { parent: true },
+      });
+    });
+
+    it('should throw BadRequestException if student is not linked to the parent', async () => {
+      const parentId = 'parent-id';
+      const studentId = 'student-id';
+      const otherParentId = 'other-parent-id';
+
+      parentModelAction.get.mockResolvedValue({
+        id: parentId,
+      } as Partial<Parent> as Parent);
+      studentModelAction.get.mockResolvedValue({
+        id: studentId,
+        parent: { id: otherParentId } as Partial<Parent> as Parent,
+      } as Partial<Student> as Student);
+
+      await expect(
+        service.unlinkStudentFromParent(parentId, studentId),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(parentModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: parentId },
+      });
+      expect(studentModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: studentId },
+        relations: { parent: true },
+      });
+      expect(studentModelAction.update).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException if student has no parent linked', async () => {
+      const parentId = 'parent-id';
+      const studentId = 'student-id';
+
+      parentModelAction.get.mockResolvedValue({
+        id: parentId,
+      } as Partial<Parent> as Parent);
+      studentModelAction.get.mockResolvedValue({
+        id: studentId,
+        parent: null,
+      } as Partial<Student> as Student);
+
+      await expect(
+        service.unlinkStudentFromParent(parentId, studentId),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });

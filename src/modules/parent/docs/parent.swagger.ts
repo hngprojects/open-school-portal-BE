@@ -204,7 +204,6 @@ export const ApiDeleteParent = () =>
     }),
   );
 
-
 /**
  * Swagger decorators for Link Students to Parent endpoint
  */
@@ -424,4 +423,3 @@ export const ApiUnlinkStudent = () =>
       description: 'Unauthorized - Invalid or missing token',
     }),
   );
-
