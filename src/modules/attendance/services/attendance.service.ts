@@ -743,7 +743,7 @@ export class AttendanceService {
       .createQueryBuilder(Schedule, 'schedule')
       .innerJoin('schedule.timetable', 'timetable')
       .where('timetable.class_id = :classId', { classId })
-      .andWhere('schedule.day_of_week = :dayOfWeek', {
+      .andWhere('schedule.day = :dayOfWeek', {
         dayOfWeek: attendanceDate.getDay(),
       })
       .getMany();

@@ -24,6 +24,7 @@ import { AttendanceService } from '../services/attendance.service';
 
 describe('AttendanceService', () => {
   let service: AttendanceService;
+  let module: TestingModule;
   let attendanceModelAction: jest.Mocked<AttendanceModelAction>;
   let studentDailyAttendanceModelAction: jest.Mocked<StudentDailyAttendanceModelAction>;
   let academicSessionModelAction: jest.Mocked<AcademicSessionModelAction>;
@@ -95,7 +96,7 @@ describe('AttendanceService', () => {
       },
     };
 
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         AttendanceService,
         {
@@ -133,8 +134,11 @@ describe('AttendanceService', () => {
     academicSessionModelAction = module.get(AcademicSessionModelAction);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     jest.clearAllMocks();
+    if (module) {
+      await module.close();
+    }
   });
 
   it('should be defined', () => {
