@@ -88,6 +88,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     ResultModule,
     SuperadminModule,
     PaymentModule,
+    ResultModule,
   ],
   controllers: [AppController],
   providers: [
