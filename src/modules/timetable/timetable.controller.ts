@@ -66,7 +66,7 @@ export class TimetableController {
 
   @Get('view-time-table')
   @UseGuards(JwtAuthGuard)
-  @Roles(UserRole.STUDENT || UserRole.ADMIN)
+  @Roles(UserRole.STUDENT, UserRole.ADMIN, UserRole.TEACHER)
   @GetAllTimetableDocs()
   getAll(
     @Query('page') page = 1,

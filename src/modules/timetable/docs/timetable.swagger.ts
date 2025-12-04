@@ -66,13 +66,13 @@ export const TimetableSwagger = {
       operation: {
         summary: 'Student time table',
         description:
-          'Retrieves the complete timetable for a specific class, including all scheduled lessons and breaks.',
+          'all timetables, with support for pagination and optional filtering by day.',
       },
       responses: {
         ok: {
           status: HttpStatus.OK,
           message: sysMessage.OPERATION_SUCCESSFUL,
-          description: 'Return the timetable for the specified class.',
+          description: 'Returns a paginated list of all timetables.',
           type: GetTimetableResponseDto,
         },
         notFound: {

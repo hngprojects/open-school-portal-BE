@@ -416,7 +416,7 @@ export class InviteService {
           transactionOptions: { useTransaction: true, transaction: manager },
         });
 
-        const inviteLink = `${frontendUrl}/reset-passord?token=${rawToken}`;
+        const inviteLink = `${frontendUrl}/reset-password?token=${rawToken}`;
         const firstName = invite.full_name?.trim()?.split(' ')?.[0] || 'User';
 
         // ✅ Changed: email sending is inside transaction — if this fails, DB rolls back

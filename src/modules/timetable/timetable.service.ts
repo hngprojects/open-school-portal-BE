@@ -188,7 +188,6 @@ export class TimetableService {
     const data = paginatedTimetables.map((timetable) => ({
       class_id: timetable.class_id,
       name: timetable.class.name,
-      arm: timetable.class.arm,
       schedules: timetable.schedules.map((schedule) => {
         const { teacher, ...baseSchedule } = schedule;
         return {
