@@ -5,6 +5,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -14,10 +15,12 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
+import { SkipWrap } from '../../../common/decorators/skip-wrap.decorator';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { UserRole } from '../../shared/enums';
+import { DocsGetClassResults } from '../docs/result.decorator';
 import { GenerateResultDto, ResultResponseDto } from '../dto';
 import { ResultService } from '../services/result.service';
 
@@ -40,6 +43,27 @@ export class ResultController {
       generateDto.class_id,
       generateDto.term_id,
       generateDto.academic_session_id,
+    );
+  }
+
+  @Get('class/:classId')
+  @DocsGetClassResults()
+  @SkipWrap()
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  async getClassResults(
+    @Param('classId', ParseUUIDPipe) classId: string,
+    @Query('term_id', ParseUUIDPipe) termId: string,
+    @Query('academic_session_id', new ParseUUIDPipe({ optional: true }))
+    academicSessionId?: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 20,
+  ) {
+    return this.resultService.getClassResults(
+      classId,
+      termId,
+      academicSessionId,
+      Number(page),
+      Number(limit),
     );
   }
 
