@@ -1,6 +1,8 @@
 import { ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { StudentModelAction } from 'src/modules/student/model-actions';
+
 import { UserRole } from '../../shared/enums';
 import { ResultService } from '../services/result.service';
 
@@ -36,6 +38,12 @@ describe('ResultController', () => {
             getStudentResults: jest.fn(),
             getClassResults: jest.fn(),
             listResults: jest.fn(),
+          },
+        },
+        {
+          provide: StudentModelAction,
+          useValue: {
+            get: jest.fn(),
           },
         },
       ],

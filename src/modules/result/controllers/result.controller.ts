@@ -10,6 +10,8 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
+import { StudentModelAction } from 'src/modules/student/model-actions';
+
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -32,7 +34,10 @@ interface IRequestWithUser extends Request {
 @Controller('results')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ResultController {
-  constructor(private readonly resultService: ResultService) {}
+  constructor(
+    private readonly resultService: ResultService,
+    private readonly studentModelAction: StudentModelAction,
+  ) {}
 
   @Get('student/:studentId')
   @ApiOperation({ summary: 'Get results for a specific student' })
@@ -53,8 +58,14 @@ export class ResultController {
         throw new ForbiddenException('Unauthorized access to student results');
       }
     } else if (req.user.roles.includes(UserRole.PARENT)) {
-      // TODO: Add parent-student relationship check
-      // For now, allow if parent role
+      const student = await this.studentModelAction.get({
+        identifierOptions: { id: studentId },
+        relations: { parent: true },
+      });
+
+      if (!student || student.parent.id !== req.user.parent_id) {
+        throw new ForbiddenException('Unauthorized access to student results');
+      }
     }
 
     return this.resultService.getStudentResults(studentId, query);
