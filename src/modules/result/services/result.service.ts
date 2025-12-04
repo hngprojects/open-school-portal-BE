@@ -1,3 +1,4 @@
+import { PaginationMeta } from '@hng-sdk/orm';
 import {
   BadRequestException,
   Inject,
@@ -16,7 +17,11 @@ import { ClassModelAction } from '../../class/model-actions/class.actions';
 import { GradeSubmissionStatus } from '../../grade/entities';
 import { GradeModelAction } from '../../grade/model-actions';
 import { StudentModelAction } from '../../student/model-actions/student-actions';
-import { ResultResponseDto } from '../dto';
+import {
+  ResultResponseDto,
+  PaginatedClassResultsResponseDto,
+  ListResultsQueryDto,
+} from '../dto';
 import { Result, ResultSubjectLine } from '../entities';
 import { IStudentGradeData, IStudentResultData } from '../interface';
 import {
@@ -32,9 +37,9 @@ export class ResultService {
   constructor(
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
     private readonly resultModelAction: ResultModelAction,
+    private readonly studentModelAction: StudentModelAction,
     private readonly resultSubjectLineModelAction: ResultSubjectLineModelAction,
     private readonly gradeModelAction: GradeModelAction,
-    private readonly studentModelAction: StudentModelAction,
     private readonly classModelAction: ClassModelAction,
     private readonly classStudentModelAction: ClassStudentModelAction,
     private readonly termModelAction: TermModelAction,
@@ -45,7 +50,60 @@ export class ResultService {
   }
 
   /**
-   * Generate results for all students in a class for a specific term
+   * Get results for a specific student
+   */
+  async getStudentResults(
+    studentId: string,
+    query: ListResultsQueryDto,
+  ): Promise<{ data: ResultResponseDto[]; meta: Partial<PaginationMeta> }> {
+    // Validate student exists
+    const student = await this.studentModelAction.get({
+      identifierOptions: { id: studentId },
+    });
+
+    if (!student || student.is_deleted) {
+      throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
+    }
+
+    const filterOptions: Record<string, string> = {
+      student_id: studentId,
+    };
+
+    if (query.term_id) {
+      filterOptions.term_id = query.term_id;
+    }
+
+    if (query.academic_session_id) {
+      filterOptions.academic_session_id = query.academic_session_id;
+    }
+
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+
+    const results = await this.resultModelAction.list({
+      filterRecordOptions: filterOptions,
+      relations: {
+        student: { user: true },
+        class: true,
+        term: true,
+        academicSession: true,
+        subject_lines: { subject: true },
+      },
+      order: { term: { name: 'ASC' }, createdAt: 'DESC' },
+      paginationPayload: { page, limit },
+    });
+
+    const transformedResults = results.payload.map((result) =>
+      this.transformToResponseDto(result),
+    );
+
+    return {
+      data: transformedResults,
+      meta: results.paginationMeta,
+    };
+  }
+
+  /* Generate results for all students in a class for a specific term
    */
   async generateClassResults(
     classId: string,
@@ -512,6 +570,109 @@ export class ResultService {
       generated_at: result.generated_at,
       created_at: result.createdAt,
       updated_at: result.updatedAt,
+    };
+  }
+
+  /**
+   * Get class results for a specific term
+   */
+  async getClassResults(
+    classId: string,
+    termId: string,
+    academicSessionId?: string,
+    page = 1,
+    limit = 20,
+  ): Promise<PaginatedClassResultsResponseDto> {
+    // Validate class
+    const classEntity = await this.classModelAction.get({
+      identifierOptions: { id: classId },
+      relations: { academicSession: true },
+    });
+
+    if (!classEntity || classEntity.is_deleted) {
+      throw new NotFoundException(sysMsg.CLASS_NOT_FOUND);
+    }
+
+    const sessionId = academicSessionId || classEntity.academicSession.id;
+
+    // Validate term
+    const term = await this.termModelAction.get({
+      identifierOptions: { id: termId },
+    });
+
+    if (!term) {
+      throw new NotFoundException(sysMsg.TERM_NOT_FOUND);
+    }
+
+    // Fetch paginated results and statistics in parallel
+    const [results, statsQuery] = await Promise.all([
+      this.resultModelAction.list({
+        filterRecordOptions: {
+          class_id: classId,
+          term_id: termId,
+          academic_session_id: sessionId,
+        },
+        relations: {
+          student: { user: true },
+          class: true,
+          term: true,
+          academicSession: true,
+          subject_lines: { subject: true },
+        },
+        order: { position: 'ASC', average_score: 'DESC' },
+        paginationPayload: { page, limit },
+      }),
+      // Calculate statistics across ALL results, not just current page
+      this.dataSource
+        .getRepository(Result)
+        .createQueryBuilder('result')
+        .select('MAX(result.average_score)', 'highest_score')
+        .addSelect('MIN(result.average_score)', 'lowest_score')
+        .addSelect('AVG(result.average_score)', 'class_average')
+        .addSelect('COUNT(result.id)', 'total_students')
+        .where('result.class_id = :classId', { classId })
+        .andWhere('result.term_id = :termId', { termId })
+        .andWhere('result.academic_session_id = :sessionId', { sessionId })
+        .getRawOne(),
+    ]);
+
+    const transformedResults = results.payload.map((result) =>
+      this.transformToResponseDto(result),
+    );
+
+    // Use aggregated statistics from the entire dataset
+    const classStatistics =
+      statsQuery && statsQuery.total_students > 0
+        ? {
+            highest_score: statsQuery.highest_score
+              ? Number(statsQuery.highest_score)
+              : null,
+            lowest_score: statsQuery.lowest_score
+              ? Number(statsQuery.lowest_score)
+              : null,
+            class_average: statsQuery.class_average
+              ? Number(statsQuery.class_average)
+              : null,
+            total_students: Number(statsQuery.total_students),
+          }
+        : null;
+
+    const paginationMeta = {
+      total: results.paginationMeta?.total ?? 0,
+      page: results.paginationMeta?.page ?? page,
+      limit: results.paginationMeta?.limit ?? limit,
+      total_pages: results.paginationMeta?.total_pages ?? 0,
+      has_next: results.paginationMeta?.has_next ?? false,
+      has_previous: results.paginationMeta?.has_previous ?? false,
+    };
+
+    return {
+      message: sysMsg.RESULTS_RETRIEVED_SUCCESS,
+      data: {
+        results: transformedResults,
+        class_statistics: classStatistics,
+      },
+      pagination: paginationMeta,
     };
   }
 }
