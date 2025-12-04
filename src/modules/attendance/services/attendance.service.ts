@@ -5,6 +5,7 @@ import {
   Inject,
   ForbiddenException,
   ConflictException,
+  HttpStatus,
 } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
@@ -106,11 +107,9 @@ export class AttendanceService {
   ): Promise<{
     message: string;
     status_code: number;
-    data: {
-      marked: number;
-      updated: number;
-      total: number;
-    };
+    marked: number;
+    updated: number;
+    total: number;
   }> {
     const { schedule_id, date, attendance_records } = dto;
 
@@ -237,12 +236,10 @@ export class AttendanceService {
 
     return {
       message: ATTENDANCE_MARKED_SUCCESSFULLY,
-      status_code: 200,
-      data: {
-        marked: markedCount,
-        updated: updatedCount,
-        total: attendance_records.length,
-      },
+      status_code: HttpStatus.OK,
+      marked: markedCount,
+      updated: updatedCount,
+      total: attendance_records.length,
     };
   }
 
@@ -269,7 +266,7 @@ export class AttendanceService {
 
     return {
       message: ATTENDANCE_RECORDS_RETRIEVED,
-      status_code: 200,
+      status_code: HttpStatus.OK,
       data: records.map((record) => this.mapToResponseDto(record)),
     };
   }
@@ -317,7 +314,7 @@ export class AttendanceService {
 
     return {
       message: ATTENDANCE_UPDATED_SUCCESSFULLY,
-      status_code: 200,
+      status_code: HttpStatus.OK,
       data: this.mapToResponseDto(updated),
     };
   }
@@ -368,7 +365,7 @@ export class AttendanceService {
 
     return {
       message: ATTENDANCE_UPDATED_SUCCESSFULLY,
-      status_code: 200,
+      status_code: HttpStatus.OK,
     };
   }
 
@@ -416,7 +413,7 @@ export class AttendanceService {
 
     return {
       message: ATTENDANCE_RECORDS_RETRIEVED,
-      status_code: 200,
+      status_code: HttpStatus.OK,
       data: filteredRecords.map((record) => this.mapToResponseDto(record)),
       meta: paginationMeta,
     };
@@ -470,7 +467,7 @@ export class AttendanceService {
 
     return {
       message: ATTENDANCE_RECORDS_RETRIEVED,
-      status_code: 200,
+      status_code: HttpStatus.OK,
       data: filteredRecords.map((record) => this.mapToResponseDto(record)),
       meta: paginationMeta,
     };
@@ -508,11 +505,9 @@ export class AttendanceService {
   ): Promise<{
     message: string;
     status_code: number;
-    data: {
-      marked: number;
-      updated: number;
-      total: number;
-    };
+    marked: number;
+    updated: number;
+    total: number;
   }> {
     const { class_id, date, attendance_records } = dto;
 
@@ -608,12 +603,10 @@ export class AttendanceService {
 
     return {
       message: 'Student daily attendance marked successfully',
-      status_code: 200,
-      data: {
-        marked: markedCount,
-        updated: updatedCount,
-        total: attendance_records.length,
-      },
+      status_code: HttpStatus.OK,
+      marked: markedCount,
+      updated: updatedCount,
+      total: attendance_records.length,
     };
   }
 
@@ -628,11 +621,9 @@ export class AttendanceService {
   ): Promise<{
     message: string;
     status_code: number;
-    data: {
-      total_school_days: number;
-      days_present: number;
-      days_absent: number;
-    };
+    total_school_days: number;
+    days_present: number;
+    days_absent: number;
   }> {
     // Get the term to find start and end dates
     const term = await this.termModelAction.get({
@@ -700,12 +691,10 @@ export class AttendanceService {
 
     return {
       message: ATTENDANCE_RECORDS_RETRIEVED,
-      status_code: 200,
-      data: {
-        total_school_days: totalSchoolDays,
-        days_present: daysPresent,
-        days_absent: daysAbsent,
-      },
+      status_code: HttpStatus.OK,
+      total_school_days: totalSchoolDays,
+      days_present: daysPresent,
+      days_absent: daysAbsent,
     };
   }
 
@@ -723,29 +712,27 @@ export class AttendanceService {
   ): Promise<{
     message: string;
     status_code: number;
-    data: {
-      class_id: string;
-      date: string;
-      students: Array<{
-        student_id: string;
-        first_name: string;
-        middle_name?: string;
-        last_name: string;
-        attendance_id?: string;
-        status?: string;
-        check_in_time?: string;
-        check_out_time?: string;
-        notes?: string;
-      }>;
-      summary: {
-        total_students: number;
-        present_count: number;
-        absent_count: number;
-        late_count: number;
-        excused_count: number;
-        half_day_count: number;
-        not_marked_count: number;
-      };
+    class_id: string;
+    date: string;
+    students: Array<{
+      student_id: string;
+      first_name: string;
+      middle_name?: string;
+      last_name: string;
+      attendance_id?: string;
+      status?: string;
+      check_in_time?: string;
+      check_out_time?: string;
+      notes?: string;
+    }>;
+    summary: {
+      total_students: number;
+      present_count: number;
+      absent_count: number;
+      late_count: number;
+      excused_count: number;
+      half_day_count: number;
+      not_marked_count: number;
     };
   }> {
     // Get all students enrolled in the class
@@ -815,20 +802,18 @@ export class AttendanceService {
 
     return {
       message: 'Class daily attendance retrieved successfully',
-      status_code: 200,
-      data: {
-        class_id: classId,
-        date,
-        students,
-        summary: {
-          total_students: enrolledStudents.length,
-          present_count: presentCount,
-          absent_count: absentCount,
-          late_count: lateCount,
-          excused_count: excusedCount,
-          half_day_count: halfDayCount,
-          not_marked_count: notMarkedCount,
-        },
+      status_code: HttpStatus.OK,
+      class_id: classId,
+      date,
+      students,
+      summary: {
+        total_students: enrolledStudents.length,
+        present_count: presentCount,
+        absent_count: absentCount,
+        late_count: lateCount,
+        excused_count: excusedCount,
+        half_day_count: halfDayCount,
+        not_marked_count: notMarkedCount,
       },
     };
   }
@@ -844,31 +829,29 @@ export class AttendanceService {
   ): Promise<{
     message: string;
     status_code: number;
-    data: {
-      class_id: string;
-      session_id: string;
-      term: string;
-      start_date: string;
-      end_date: string;
-      students: Array<{
-        student_id: string;
-        first_name: string;
-        middle_name?: string;
-        last_name: string;
-        total_school_days: number;
-        days_present: number;
-        days_absent: number;
-        days_excused: number;
-        attendance_details: Array<{
-          date: string;
-          status: string;
-          was_late: boolean;
-        }>;
+    class_id: string;
+    session_id: string;
+    term: string;
+    start_date: string;
+    end_date: string;
+    students: Array<{
+      student_id: string;
+      first_name: string;
+      middle_name?: string;
+      last_name: string;
+      total_school_days: number;
+      days_present: number;
+      days_absent: number;
+      days_excused: number;
+      attendance_details: Array<{
+        date: string;
+        status: string;
+        was_late: boolean;
       }>;
-      summary: {
-        total_students: number;
-        total_school_days: number;
-      };
+    }>;
+    summary: {
+      total_students: number;
+      total_school_days: number;
     };
   }> {
     // Get the term by session_id and term name
@@ -984,18 +967,16 @@ export class AttendanceService {
 
     return {
       message: 'Class term attendance retrieved successfully',
-      status_code: 200,
-      data: {
-        class_id: classId,
-        session_id: sessionId,
-        term: term,
-        start_date: startDate,
-        end_date: endDate,
-        students: studentSummaries,
-        summary: {
-          total_students: enrolledStudents.length,
-          total_school_days: totalSchoolDays,
-        },
+      status_code: HttpStatus.OK,
+      class_id: classId,
+      session_id: sessionId,
+      term: term,
+      start_date: startDate,
+      end_date: endDate,
+      students: studentSummaries,
+      summary: {
+        total_students: enrolledStudents.length,
+        total_school_days: totalSchoolDays,
       },
     };
   }

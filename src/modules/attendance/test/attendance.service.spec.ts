@@ -340,8 +340,8 @@ describe('AttendanceService', () => {
       expect(result.message).toBe(
         'Student daily attendance marked successfully',
       );
-      expect(result.data.marked).toBeGreaterThanOrEqual(0);
-      expect(result.data.total).toBe(2);
+      expect(result.marked).toBeGreaterThanOrEqual(0);
+      expect(result.total).toBe(2);
     });
 
     it('should throw BadRequestException for future dates', async () => {
@@ -440,8 +440,8 @@ describe('AttendanceService', () => {
       expect(result.message).toBe(
         'Class daily attendance retrieved successfully',
       );
-      expect(result.data).toHaveProperty('students');
-      expect(Array.isArray(result.data.students)).toBe(true);
+      expect(result).toHaveProperty('students');
+      expect(Array.isArray(result.students)).toBe(true);
     });
   });
 
@@ -514,10 +514,10 @@ describe('AttendanceService', () => {
       expect(result.message).toBe(
         'Class term attendance retrieved successfully',
       );
-      expect(result.data).toHaveProperty('students');
-      expect(result.data).toHaveProperty('session_id');
-      expect(result.data).toHaveProperty('term');
-      expect(Array.isArray(result.data.students)).toBe(true);
+      expect(result).toHaveProperty('students');
+      expect(result).toHaveProperty('session_id');
+      expect(result).toHaveProperty('term');
+      expect(Array.isArray(result.students)).toBe(true);
     });
   });
 });
