@@ -45,6 +45,10 @@ import { AttendanceService, TeacherManualCheckinService } from './services';
     StudentDailyAttendanceModelAction,
     TeacherManualCheckinModelAction,
   ],
-  exports: [AttendanceService, TeacherManualCheckinService],
+  exports: [
+    AttendanceService,
+    TeacherManualCheckinService,
+    TeacherManualCheckinModelAction,
+  ],
 })
 export class AttendanceModule {}
