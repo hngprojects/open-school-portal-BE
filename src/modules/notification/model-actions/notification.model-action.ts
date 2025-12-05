@@ -18,6 +18,9 @@ export class NotificationModelAction extends AbstractModelAction<Notification> {
   ) {
     super(notificationRepository, Notification);
   }
+  async findOneById(id: string): Promise<Notification | null> {
+    return this.repository.findOne({ where: { id } });
+  }
 
   async createBulk(
     notifications: Array<{

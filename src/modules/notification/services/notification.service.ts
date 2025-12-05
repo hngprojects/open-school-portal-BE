@@ -122,6 +122,28 @@ export class NotificationService {
       pagination,
     };
   }
+  async markNotificationAsReadUnread(
+    notificationId: string,
+    userId: string,
+    isRead: boolean,
+  ): Promise<Notification | undefined> {
+    const notification =
+      await this.notificationModelAction.findOneById(notificationId);
+
+    if (!notification) {
+      return undefined; // Return undefined instead of throwing NotFoundException
+    }
+
+    if (notification.recipient_id !== userId) {
+      return undefined; // Return undefined instead of throwing ForbiddenException
+    }
+
+    notification.is_read = isRead;
+    return this.notificationModelAction.save({
+      entity: notification,
+      transactionOptions: { useTransaction: false },
+    });
+  }
 
   async createBulkNotifications(
     dtos: CreateNotificationDto[],
