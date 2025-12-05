@@ -1,7 +1,8 @@
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { IRequestWithUser } from '../../../common/types/request-with-user.interface'; // Correct import path
+import * as sysMsg from '../../../constants/system.messages'; // Import system messages
 import { User, UserRole } from '../../user/entities/user.entity';
 import { NotificationPreferenceController } from '../controller/notification-preference.controller';
 import { UpdateNotificationPreferenceDto } from '../dto';
@@ -73,12 +74,16 @@ describe('NotificationPreferenceController', () => {
 
   describe('getUserNotificationPreferences', () => {
     it('should return user preferences', async () => {
-      jest
-        .spyOn(service, 'findOneByUserId')
-        .mockResolvedValue(mockNotificationPreference);
+      jest.spyOn(service, 'findOneByUserId').mockResolvedValue({
+        message: sysMsg.NOTIFICATION_PREFERENCE_RETRIEVED,
+        data: mockNotificationPreference,
+      });
       const result =
         await controller.getUserNotificationPreferences(MOCK_USER_ID);
-      expect(result).toEqual(mockNotificationPreference);
+      expect(result).toEqual({
+        message: sysMsg.NOTIFICATION_PREFERENCE_RETRIEVED,
+        data: mockNotificationPreference,
+      });
       expect(service.findOneByUserId).toHaveBeenCalledWith(MOCK_USER_ID);
     });
 
@@ -100,39 +105,45 @@ describe('NotificationPreferenceController', () => {
     };
 
     it('should update existing preferences', async () => {
-      jest
-        .spyOn(service, 'findOneByUserId')
-        .mockResolvedValue(mockNotificationPreference);
-      jest
-        .spyOn(service, 'update')
-        .mockResolvedValue(updatedPreference as NotificationPreference);
+      jest.spyOn(service, 'update').mockResolvedValue({
+        message: sysMsg.NOTIFICATION_PREFERENCE_UPDATED,
+        data: updatedPreference as NotificationPreference,
+      });
 
       const result = await controller.updateUserNotificationPreferences(
         MOCK_USER_ID,
         updateDto,
         mockReq,
       );
-      expect(service.findOneByUserId).toHaveBeenCalledWith(MOCK_USER_ID);
       expect(service.update).toHaveBeenCalledWith(MOCK_USER_ID, updateDto);
-      expect(result).toEqual(updatedPreference);
+      expect(result).toEqual({
+        message: sysMsg.NOTIFICATION_PREFERENCE_UPDATED,
+        data: updatedPreference,
+      });
     });
 
     it('should create preferences if none exist', async () => {
-      jest.spyOn(service, 'findOneByUserId').mockResolvedValue(undefined);
-      jest
-        .spyOn(service, 'create')
-        .mockResolvedValue(mockNotificationPreference);
+      jest.spyOn(service, 'update').mockImplementation(() => {
+        throw new NotFoundException(sysMsg.NOTIFICATION_PREFERENCE_NOT_FOUND);
+      });
+      jest.spyOn(service, 'create').mockResolvedValue({
+        message: sysMsg.NOTIFICATION_PREFERENCE_CREATED,
+        data: mockNotificationPreference,
+      });
 
       const result = await controller.updateUserNotificationPreferences(
         MOCK_USER_ID,
         updateDto,
         mockReq,
       );
-      expect(service.findOneByUserId).toHaveBeenCalledWith(MOCK_USER_ID);
+      expect(service.update).toHaveBeenCalledWith(MOCK_USER_ID, updateDto);
       expect(service.create).toHaveBeenCalledWith(MOCK_USER_ID, {
         preferences: updateDto.preferences,
       });
-      expect(result).toEqual(mockNotificationPreference);
+      expect(result).toEqual({
+        message: sysMsg.NOTIFICATION_PREFERENCE_CREATED,
+        data: mockNotificationPreference,
+      });
     });
 
     it('should throw ForbiddenException if user attempts to update preferences they do not own', async () => {

@@ -7,6 +7,7 @@ import {
   UseGuards,
   Req,
   ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
@@ -58,24 +59,18 @@ export class NotificationPreferenceController {
       );
     }
 
-    let preference =
-      await this.notificationPreferenceService.findOneByUserId(userId);
-    if (!preference) {
-      // If preferences don't exist, create them
-      const createDto: CreateNotificationPreferenceDto = {
-        preferences: updateDto.preferences,
-      };
-      preference = await this.notificationPreferenceService.create(
-        userId,
-        createDto,
-      );
-    } else {
-      preference = await this.notificationPreferenceService.update(
-        userId,
-        updateDto,
-      );
+    try {
+      // Attempt to update existing preferences
+      return await this.notificationPreferenceService.update(userId, updateDto);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        // If preferences don't exist, create them
+        const createDto: CreateNotificationPreferenceDto = {
+          preferences: updateDto.preferences,
+        };
+        return this.notificationPreferenceService.create(userId, createDto);
+      }
+      throw error; // Re-throw other unexpected errors
     }
-
-    return preference;
   }
 }

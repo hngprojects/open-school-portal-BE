@@ -140,6 +140,10 @@ export const UNAUTHORIZED_NOTIFICATION_ACCESS =
   'You are not authorized to view these notifications';
 export const NOTIFICATION_READ_STATUS_UPDATED =
   'Notification status updated successfully';
+export const NOTIFICATION_PREFERENCE_RETRIEVED =
+  'Notification preference retrieved successfully';
+export const NOTIFICATION_PREFERENCE_NOT_FOUND =
+  'Notification preference not found';
 export const NOTIFICATION_PREFERENCE_UPDATED =
   'Notification preference updated successfully';
 export const NOTIFICATION_PREFERENCE_CREATED =

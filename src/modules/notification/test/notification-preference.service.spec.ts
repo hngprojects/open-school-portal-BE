@@ -1,7 +1,9 @@
+import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import * as sysMsg from '../../../constants/system.messages'; // Import system messages
 import { User, UserRole } from '../../user/entities/user.entity';
 import {
   CreateNotificationPreferenceDto,
@@ -75,16 +77,23 @@ describe('NotificationPreferenceService', () => {
         .spyOn(repository, 'findOne')
         .mockResolvedValue(mockNotificationPreference);
       const result = await service.findOneByUserId(MOCK_USER_ID);
-      expect(result).toEqual(mockNotificationPreference);
+      expect(result).toEqual({
+        message: sysMsg.NOTIFICATION_PREFERENCE_RETRIEVED,
+        data: mockNotificationPreference,
+      });
       expect(repository.findOne).toHaveBeenCalledWith({
         where: { user_id: MOCK_USER_ID },
       });
     });
 
-    it('should return undefined if notification preference not found', async () => {
+    it('should throw NotFoundException if notification preference not found', async () => {
       jest.spyOn(repository, 'findOne').mockResolvedValue(undefined);
-      const result = await service.findOneByUserId(MOCK_USER_ID);
-      expect(result).toBeUndefined();
+      await expect(service.findOneByUserId(MOCK_USER_ID)).rejects.toThrow(
+        new NotFoundException(sysMsg.NOTIFICATION_PREFERENCE_NOT_FOUND),
+      );
+      expect(repository.findOne).toHaveBeenCalledWith({
+        where: { user_id: MOCK_USER_ID },
+      });
     });
   });
 
@@ -106,45 +115,54 @@ describe('NotificationPreferenceService', () => {
         user_id: MOCK_USER_ID,
       });
       expect(repository.save).toHaveBeenCalledWith(mockNotificationPreference);
-      expect(result).toEqual(mockNotificationPreference);
+      expect(result).toEqual({
+        message: sysMsg.NOTIFICATION_PREFERENCE_CREATED,
+        data: mockNotificationPreference,
+      });
     });
   });
 
   describe('update', () => {
-    it('should update and return the notification preference if found', async () => {
-      const updateDto: UpdateNotificationPreferenceDto = {
-        preferences: { email: false },
-      };
-      const updatedPreference = {
-        ...mockNotificationPreference,
-        preferences: { email: false },
-      };
+    const updateDto: UpdateNotificationPreferenceDto = {
+      preferences: { email: false },
+    };
+    const updatedPreference = {
+      ...mockNotificationPreference,
+      preferences: { email: false },
+    };
 
+    it('should update and return the notification preference if found', async () => {
       jest
-        .spyOn(service, 'findOneByUserId')
+        .spyOn(repository, 'findOne')
         .mockResolvedValue(mockNotificationPreference);
       jest.spyOn(repository, 'save').mockResolvedValue(updatedPreference);
 
       const result = await service.update(MOCK_USER_ID, updateDto);
 
-      expect(service.findOneByUserId).toHaveBeenCalledWith(MOCK_USER_ID);
+      expect(repository.findOne).toHaveBeenCalledWith({
+        where: { user_id: MOCK_USER_ID },
+      });
       expect(repository.save).toHaveBeenCalledWith(
         expect.objectContaining({
           ...mockNotificationPreference,
           preferences: updateDto.preferences,
         }),
       );
-      expect(result).toEqual(updatedPreference);
+      expect(result).toEqual({
+        message: sysMsg.NOTIFICATION_PREFERENCE_UPDATED,
+        data: updatedPreference,
+      });
     });
 
-    it('should return undefined if notification preference not found for update', async () => {
-      const updateDto: UpdateNotificationPreferenceDto = {
-        preferences: { email: false },
-      };
-      jest.spyOn(service, 'findOneByUserId').mockResolvedValue(undefined);
+    it('should throw NotFoundException if notification preference not found for update', async () => {
+      jest.spyOn(repository, 'findOne').mockResolvedValue(undefined);
 
-      const result = await service.update(MOCK_USER_ID, updateDto);
-      expect(result).toBeUndefined();
+      await expect(service.update(MOCK_USER_ID, updateDto)).rejects.toThrow(
+        new NotFoundException(sysMsg.NOTIFICATION_PREFERENCE_NOT_FOUND),
+      );
+      expect(repository.findOne).toHaveBeenCalledWith({
+        where: { user_id: MOCK_USER_ID },
+      });
       expect(repository.save).not.toHaveBeenCalled();
     });
   });

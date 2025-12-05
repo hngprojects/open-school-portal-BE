@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import * as sysMsg from '../../../constants/system.messages';
 import {
   CreateNotificationPreferenceDto,
   UpdateNotificationPreferenceDto,
@@ -17,33 +18,53 @@ export class NotificationPreferenceService {
 
   async findOneByUserId(
     userId: string,
-  ): Promise<NotificationPreference | undefined> {
-    return this.notificationPreferenceRepository.findOne({
+  ): Promise<{ message: string; data: NotificationPreference }> {
+    const preference = await this.notificationPreferenceRepository.findOne({
       where: { user_id: userId },
     });
+
+    if (!preference) {
+      throw new NotFoundException(sysMsg.NOTIFICATION_PREFERENCE_NOT_FOUND);
+    }
+    return {
+      message: sysMsg.NOTIFICATION_PREFERENCE_RETRIEVED,
+      data: preference,
+    };
   }
 
   async create(
     userId: string,
     createDto: CreateNotificationPreferenceDto,
-  ): Promise<NotificationPreference> {
+  ): Promise<{ message: string; data: NotificationPreference }> {
     const newPreference = this.notificationPreferenceRepository.create({
       ...createDto,
       user_id: userId,
     });
-    return this.notificationPreferenceRepository.save(newPreference);
+    const createdPreference =
+      await this.notificationPreferenceRepository.save(newPreference);
+    return {
+      message: sysMsg.NOTIFICATION_PREFERENCE_CREATED,
+      data: createdPreference,
+    };
   }
 
   async update(
     userId: string,
     updateDto: UpdateNotificationPreferenceDto,
-  ): Promise<NotificationPreference | undefined> {
-    const preference = await this.findOneByUserId(userId);
+  ): Promise<{ message: string; data: NotificationPreference }> {
+    const preference = await this.notificationPreferenceRepository.findOne({
+      where: { user_id: userId },
+    });
     if (!preference) {
-      return undefined; // Return undefined if preference not found
+      throw new NotFoundException(sysMsg.NOTIFICATION_PREFERENCE_NOT_FOUND);
     }
 
     Object.assign(preference, updateDto);
-    return this.notificationPreferenceRepository.save(preference);
+    const updatedPreference =
+      await this.notificationPreferenceRepository.save(preference);
+    return {
+      message: sysMsg.NOTIFICATION_PREFERENCE_UPDATED,
+      data: updatedPreference,
+    };
   }
 }
