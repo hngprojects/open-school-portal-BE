@@ -1101,6 +1101,7 @@ describe('ClassService', () => {
       mockClassStudentValidationService.validateStudentExists.mockResolvedValue(
         undefined,
       );
+      // Mock getExistingAssignment to return active assignment inside transaction
       mockClassStudentValidationService.getExistingAssignment.mockResolvedValue(
         {
           id: 'assignment-id',
@@ -1118,12 +1119,17 @@ describe('ClassService', () => {
       expect(
         mockClassStudentValidationService.validateStudentExists,
       ).toHaveBeenCalledWith(studentId);
+
+      // Verify getExistingAssignment is called with transaction manager
       expect(
         mockClassStudentValidationService.getExistingAssignment,
-      ).toHaveBeenCalledWith(classId, studentId, sessionId);
+      ).toHaveBeenCalledWith(classId, studentId, sessionId, expect.any(Object));
+
       expect(mockDataSource.transaction).toHaveBeenCalled();
+
+      // Verify conditional update
       expect(mockStudentModelAction.update).toHaveBeenCalledWith({
-        identifierOptions: { id: studentId },
+        identifierOptions: { id: studentId, current_class_id: classId },
         updatePayload: { current_class_id: null },
         transactionOptions: {
           useTransaction: true,
@@ -1135,7 +1141,7 @@ describe('ClassService', () => {
       });
     });
 
-    it('should throw NotFoundException if student is not assigned to the class', async () => {
+    it('should throw NotFoundException if student is not assigned to the class (inside transaction)', async () => {
       // Arrange
       mockClassStudentValidationService.validateClassExists.mockResolvedValue(
         mockClassEntity,
@@ -1143,6 +1149,7 @@ describe('ClassService', () => {
       mockClassStudentValidationService.validateStudentExists.mockResolvedValue(
         undefined,
       );
+      // Mock getExistingAssignment to return null inside transaction
       mockClassStudentValidationService.getExistingAssignment.mockResolvedValue(
         null,
       );
@@ -1153,7 +1160,7 @@ describe('ClassService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('should throw NotFoundException if assignment is inactive', async () => {
+    it('should throw NotFoundException if assignment is inactive (inside transaction)', async () => {
       // Arrange
       mockClassStudentValidationService.validateClassExists.mockResolvedValue(
         mockClassEntity,
@@ -1161,6 +1168,7 @@ describe('ClassService', () => {
       mockClassStudentValidationService.validateStudentExists.mockResolvedValue(
         undefined,
       );
+      // Mock getExistingAssignment to return inactive assignment inside transaction
       mockClassStudentValidationService.getExistingAssignment.mockResolvedValue(
         {
           id: 'assignment-id',
