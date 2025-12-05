@@ -6,15 +6,15 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { In } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../constants/system.messages';
 import { TermModelAction } from '../academic-term/model-actions';
 import { ClassModelAction } from '../class/model-actions/class.actions';
 import { FeeNotificationService } from '../notification/services/fee-notification.service';
-import { FeeNotificationType } from '../shared/enums';
 import { PaymentService } from '../payment/services/payment.service';
+import { FeeNotificationType } from '../shared/enums';
 import { StudentModelAction } from '../student/model-actions/student-actions';
 
 import { FeeComponentResponseDto } from './dto/fee-component-response.dto';
@@ -68,19 +68,22 @@ export class FeesService {
     }
 
     // Create fee
-    const savedFee = await this.feesModelAction.create({
-      createPayload: {
-        component_name: createFeesDto.component_name,
-        description: createFeesDto.description,
-        amount: createFeesDto.amount,
-        term_id: createFeesDto.term_id,
-        created_by: createdBy,
-        classes,
-      },
-      transactionOptions: {
-        useTransaction: false,
-      },
-    });
+    const savedFee = await this.dataSource.transaction(async (manager) =>
+      this.feesModelAction.create({
+        createPayload: {
+          component_name: createFeesDto.component_name,
+          description: createFeesDto.description,
+          amount: createFeesDto.amount,
+          term_id: createFeesDto.term_id,
+          created_by: createdBy,
+          classes,
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      }),
+    );
 
     this.logger.info('Fee component created successfully', {
       fee_id: savedFee.id,
@@ -174,12 +177,15 @@ export class FeesService {
       existingFee.status = updateFeesDto.status;
     }
 
-    const updatedFee = await this.feesModelAction.save({
-      entity: existingFee,
-      transactionOptions: {
-        useTransaction: false,
-      },
-    });
+    const updatedFee = await this.dataSource.transaction(async (manager) =>
+      this.feesModelAction.save({
+        entity: existingFee,
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      }),
+    );
 
     this.logger.info('Fee component updated successfully', {
       fee_id: updatedFee.id,

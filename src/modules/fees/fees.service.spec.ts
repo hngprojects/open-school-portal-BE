@@ -1,7 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { In } from 'typeorm';
+import { DataSource, EntityManager, In } from 'typeorm';
 import { Logger } from 'winston';
 
 // import * as sysMsg from '../../constants/system.messages'; // Assuming sysMsg is imported and used in the service file
@@ -54,6 +54,13 @@ describe('FeesService', () => {
     error: jest.fn(),
     warn: jest.fn(),
     debug: jest.fn(),
+  };
+
+  const mockEntityManager: Partial<EntityManager> = {
+    findOne: jest.fn(),
+    find: jest.fn(),
+    create: jest.fn(),
+    save: jest.fn(),
   };
 
   const mockTerm: Term = {
@@ -129,11 +136,19 @@ describe('FeesService', () => {
 
   const mockTermModelActionValue = { get: jest.fn() };
   const mockClassModelActionValue = { find: jest.fn() };
+  const mockDataSourceValue = { transaction: jest.fn() };
   const mockFeeNotificationService = {
     createAndUpdateFeesNotification: jest.fn(),
   };
 
   beforeEach(async () => {
+    mockDataSourceValue.transaction = jest
+      .fn()
+      .mockImplementation(
+        async (cb: (manager: EntityManager) => Promise<unknown>) =>
+          cb(mockEntityManager as EntityManager),
+      );
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FeesService,
@@ -194,7 +209,8 @@ describe('FeesService', () => {
             classes: [mockClasses[0]],
           }),
           transactionOptions: {
-            useTransaction: false,
+            useTransaction: true,
+            transaction: mockEntityManager,
           },
         }),
       );
