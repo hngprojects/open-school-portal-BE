@@ -1242,6 +1242,9 @@ describe('ClassService', () => {
       const result = await service.getClassByTeacherId(teacherId);
 
       expect(result).toEqual([]);
+    });
+  });
+
   describe('unassignStudentFromClass', () => {
     const classId = 'class-uuid-1';
     const studentId = 'student-uuid-1';
