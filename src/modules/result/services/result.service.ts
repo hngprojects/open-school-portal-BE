@@ -54,21 +54,16 @@ export class ResultService {
    * Get all results
    */
   async getResults(query: GetResultsQueryDto) {
-    const { page, limit } = query;
+    const { page, limit, include_subject_lines } = query;
+    const includeSubjectLines = include_subject_lines === 'true';
+
     const filters: Partial<GetResultsQueryDto> = {};
 
-    if (query.academic_session_id) {
+    if (query.academic_session_id)
       filters.academic_session_id = query.academic_session_id;
-    }
-    if (query.term_id) {
-      filters.term_id = query.term_id;
-    }
-    if (query.class_id) {
-      filters.class_id = query.class_id;
-    }
-    if (query.student_id) {
-      filters.student_id = query.student_id;
-    }
+    if (query.term_id) filters.term_id = query.term_id;
+    if (query.class_id) filters.class_id = query.class_id;
+    if (query.student_id) filters.student_id = query.student_id;
 
     // Fetch paginated results
     const results = await this.resultModelAction.list({
@@ -78,7 +73,7 @@ export class ResultService {
         class: true,
         term: true,
         academicSession: true,
-        subject_lines: { subject: true },
+        ...(includeSubjectLines ? { subject_lines: { subject: true } } : {}),
       },
       order: { createdAt: 'DESC', term: { name: 'ASC' } },
       paginationPayload: { page, limit },
