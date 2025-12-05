@@ -22,9 +22,9 @@ import { ClassService } from './services/class.service';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Class, ClassTeacher, ClassSubject, ClassStudent]),
-    AcademicSessionModule,
-    StudentModule,
-    TeachersModule,
+    forwardRef(() => AcademicSessionModule),
+    forwardRef(() => StudentModule),
+    forwardRef(() => TeachersModule),
     forwardRef(() => SubjectModule),
   ],
   controllers: [ClassController, ClassSubjectController],

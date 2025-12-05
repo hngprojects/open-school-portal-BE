@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -8,9 +8,12 @@ import { EmailModule } from '../email/email.module';
 import { Invite } from '../invites/entities/invites.entity';
 import { InviteModelAction } from '../invites/invite.model-action';
 import { Parent } from '../parent/entities/parent.entity';
+import { ParentModule } from '../parent/parent.module';
 import { SessionModule } from '../session/session.module';
 import { Student } from '../student/entities/student.entity';
+import { StudentModule } from '../student/student.module';
 import { Teacher } from '../teacher/entities/teacher.entity';
+import { TeachersModule } from '../teacher/teacher.module';
 import { UserModule } from '../user/user.module';
 import { UserService } from '../user/user.service';
 
@@ -26,6 +29,9 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     EmailModule,
     SessionModule,
     PassportModule,
+    forwardRef(() => ParentModule),
+    forwardRef(() => StudentModule),
+    forwardRef(() => TeachersModule),
     TypeOrmModule.forFeature([Teacher, Student, Parent, Invite]),
     JwtModule.registerAsync({
       imports: [ConfigModule],

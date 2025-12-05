@@ -16,13 +16,13 @@ import { StudentService } from './services';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Student]),
-    UserModule,
-    FileModule,
+    forwardRef(() => UserModule),
+    forwardRef(() => FileModule),
     forwardRef(() => ClassModule),
-    AcademicSessionModule,
+    forwardRef(() => AcademicSessionModule),
   ],
   controllers: [StudentController],
   providers: [StudentService, StudentModelAction],
-  exports: [StudentModelAction],
+  exports: [StudentModelAction, StudentService],
 })
 export class StudentModule {}

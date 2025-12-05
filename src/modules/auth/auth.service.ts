@@ -8,6 +8,7 @@ import {
   Injectable,
   NotFoundException,
   UnauthorizedException,
+  forwardRef,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -23,7 +24,10 @@ import { EmailService } from '../email/email.service';
 import { EmailPayload } from '../email/email.types';
 import { InviteStatus } from '../invites/entities/invites.entity';
 import { InviteModelAction } from '../invites/invite.model-action';
+import { ParentService } from '../parent/parent.service';
 import { SessionService } from '../session/session.service';
+import { StudentService } from '../student/services';
+import { TeacherService } from '../teacher/teacher.service';
 import { UserService } from '../user/user.service';
 
 import {
@@ -47,6 +51,14 @@ export class AuthService {
     private readonly sessionService: SessionService,
     private readonly configService: ConfigService,
     private readonly inviteModelAction: InviteModelAction,
+    @Inject(forwardRef(() => StudentService))
+    private readonly studentService: StudentService,
+
+    @Inject(forwardRef(() => ParentService))
+    private readonly parentService: ParentService,
+
+    @Inject(forwardRef(() => TeacherService))
+    private readonly teacherService: TeacherService,
   ) {
     this.logger = logger.child({ context: AuthService.name });
   }
@@ -345,8 +357,30 @@ export class AuthService {
       throw new UnauthorizedException(sysMsg.USER_NOT_FOUND);
     }
 
+    let profileId: string | null;
+
+    if (user.role.includes(UserRole.STUDENT)) {
+      const studentProfile = await this.studentService.findByUserId(user.id);
+      if (studentProfile) {
+        profileId = studentProfile.id;
+      }
+    } else if (user.role.includes(UserRole.PARENT)) {
+      const parentProfile = await this.parentService.findOne(user.id);
+      if (parentProfile) {
+        profileId = parentProfile.id;
+      }
+    } else if (user.role.includes(UserRole.TEACHER)) {
+      const teacherProfile = await this.teacherService.findOne(user.id);
+      if (teacherProfile) {
+        profileId = teacherProfile.id;
+      }
+    }
+
+    const finalId = profileId || user.id;
+
     return {
       id: user.id,
+      user_id: finalId,
       email: user.email,
       first_name: user.first_name,
       last_name: user.last_name,
