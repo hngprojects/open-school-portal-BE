@@ -107,21 +107,9 @@ export class NotificationService {
     };
   }
 
-  async create(dto: CreateNotificationDto): Promise<Notification> {
-    return this.notificationModelAction.create({
-      createPayload: {
-        recipient_id: dto.recipient_id,
-        title: dto.title,
-        message: dto.message,
-        type: dto.type,
-        metadata: dto.metadata,
-        is_read: false,
-      },
-      transactionOptions: { useTransaction: false },
-    });
-  }
-
-  async createBulk(dtos: CreateNotificationDto[]): Promise<Notification[]> {
+  async createBulkNotifications(
+    dtos: CreateNotificationDto[],
+  ): Promise<Notification[]> {
     const notifications = dtos.map((dto) => ({
       recipient_id: dto.recipient_id,
       title: dto.title,

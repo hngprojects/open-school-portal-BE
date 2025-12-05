@@ -126,7 +126,7 @@ export class ResultNotificationService {
       }
 
       if (notifications.length > 0) {
-        await this.notificationService.createBulk(notifications);
+        await this.notificationService.createBulkNotifications(notifications);
         this.logger.info('Result publication notifications sent', {
           result_id: event.result_id,
           notification_count: notifications.length,

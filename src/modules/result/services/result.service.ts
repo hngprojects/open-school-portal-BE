@@ -9,6 +9,10 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
+import { ClassSubjectModelAction } from 'src/modules/class/model-actions';
+import { ResultEventDto } from 'src/modules/notification/dto/event-trigger.dto';
+import { ResultNotificationService } from 'src/modules/notification/services/result.notification.service';
+
 import * as sysMsg from '../../../constants/system.messages';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { TermModelAction } from '../../academic-term/model-actions';
@@ -45,6 +49,8 @@ export class ResultService {
     private readonly termModelAction: TermModelAction,
     private readonly academicSessionModelAction: AcademicSessionModelAction,
     private readonly dataSource: DataSource,
+    private readonly resultNotificationService: ResultNotificationService,
+    private readonly classSubjectModelAction: ClassSubjectModelAction,
   ) {
     this.logger = baseLogger.child({ context: ResultService.name });
   }
@@ -224,6 +230,16 @@ export class ResultService {
     // Calculate positions
     const resultsWithPositions = this.calculatePositions(studentResults);
 
+    // 1. GET TOTAL EXPECTED SUBJECTS FOR THE CLASS
+    // We need this to compare against the student's processed results
+    const classSubjectsList = await this.classSubjectModelAction.list({
+      filterRecordOptions: { class: { id: classId } },
+      paginationPayload: { limit: 1000, page: 1 },
+    });
+    const totalClassSubjects = classSubjectsList.payload.length;
+
+    // this holds data needed for notifications
+    const studentsToNotify: { result_id: string; student_id: string }[] = [];
     // Save all results in a transaction
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -283,10 +299,27 @@ export class ResultService {
         });
 
         await queryRunner.manager.save(ResultSubjectLine, subjectLines);
+
+        // check if the student has a grade for every subject in the class
+        if (resultData.subject_count >= totalClassSubjects) {
+          studentsToNotify.push({
+            result_id: savedResult.id,
+            student_id: resultData.student_id,
+          });
+        }
+
         generatedCount++;
       }
 
       await queryRunner.commitTransaction();
+      /* A non-blocking call (no await) is used so notification
+      errors don't fail the HTTP response. */
+      this.triggerResultNotifications(
+        studentsToNotify,
+        classId,
+        termId,
+        sessionId,
+      );
 
       this.logger.info('Class results generated', {
         classId,
@@ -311,6 +344,38 @@ export class ResultService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  private async triggerResultNotifications(
+    payloads: { result_id: string; student_id: string }[],
+    classId: string,
+    termId: string,
+    sessionId: string,
+  ) {
+    if (payloads.length === 0) return;
+
+    this.logger.info(
+      `Triggering result notifications for ${payloads.length} students`,
+    );
+
+    // Process in background
+    Promise.allSettled(
+      payloads.map((payload) => {
+        const eventDto: ResultEventDto = {
+          result_id: payload.result_id,
+          student_id: payload.student_id,
+          class_id: classId,
+          term_id: termId,
+          academic_session_id: sessionId,
+          is_published: true, // Since generation = publication
+        };
+        return this.resultNotificationService.handleResultPublication(eventDto);
+      }),
+    ).catch((err) =>
+      this.logger.error('Error triggering result notifications', {
+        error: err,
+      }),
+    );
   }
 
   /**
