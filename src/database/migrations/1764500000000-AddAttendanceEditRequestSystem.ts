@@ -32,7 +32,9 @@ export class AddAttendanceAutoLock1764500000000 implements MigrationInterface {
         "reviewed_by" uuid,
         "reviewed_at" TIMESTAMP,
         "admin_comment" text,
-        CONSTRAINT "PK_attendance_edit_requests" PRIMARY KEY ("id")
+        CONSTRAINT "PK_attendance_edit_requests" PRIMARY KEY ("id"),
+        CONSTRAINT "CHK_attendance_type" CHECK ("attendance_type" IN ('SCHEDULE_BASED', 'DAILY')),
+        CONSTRAINT "CHK_status" CHECK ("status" IN ('PENDING', 'APPROVED', 'REJECTED'))
       )
     `);
 

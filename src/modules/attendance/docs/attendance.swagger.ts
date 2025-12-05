@@ -84,7 +84,7 @@ export const ApiCreateEditRequest = () =>
               },
               status: {
                 type: 'string',
-                example: 'PENDING',
+                enum: ['PENDING'],
               },
             },
           },

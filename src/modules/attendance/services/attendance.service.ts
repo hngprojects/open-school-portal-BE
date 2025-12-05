@@ -152,9 +152,14 @@ export class AttendanceService {
       updatedCount = result.updated;
     } else {
       // Daily attendance
+      if (!class_id) {
+        throw new BadRequestException(
+          'class_id is required for daily attendance',
+        );
+      }
       const result = await this.markDailyAttendance(
         userId,
-        class_id!,
+        class_id,
         attendanceDate,
         activeSession.id,
         attendance_records,
@@ -1456,10 +1461,7 @@ export class AttendanceService {
         this.logger.warn(
           `Edit request ${requestId} is stale: attendance ${request.attendance_id} was modified after request creation`,
         );
-        throw new BadRequestException(
-          'The attendance record has been modified since this edit request was created. ' +
-            'Please review the current attendance state and create a new request if needed.',
-        );
+        throw new BadRequestException(sysMsg.EDIT_REQUEST_STALE);
       }
 
       // Apply proposed changes with proper enum conversion

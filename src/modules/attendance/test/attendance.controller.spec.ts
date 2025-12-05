@@ -70,7 +70,7 @@ describe('ScheduleBasedAttendanceController', () => {
       delete: jest.fn(),
     };
 
-    module = await Test.createTestingModule({
+    const module: TestingModule = await Test.createTestingModule({
       controllers: [ScheduleBasedAttendanceController],
       providers: [
         AttendanceService,

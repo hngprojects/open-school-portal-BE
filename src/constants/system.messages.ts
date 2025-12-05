@@ -471,11 +471,13 @@ export const ATTENDANCE_LOCKED =
 
 // Attendance Edit Request messages
 export const EDIT_REQUEST_CREATED_SUCCESSFULLY =
-  'Edit request created successfully';
+  'edit request created successfully';
 export const EDIT_REQUESTS_RETRIEVED_SUCCESSFULLY =
-  'Edit requests retrieved successfully';
+  'edit requests retrieved successfully';
 export const EDIT_REQUEST_REVIEWED_SUCCESSFULLY =
-  'Edit request reviewed successfully';
+  'edit request reviewed successfully';
+export const EDIT_REQUEST_STALE =
+  'The attendance record has been modified since this edit request was created. Please review the current attendance state and create a new request if needed.';
 
 // Result messages
 export const RESULT_NOT_FOUND = 'Result not found';
