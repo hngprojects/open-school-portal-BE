@@ -7,11 +7,11 @@ import {
   UseGuards,
   Req,
   ForbiddenException,
-  NotFoundException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { IRequestWithUser } from '../../../common/types';
+import * as sysMsg from '../../../constants/system.messages';
 import { Roles } from '../../auth/decorators/roles.decorator'; // Import the Roles decorator
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -42,7 +42,7 @@ export class NotificationPreferenceController {
   }
 
   @Patch(':userId/notification-preferences')
-  @Roles(UserRole.ADMIN, UserRole.STUDENT, UserRole.TEACHER, UserRole.PARENT) // Allow specific roles
+  @Roles(UserRole.ADMIN, UserRole.STUDENT, UserRole.TEACHER, UserRole.PARENT)
   @ApiUpdateUserNotificationPreferences()
   async updateUserNotificationPreferences(
     @Param('userId') userId: string,
@@ -54,23 +54,21 @@ export class NotificationPreferenceController {
       req.user.userId !== userId &&
       !req.user.roles.includes(UserRole.ADMIN)
     ) {
-      throw new ForbiddenException(
-        'You do not have permission to update these preferences.',
-      );
+      throw new ForbiddenException(sysMsg.UNAUTHORIZED_NOTIFICATION_ACCESS);
     }
 
-    try {
-      // Attempt to update existing preferences
-      return await this.notificationPreferenceService.update(userId, updateDto);
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        // If preferences don't exist, create them
-        const createDto: CreateNotificationPreferenceDto = {
-          preferences: updateDto.preferences,
-        };
-        return this.notificationPreferenceService.create(userId, createDto);
-      }
-      throw error; // Re-throw other unexpected errors
+    // Check if preferences exist
+    const existing =
+      await this.notificationPreferenceService.findOneByUserId(userId);
+
+    if (existing) {
+      return this.notificationPreferenceService.update(userId, updateDto);
     }
+
+    // Create if they don't exist
+    const createDto: CreateNotificationPreferenceDto = {
+      preferences: updateDto.preferences,
+    };
+    return this.notificationPreferenceService.create(userId, createDto);
   }
 }

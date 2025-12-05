@@ -59,9 +59,7 @@ export class NotificationController {
       );
 
     if (!updatedNotification) {
-      throw new NotFoundException(
-        'Notification not found or user does not own it.',
-      );
+      throw new NotFoundException(sysMsg.NOTIFICATION_PREFERENCE_NOT_FOUND);
     }
 
     return {
