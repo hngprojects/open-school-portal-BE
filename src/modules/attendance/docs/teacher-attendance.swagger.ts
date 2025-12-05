@@ -16,6 +16,7 @@ import {
   ReviewTeacherManualCheckinResponseDto,
   TeacherAttendanceTodaySummaryResponseDto,
   TeacherCheckinRequestResponseDto,
+  TeacherManualCheckinResponseDto,
 } from '../dto';
 import { TeacherCheckoutResponseDto } from '../dto/teacher-manual-checkout.dto';
 import { TeacherManualCheckinStatusEnum } from '../enums/teacher-manual-checkin.enum';
@@ -141,6 +142,65 @@ export const ApiGetTodayAttendanceSummaryDocs = () =>
     }),
     ApiBadRequestResponse({
       description: 'Teacher account is inactive',
+    }),
+    ApiNotFoundResponse({
+      description: 'Teacher not found',
+    }),
+    ApiInternalServerErrorResponse({
+      description: 'Internal server error',
+    }),
+  );
+
+export const ApiCreateTeacherManualCheckinDocs = () =>
+  applyDecorators(
+    ApiTags('Attendance'),
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: 'Create a new teacher manual checkin (Teacher only)',
+      description: 'Create a new teacher manual checkin (Teacher only)',
+    }),
+
+    ApiResponse({
+      status: HttpStatus.CREATED,
+      description: 'Teacher manual checkin created successfully',
+      type: TeacherManualCheckinResponseDto,
+    }),
+    ApiBadRequestResponse({
+      description: 'Validation error',
+    }),
+    ApiInternalServerErrorResponse({
+      description: 'Internal server error',
+    }),
+    ApiConflictResponse({
+      description: 'Already checked in for this date',
+    }),
+    ApiNotFoundResponse({
+      description: 'Teacher not found',
+    }),
+  );
+
+// --- AUTO MANUAL CHECK-IN (MANUAL CHECK-IN WITHOUT ADMIN APPROVAL) ---
+export const ApiAutoManualCheckinDocs = () =>
+  applyDecorators(
+    ApiTags('Attendance'),
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: 'Auto manual check-in (NFC fallback) (Teacher only)',
+      description:
+        'Manually check in when NFC is unavailable. Automatically marks teacher as Present/Late without admin approval. Date defaults to today if not provided.',
+    }),
+    ApiResponse({
+      status: HttpStatus.CREATED,
+      description: 'Check-in successful, attendance marked automatically',
+      type: TeacherManualCheckinResponseDto,
+    }),
+    ApiBadRequestResponse({
+      description:
+        'Future date / Date too far in past / Check-in time outside school hours / Teacher inactive',
+    }),
+    ApiConflictResponse({
+      description:
+        'Already checked in for this date / Pending manual check-in request exists',
     }),
     ApiNotFoundResponse({
       description: 'Teacher not found',
