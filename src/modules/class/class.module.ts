@@ -14,6 +14,7 @@ import {
   ClassStudentModelAction,
   ClassSubjectModelAction,
 } from './model-actions';
+import { ClassStudentValidationService } from './services/class-student-validation.service';
 import { ClassSubjectService } from './services/class-subject.service';
 import { ClassService } from './services/class.service';
 
@@ -28,6 +29,7 @@ import { ClassService } from './services/class.service';
   controllers: [ClassController, ClassSubjectController],
   providers: [
     ClassService,
+    ClassStudentValidationService,
     ClassModelAction,
     ClassStudentModelAction,
     ClassSubjectModelAction,
