@@ -267,6 +267,10 @@ export const TEACHER_UNASSIGNED_FROM_SUBJECT =
 export const CLASS_DELETED = 'Class deleted successfully';
 export const CANNOT_DELETE_PAST_SESSION_CLASS =
   'Only classes from the active session can be deleted.';
+export const STUDENT_NOT_ASSIGNED_TO_CLASS =
+  'Student is not currently assigned to this class.';
+export const STUDENT_UNASSIGNED_SUCCESSFULLY =
+  'Student unassigned successfully';
 
 // Parent messages
 export const PARENT_CREATED = 'Parent created successfully';
