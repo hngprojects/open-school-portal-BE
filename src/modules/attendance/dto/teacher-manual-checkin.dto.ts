@@ -15,8 +15,8 @@ import {
 import {
   TeacherDailyAttendanceSourceEnum,
   TeacherDailyAttendanceStatusEnum,
+  TeacherManualCheckinStatusEnum,
 } from '../enums';
-import { TeacherManualCheckinStatusEnum } from '../enums/teacher-manual-checkin.enum';
 
 export class CreateTeacherManualCheckinDto {
   @ApiProperty({

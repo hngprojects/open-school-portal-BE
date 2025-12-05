@@ -19,7 +19,7 @@ import {
   TeacherManualCheckinResponseDto,
 } from '../dto';
 import { TeacherCheckoutResponseDto } from '../dto/teacher-manual-checkout.dto';
-import { TeacherManualCheckinStatusEnum } from '../enums/teacher-manual-checkin.enum';
+import { TeacherManualCheckinStatusEnum } from '../enums';
 
 // --- REVIEW TEACHER CHECKIN REQUEST ---
 export const ApiReviewTeacherManualCheckinDocs = () =>

@@ -33,8 +33,8 @@ import {
   TeacherDailyAttendanceDecisionEnum,
   TeacherDailyAttendanceSourceEnum,
   TeacherDailyAttendanceStatusEnum,
+  TeacherManualCheckinStatusEnum,
 } from '../enums';
-import { TeacherManualCheckinStatusEnum } from '../enums/teacher-manual-checkin.enum';
 import { TeacherManualCheckinModelAction } from '../model-actions';
 import { TeacherDailyAttendanceModelAction } from '../model-actions/teacher-daily-attendance.action';
 
