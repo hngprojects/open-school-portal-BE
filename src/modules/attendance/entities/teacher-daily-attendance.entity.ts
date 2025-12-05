@@ -47,6 +47,17 @@ export class TeacherDailyAttendance extends BaseEntity {
 
   @Column({ name: 'notes', type: 'text', nullable: true })
   notes?: string;
+  @Column({ name: 'check_out_time', type: 'timestamp', nullable: true })
+  check_out_time?: Date;
+
+  @Column({
+    name: 'total_hours',
+    type: 'decimal',
+    precision: 5,
+    scale: 2,
+    nullable: true,
+  })
+  total_hours?: number;
 
   // Relationships
   @ManyToOne(() => Teacher, { nullable: true })
