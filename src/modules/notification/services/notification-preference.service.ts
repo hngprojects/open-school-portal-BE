@@ -19,9 +19,10 @@ export class NotificationPreferenceService {
   async findOneByUserId(
     userId: string,
   ): Promise<NotificationPreference | null> {
-    return this.notificationPreferenceRepository.findOne({
+    const preference = await this.notificationPreferenceRepository.findOne({
       where: { user_id: userId },
     });
+    return preference;
   }
 
   async create(

@@ -77,20 +77,16 @@ describe('NotificationPreferenceService', () => {
         .spyOn(repository, 'findOne')
         .mockResolvedValue(mockNotificationPreference);
       const result = await service.findOneByUserId(MOCK_USER_ID);
-      expect(result).toEqual({
-        message: sysMsg.NOTIFICATION_PREFERENCE_RETRIEVED,
-        data: mockNotificationPreference,
-      });
+      expect(result).toEqual(mockNotificationPreference);
       expect(repository.findOne).toHaveBeenCalledWith({
         where: { user_id: MOCK_USER_ID },
       });
     });
 
-    it('should throw NotFoundException if notification preference not found', async () => {
-      jest.spyOn(repository, 'findOne').mockResolvedValue(undefined);
-      await expect(service.findOneByUserId(MOCK_USER_ID)).rejects.toThrow(
-        new NotFoundException(sysMsg.NOTIFICATION_PREFERENCE_NOT_FOUND),
-      );
+    it('should return null if notification preference not found', async () => {
+      jest.spyOn(repository, 'findOne').mockResolvedValue(null);
+      const result = await service.findOneByUserId(MOCK_USER_ID);
+      expect(result).toBeNull();
       expect(repository.findOne).toHaveBeenCalledWith({
         where: { user_id: MOCK_USER_ID },
       });
