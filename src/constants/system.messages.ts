@@ -242,6 +242,11 @@ export const CLASS_OR_TEACHER_OR_SESSION_NOT_FOUND =
   'class, teacher, or session not found';
 export const CLASS_ALREADY_HAS_TEACHER =
   'class already has a teacher assigned for this session';
+export const TEACHER_ALREADY_ASSIGNED_TO_CLASS = (
+  className: string,
+  arm?: string,
+) =>
+  `Teacher is already assigned to class ${className}${arm ? ` (${arm})` : ''}`;
 export const TEACHER_ASSIGNED = 'teacher successfully assigned to the class';
 export const CLASS_CREATED = 'Class successfully created.';
 export const CLASS_ALREADY_EXIST =
@@ -249,6 +254,7 @@ export const CLASS_ALREADY_EXIST =
 export const CLASS_NAME_EMPTY = 'class name cannot be empty';
 export const CLASS_UPDATED = 'class updated successfully';
 export const CLASS_FETCHED = 'class fetched successfully';
+export const TEACHERS_FETCHED = 'teachers fetched successfully';
 export const TOTAL_CLASSES_FETCHED = 'total classes fetched successfully';
 export const INVALID_CLASS_IDS = 'One or more class IDs are invalid';
 export const CLASSES_NOT_IN_ACTIVE_SESSION =
