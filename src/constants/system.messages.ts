@@ -494,3 +494,12 @@ export const CHECK_IN_TIME_NOT_WITHIN_SCHOOL_HOURS =
   'Check in time is not within school hours';
 export const TEACHER_MANUAL_CHECKIN_CREATED_SUCCESSFULLY =
   'Teacher manual checkin created successfully';
+export const PENDING_CHECKIN_REQUESTS_FETCHED_SUCCESSFULLY =
+  'Pending checkin requests fetched successfully';
+export const CHECKIN_REQUEST_NOT_FOUND = 'Checkin request not found';
+export const CHECKIN_REQUEST_ALREADY_PROCESSED =
+  'Checkin request has already been processed';
+export const ATTENDANCE_ALREADY_MARKED_FOR_DATE =
+  'Attendance already marked for this date';
+export const CHECKIN_REQUEST_APPROVED = 'Checkin request approved';
+export const CHECKIN_REQUEST_REJECTED = 'Checkin request rejected';
