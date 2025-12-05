@@ -8,10 +8,17 @@ export enum TeacherDailyAttendanceStatusEnum {
 
 export enum TeacherDailyAttendanceSourceEnum {
   MANUAL = 'MANUAL',
-  AUTOMATED = 'NFC',
+  AUTOMATED = 'AUTOMATED',
 }
 
 export enum TeacherDailyAttendanceDecisionEnum {
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}
+
+// Teacher manual checkin status
+export enum TeacherManualCheckinStatusEnum {
+  PENDING = 'PENDING',
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',
 }
