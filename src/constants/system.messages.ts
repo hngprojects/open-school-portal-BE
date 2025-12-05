@@ -483,3 +483,9 @@ export const NO_APPROVED_GRADES_STUDENT =
   'No approved grades found for this student in the specified term. Ensure grades are submitted and approved.';
 export const NO_VALID_GRADES_STUDENT =
   'No valid grades found for this student in the specified term';
+
+//attendance message
+export const REGISTRATION_NUMBER_REQUIRED =
+  'Child registration number is required';
+export const CHILD_REGISTRATION_NUMBER_NOT_FOUNS =
+  'Registration number does not exist';
