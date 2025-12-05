@@ -183,7 +183,7 @@ export class TeacherService {
       `${response.first_name} ${response.last_name}`,
       response.email,
       rawPassword,
-      UserRole.PARENT,
+      UserRole.TEACHER,
     );
 
     return plainToInstance(TeacherResponseDto, response, {
