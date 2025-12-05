@@ -4,7 +4,6 @@ import { Logger } from 'winston';
 
 import * as sysMsg from '../../constants/system.messages';
 import { ClassStudentModelAction } from '../class/model-actions/class-student.action';
-import { ClassTeacherModelAction } from '../class/model-actions/class-teacher.action';
 import { ClassModelAction } from '../class/model-actions/class.actions';
 import { NotificationService } from '../notification/services/notification.service';
 import {
@@ -32,7 +31,6 @@ export class TimetableService {
     private readonly classModelAction: ClassModelAction,
     private readonly notificationService: NotificationService,
     private readonly classStudentModelAction: ClassStudentModelAction,
-    private readonly classTeacherModelAction: ClassTeacherModelAction,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
@@ -107,9 +105,9 @@ export class TimetableService {
         relations: { student: { user: true, parent: { user: true } } },
       });
 
-      // 2. Get teachers
-      const teachers = await this.classTeacherModelAction.list({
-        filterRecordOptions: { class: { id: classId }, is_active: true },
+      // 2. Get class with teacher
+      const classEntity = await this.classModelAction.get({
+        identifierOptions: { id: classId },
         relations: { teacher: { user: true } },
       });
 
@@ -124,11 +122,9 @@ export class TimetableService {
         });
       }
 
-      // Add teachers
-      if (teachers.payload) {
-        teachers.payload.forEach((ct) => {
-          if (ct.teacher?.user?.id) recipients.add(ct.teacher.user.id);
-        });
+      // Add teacher (one-to-one relationship)
+      if (classEntity?.teacher?.user?.id) {
+        recipients.add(classEntity.teacher.user.id);
       }
 
       // Send notifications
