@@ -16,3 +16,6 @@ export * from './teacher-manual-checkout.dto';
 
 // Review teacher checkin DTOs
 export * from './review-teacher-checkin.dto';
+
+// Edit request DTOs
+export * from './attendance-edit-request.dto';
