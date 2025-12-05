@@ -137,6 +137,19 @@ export const DocsGetClassStudents = () => {
   );
 };
 
+export const DocsUnassignStudent = () => {
+  const { operation, parameters, responses } =
+    ClassSwagger.endpoints.unassignStudent;
+
+  return applyDecorators(
+    ApiOperation(operation),
+    ApiParam(parameters.id),
+    ApiParam(parameters.studentId),
+    ApiOkResponse(responses.ok),
+    ApiNotFoundResponse(responses.notFound),
+  );
+};
+
 export const DocsGetTeacherClasses = () => {
   const { operation, parameters, responses } =
     ClassSwagger.endpoints.getTeacherClasses;

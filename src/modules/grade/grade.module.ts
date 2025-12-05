@@ -1,8 +1,9 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { Term } from '../academic-term/entities/term.entity';
 import { Class, ClassSubject, ClassStudent } from '../class/entities';
+import { ResultModule } from '../result/result.module';
 import { StudentModule } from '../student/student.module';
 
 import { GradeController, GradeSubmissionController } from './controllers';
@@ -21,6 +22,7 @@ import { GradeService, GradeSubmissionService } from './services';
       Class,
     ]),
     StudentModule,
+    forwardRef(() => ResultModule),
   ],
   controllers: [GradeController, GradeSubmissionController],
   providers: [
@@ -29,6 +31,11 @@ import { GradeService, GradeSubmissionService } from './services';
     GradeSubmissionModelAction,
     GradeSubmissionService,
   ],
-  exports: [GradeService, GradeModelAction, GradeSubmissionModelAction],
+  exports: [
+    GradeService,
+    GradeModelAction,
+    GradeSubmissionModelAction,
+    GradeSubmissionService,
+  ],
 })
 export class GradeModule {}
