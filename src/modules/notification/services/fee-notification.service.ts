@@ -27,6 +27,7 @@ export class FeeNotificationService {
     feeId: string,
     type: FeeNotificationType,
   ): Promise<void> {
+    // TO DO: switch to using query builder if performance becomes an issue
     const fee = await this.feesModelAction.get({
       identifierOptions: { id: feeId },
       relations: {
