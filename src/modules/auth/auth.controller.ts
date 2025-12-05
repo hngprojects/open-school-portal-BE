@@ -8,6 +8,7 @@ import {
   Post,
   Get,
   Headers,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiOperation,
@@ -15,6 +16,9 @@ import {
   ApiTags,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+
+import { RateLimit } from 'src/common/decorators/rate-limit.decorator';
+import { RateLimitGuard } from 'src/common/guards/rate-limit.guard';
 
 import * as sysMsg from '../../constants/system.messages';
 
@@ -42,6 +46,8 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('signup')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ maxRequests: 3, windowMs: 300000 }) // 3 attempts in 5 minutes limit
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({
     status: HttpStatus.CREATED,
@@ -61,6 +67,8 @@ export class AuthController {
   }
 
   @Post('login')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ maxRequests: 5, windowMs: 60000 }) // 5 attempts in a minute limit
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with email and password' })
   @ApiResponse({
@@ -81,6 +89,8 @@ export class AuthController {
   }
 
   @Post('google-login')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ maxRequests: 5, windowMs: 60000 }) // 5 attempts in a minute limit
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with Google' })
   @ApiResponse({
@@ -124,11 +134,15 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ maxRequests: 3, windowMs: 900000 }) // 3 attempts in 15 minutes limit
   forgotPassword(@Body() payload: ForgotPasswordDto) {
     return this.authService.forgotPassword(payload);
   }
 
   @Post('reset-password')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ maxRequests: 5, windowMs: 300000 }) // 5 in 5 minutes limit
   resetPassword(@Body() payload: ResetPasswordDto) {
     return this.authService.resetPassword(payload);
   }

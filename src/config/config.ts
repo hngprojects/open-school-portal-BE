@@ -87,4 +87,35 @@ export default () => ({
   hash: {
     salt: process.env.HASH_SALT || '10',
   },
+  getAllowedOrigins(): string[] {
+    const origins: string[] = [];
+    const env = process.env.NODE_ENV;
+    const isDev =
+      !env || ['development', 'localhost', 'local', 'dev'].includes(env);
+    const isStaging = env === 'staging';
+    const isProduction = env === 'production';
+
+    if (process.env.FRONTEND_URL) {
+      origins.push(process.env.FRONTEND_URL);
+    }
+
+    if (process.env.STAGING_FRONTEND_URL && (isStaging || isDev)) {
+      origins.push(process.env.STAGING_FRONTEND_URL);
+    }
+
+    if (process.env.PRODUCTION_FRONTEND_URL && isProduction) {
+      origins.push(process.env.PRODUCTION_FRONTEND_URL);
+    }
+
+    if (isDev) {
+      origins.push(
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:5173', // Vite default
+        'http://127.0.0.1:3000',
+      );
+    }
+
+    return origins.filter(Boolean);
+  },
 });
