@@ -55,7 +55,7 @@ export class FeeNotificationService {
       );
     }
 
-    this.notificationModelAction.createMany({
+    await this.notificationModelAction.createMany({
       createPayloads: studentsWithParents.map((student) => ({
         title: 'Fee Notification',
         message: `A fee ${fee.component_name} has been ${type} for your child ${student.user.first_name} ${student.user.last_name}.`,
