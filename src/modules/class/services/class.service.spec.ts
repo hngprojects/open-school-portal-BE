@@ -12,6 +12,7 @@ import * as sysMsg from '../../../constants/system.messages';
 import { SessionStatus } from '../../academic-session/entities/academic-session.entity';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { StudentModelAction } from '../../student/model-actions/student-actions';
+import { TeacherModelAction } from '../../teacher/model-actions/teacher-actions';
 import { ClassStudent } from '../entities/class-student.entity';
 import { ClassTeacher } from '../entities/class-teacher.entity';
 import { Class } from '../entities/class.entity';
@@ -155,6 +156,12 @@ describe('ClassService', () => {
         {
           provide: ClassStudentValidationService,
           useValue: mockClassStudentValidationService,
+        },
+        {
+          provide: TeacherModelAction,
+          useValue: {
+            get: jest.fn(),
+          },
         },
       ],
     }).compile();
@@ -1079,6 +1086,162 @@ describe('ClassService', () => {
 
       expect(error.message).toContain('Cannot assign students:');
       expect(error.message).toContain('already assigned');
+    });
+  });
+
+  describe('getClassByTeacherId', () => {
+    const teacherId = 'teacher-uuid-123';
+    const sessionId = 'session-uuid-456';
+
+    const mockTeacher = {
+      id: teacherId,
+      employment_id: 'EMP-001',
+    };
+
+    const mockSession = {
+      id: sessionId,
+      name: '2024/2025',
+      status: SessionStatus.ACTIVE,
+    };
+
+    const mockAssignment = {
+      id: 'assignment-1',
+      assignment_date: new Date('2024-09-01'),
+      createdAt: new Date('2024-09-01'),
+      updatedAt: new Date('2024-09-15'),
+      class: {
+        id: 'class-1',
+        name: 'JSS1',
+        arm: 'A',
+        is_deleted: false,
+        academicSession: {
+          id: sessionId,
+          name: '2024/2025',
+        },
+      },
+    };
+
+    const mockTeacherModelAction = {
+      get: jest.fn(),
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should throw NotFoundException if teacher does not exist', async () => {
+      mockTeacherModelAction.get.mockResolvedValue(null);
+
+      service = new ClassService(
+        classModelAction,
+        academicSessionModelAction,
+        classTeacherModelAction,
+        mockClassStudentModelAction as unknown as jest.Mocked<ClassStudentModelAction>,
+        mockStudentModelAction as unknown as jest.Mocked<StudentModelAction>,
+        academicSessionModelAction,
+        mockTeacherModelAction as unknown as jest.Mocked<TeacherModelAction>,
+        mockDataSource as unknown as DataSource,
+        mockClassStudentValidationService as unknown as jest.Mocked<ClassStudentValidationService>,
+        mockLogger,
+      );
+
+      await expect(service.getClassByTeacherId(teacherId)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.getClassByTeacherId(teacherId)).rejects.toThrow(
+        sysMsg.TEACHER_NOT_FOUND,
+      );
+    });
+
+    it('should throw NotFoundException if sessionId is provided but does not exist', async () => {
+      mockTeacherModelAction.get.mockResolvedValue(mockTeacher);
+      academicSessionModelAction.get = jest.fn().mockResolvedValue(null);
+
+      service = new ClassService(
+        classModelAction,
+        academicSessionModelAction,
+        classTeacherModelAction,
+        mockClassStudentModelAction as unknown as jest.Mocked<ClassStudentModelAction>,
+        mockStudentModelAction as unknown as jest.Mocked<StudentModelAction>,
+        academicSessionModelAction,
+        mockTeacherModelAction as unknown as jest.Mocked<TeacherModelAction>,
+        mockDataSource as unknown as DataSource,
+        mockClassStudentValidationService as unknown as jest.Mocked<ClassStudentValidationService>,
+        mockLogger,
+      );
+
+      await expect(
+        service.getClassByTeacherId(teacherId, sessionId),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        service.getClassByTeacherId(teacherId, sessionId),
+      ).rejects.toThrow(sysMsg.ACADEMIC_SESSION_NOT_FOUND);
+    });
+
+    it('should return classes assigned to teacher with assignment dates', async () => {
+      mockTeacherModelAction.get.mockResolvedValue(mockTeacher);
+      academicSessionModelAction.list = jest.fn().mockResolvedValue({
+        payload: [mockSession],
+      });
+      mockClassTeacherModelAction.list.mockResolvedValue({
+        payload: [mockAssignment],
+      });
+
+      service = new ClassService(
+        classModelAction,
+        academicSessionModelAction,
+        mockClassTeacherModelAction as unknown as jest.Mocked<ClassTeacherModelAction>,
+        mockClassStudentModelAction as unknown as jest.Mocked<ClassStudentModelAction>,
+        mockStudentModelAction as unknown as jest.Mocked<StudentModelAction>,
+        academicSessionModelAction,
+        mockTeacherModelAction as unknown as jest.Mocked<TeacherModelAction>,
+        mockDataSource as unknown as DataSource,
+        mockClassStudentValidationService as unknown as jest.Mocked<ClassStudentValidationService>,
+        mockLogger,
+      );
+
+      const result = await service.getClassByTeacherId(teacherId);
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual({
+        id: 'class-1',
+        name: 'JSS1',
+        arm: 'A',
+        academicSession: {
+          id: sessionId,
+          name: '2024/2025',
+        },
+        assignment_date: mockAssignment.assignment_date,
+        created_at: mockAssignment.createdAt,
+        updated_at: mockAssignment.updatedAt,
+      });
+    });
+
+    it('should return empty array if teacher has no class assignments', async () => {
+      mockTeacherModelAction.get.mockResolvedValue(mockTeacher);
+      academicSessionModelAction.list = jest.fn().mockResolvedValue({
+        payload: [mockSession],
+      });
+      mockClassTeacherModelAction.list.mockResolvedValue({
+        payload: [],
+      });
+
+      service = new ClassService(
+        classModelAction,
+        academicSessionModelAction,
+        mockClassTeacherModelAction as unknown as jest.Mocked<ClassTeacherModelAction>,
+        mockClassStudentModelAction as unknown as jest.Mocked<ClassStudentModelAction>,
+        mockStudentModelAction as unknown as jest.Mocked<StudentModelAction>,
+        academicSessionModelAction,
+        mockTeacherModelAction as unknown as jest.Mocked<TeacherModelAction>,
+        mockDataSource as unknown as DataSource,
+        mockClassStudentValidationService as unknown as jest.Mocked<ClassStudentValidationService>,
+        mockLogger,
+      );
+
+      const result = await service.getClassByTeacherId(teacherId);
+
+      expect(result).toEqual([]);
     });
   });
 

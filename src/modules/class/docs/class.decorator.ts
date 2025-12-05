@@ -161,3 +161,16 @@ export const DocsGetTeacherClasses = () => {
     ApiResponse(responses.badRequest),
   );
 };
+
+export const DocsGetClassByTeacherId = () => {
+  const { operation, parameters, responses } =
+    ClassSwagger.endpoints.getClassByTeacherId;
+
+  return applyDecorators(
+    ApiOperation(operation),
+    ApiParam(parameters.teacherId),
+    ApiQuery(parameters.sessionId),
+    ApiOkResponse(responses.ok),
+    ApiNotFoundResponse(responses.notFound),
+  );
+};
