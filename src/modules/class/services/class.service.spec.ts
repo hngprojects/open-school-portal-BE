@@ -5,15 +5,20 @@ import {
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { DataSource, EntityManager } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
-import { SessionStatus } from '../../academic-session/entities/academic-session.entity';
+// FIX 1: Imported AcademicSession for proper type casting
+import {
+  AcademicSession,
+  SessionStatus,
+} from '../../academic-session/entities/academic-session.entity';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { NotificationService } from '../../notification/services/notification.service';
 import { StudentModelAction } from '../../student/model-actions/student-actions';
 import { TeacherModelAction } from '../../teacher/model-actions/teacher-actions';
+import { CreateClassDto, UpdateClassDto } from '../dto';
 import { ClassStudent } from '../entities/class-student.entity';
 import { ClassTeacher } from '../entities/class-teacher.entity';
 import { Class } from '../entities/class.entity';
@@ -22,7 +27,6 @@ import { ClassTeacherModelAction } from '../model-actions/class-teacher.action';
 import { ClassModelAction } from '../model-actions/class.actions';
 import { ClassStudentValidationService } from '../services/class-student-validation.service';
 import { ClassService } from '../services/class.service';
-import { CreateClassDto, UpdateClassDto } from '../dto';
 
 // Mock Data Constants
 const MOCK_CLASS_ID = '1';
@@ -76,7 +80,7 @@ describe('ClassService', () => {
   let mockClassStudentModelAction: jest.Mocked<ClassStudentModelAction>;
   let mockClassStudentValidationService: jest.Mocked<ClassStudentValidationService>;
   let mockNotificationService: jest.Mocked<NotificationService>;
-  let mockTeacherModelAction: jest.Mocked<TeacherModelAction>;
+  // FIX 2: Removed unused mockTeacherModelAction
   let mockLogger: jest.Mocked<Logger>;
 
   const mockClassModelActionMethods = {
@@ -198,7 +202,7 @@ describe('ClassService', () => {
     mockClassStudentValidationService = module.get(
       ClassStudentValidationService,
     );
-    mockTeacherModelAction = module.get(TeacherModelAction);
+    // FIX 2: Removed unused assignment for mockTeacherModelAction
   });
 
   afterEach(() => {
@@ -480,7 +484,6 @@ describe('ClassService', () => {
 
   describe('getGroupedClasses', () => {
     it('should return grouped classes with status_code 200 and message', async () => {
-      // FIX: Cast this array to 'Class[]' so TypeScript ignores missing properties
       const mockRawClasses = [
         {
           id: 'class-id-1',
@@ -654,7 +657,10 @@ describe('ClassService', () => {
         transactionOptions: { useTransaction: false },
       });
 
-      await new Promise((resolve) => setImmediate(resolve));
+      // FIX 3: Wrapped setImmediate in curly braces to avoid implicit return
+      await new Promise((resolve) => {
+        setImmediate(resolve);
+      });
       expect(
         mockNotificationService.createBulkNotifications,
       ).toHaveBeenCalled();
@@ -746,7 +752,10 @@ describe('ClassService', () => {
       expect(result.reactivated).toBe(false);
       expect(result.message).toContain('assigned to class successfully');
 
-      await new Promise((resolve) => setImmediate(resolve));
+      // FIX 3: Wrapped setImmediate in curly braces
+      await new Promise((resolve) => {
+        setImmediate(resolve);
+      });
       expect(
         mockNotificationService.createBulkNotifications,
       ).toHaveBeenCalled();
@@ -825,7 +834,10 @@ describe('ClassService', () => {
       expect(result.assigned).toBe(true);
       expect(result.message).toContain('reactivated');
 
-      await new Promise((resolve) => setImmediate(resolve));
+      // FIX 3: Wrapped setImmediate in curly braces
+      await new Promise((resolve) => {
+        setImmediate(resolve);
+      });
       expect(
         mockNotificationService.createBulkNotifications,
       ).toHaveBeenCalled();
@@ -923,7 +935,10 @@ describe('ClassService', () => {
       expect(result.skipped).toBe(0);
       expect(result.message).toContain('Successfully assigned 2 student(s)');
 
-      await new Promise((resolve) => setImmediate(resolve));
+      // FIX 3: Wrapped setImmediate in curly braces
+      await new Promise((resolve) => {
+        setImmediate(resolve);
+      });
       expect(
         mockNotificationService.createBulkNotifications,
       ).toHaveBeenCalled();
@@ -974,7 +989,6 @@ describe('ClassService', () => {
         academicSession: { id: sessionId },
       } as unknown as Class;
 
-      // FIX: Cast this array to 'ClassStudent[]' to ignore missing properties
       const mockAssignments = [
         {
           student: {
@@ -1007,19 +1021,20 @@ describe('ClassService', () => {
       );
     });
   });
+
   describe('getClassesByTeacher', () => {
     const teacherId = 'teacher-uuid-123';
     const sessionId = 'session-uuid-456';
 
     it('should return classes assigned to teacher', async () => {
-      // FIX: Added 'as any' to satisfy the AcademicSession type requirements
+      // FIX 4: Used proper casting to AcademicSession instead of 'as any'
       const mockSession = {
         id: sessionId,
         name: '2024/2025',
         status: SessionStatus.ACTIVE,
-      } as any;
+      } as unknown as AcademicSession;
 
-      // You might also need to cast the class object inside the assignment
+      // FIX 4: Used proper casting to ClassTeacher instead of 'as any'
       const mockAssignment = {
         id: 'assignment-1',
         assignment_date: new Date('2024-09-01'),
@@ -1035,7 +1050,7 @@ describe('ClassService', () => {
             name: '2024/2025',
           },
         },
-      } as any; // Cast this to 'any' or 'ClassTeacher' to be safe
+      } as unknown as ClassTeacher;
 
       academicSessionModelAction.list.mockResolvedValue({
         payload: [mockSession],
