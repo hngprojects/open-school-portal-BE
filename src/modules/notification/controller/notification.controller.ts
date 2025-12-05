@@ -68,6 +68,7 @@ export class NotificationController {
       message: sysMsg.NOTIFICATION_READ_STATUS_UPDATED,
       data: updatedNotification,
     };
+  }
 
   @Get(':id')
   @SkipWrap()

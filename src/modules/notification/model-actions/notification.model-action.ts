@@ -16,6 +16,7 @@ export class NotificationModelAction extends AbstractModelAction<Notification> {
   }
   async findOneById(id: string): Promise<Notification | null> {
     return this.repository.findOne({ where: { id } });
+  }
 
   /**
    * Bulk insert multiple Notifications records.

@@ -142,6 +142,7 @@ export class NotificationService {
       entity: notification,
       transactionOptions: { useTransaction: false },
     });
+  }
 
   async getNotificationById(
     notificationId: string,
