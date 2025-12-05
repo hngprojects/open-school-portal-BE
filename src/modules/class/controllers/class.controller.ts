@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiExtraModels } from '@nestjs/swagger';
 
+import { SkipWrap } from '../../../common/decorators/skip-wrap.decorator';
 import * as sysMsg from '../../../constants/system.messages';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
@@ -31,6 +32,8 @@ import {
   DocsAssignSingleStudent,
   DocsGetClassStudents,
   DocsGetTeacherClasses,
+  DocsGetClassByTeacherId,
+  DocsUnassignStudent,
 } from '../docs/class.decorator';
 import {
   CreateClassDto,
@@ -83,17 +86,6 @@ export class ClassController {
     return this.classService.getGroupedClasses(query.page, query.limit);
   }
 
-  // --- PATCH: UPDATE CLASS (ADMIN ONLY) ---
-  @Patch(':id')
-  @Roles(UserRole.ADMIN)
-  @DocsUpdateClass()
-  async updateClass(
-    @Param('id', ParseUUIDPipe) classId: string,
-    @Body() updateClassDto: UpdateClassDto,
-  ) {
-    return this.classService.updateClass(classId, updateClassDto);
-  }
-
   // --- GET: TOTAL NUMBER OF CLASSES ---
   @Get('count')
   @Roles(UserRole.ADMIN)
@@ -104,28 +96,6 @@ export class ClassController {
       query.name,
       query.arm,
     );
-  }
-
-  // --- POST: ASSIGN SINGLE STUDENT TO CLASS (ADMIN ONLY) ---
-  @Post(':id/students/:studentId')
-  @Roles(UserRole.ADMIN)
-  @DocsAssignSingleStudent()
-  async assignSingleStudent(
-    @Param('id', ParseUUIDPipe) classId: string,
-    @Param('studentId', ParseUUIDPipe) studentId: string,
-  ): Promise<AssignSingleStudentResponseDto> {
-    return this.classService.assignStudentToClass(classId, studentId);
-  }
-
-  // --- POST: ASSIGN STUDENTS TO CLASS (ADMIN ONLY) ---
-  @Post(':id/students')
-  @Roles(UserRole.ADMIN)
-  @DocsAssignStudents()
-  async assignStudents(
-    @Param('id', ParseUUIDPipe) classId: string,
-    @Body() assignStudentsDto: AssignStudentsToClassDto,
-  ) {
-    return this.classService.assignStudentsToClass(classId, assignStudentsDto);
   }
 
   // --- GET: GET CLASSES ASSIGNED TO TEACHER ---
@@ -143,6 +113,58 @@ export class ClassController {
     return this.classService.getClassesByTeacher(teacherId, sessionId);
   }
 
+  // --- GET: GET CLASSES ASSIGNED TO SPECIFIC TEACHER ---
+  @Get('teacher/:teacherId')
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @DocsGetClassByTeacherId()
+  @SkipWrap()
+  async getClassByTeacherId(
+    @Param('teacherId', ParseUUIDPipe) teacherId: string,
+    @Query('session_id') sessionId?: string,
+  ) {
+    const classes = await this.classService.getClassByTeacherId(
+      teacherId,
+      sessionId,
+    );
+    return {
+      message: sysMsg.TEACHER_CLASS_FETCHED,
+      data: classes,
+    };
+  }
+
+  // --- POST: ASSIGN STUDENTS TO CLASS (ADMIN ONLY) ---
+  @Post(':id/students')
+  @Roles(UserRole.ADMIN)
+  @DocsAssignStudents()
+  async assignStudents(
+    @Param('id', ParseUUIDPipe) classId: string,
+    @Body() assignStudentsDto: AssignStudentsToClassDto,
+  ) {
+    return this.classService.assignStudentsToClass(classId, assignStudentsDto);
+  }
+
+  // --- POST: ASSIGN SINGLE STUDENT TO CLASS (ADMIN ONLY) ---
+  @Post(':id/students/:studentId')
+  @Roles(UserRole.ADMIN)
+  @DocsAssignSingleStudent()
+  async assignSingleStudent(
+    @Param('id', ParseUUIDPipe) classId: string,
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+  ): Promise<AssignSingleStudentResponseDto> {
+    return this.classService.assignStudentToClass(classId, studentId);
+  }
+
+  // --- DELETE: UNASSIGN STUDENT FROM CLASS (ADMIN ONLY) ---
+  @Delete(':id/students/:studentId')
+  @Roles(UserRole.ADMIN)
+  @DocsUnassignStudent()
+  async unassignStudent(
+    @Param('id', ParseUUIDPipe) classId: string,
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+  ) {
+    return this.classService.unassignStudentFromClass(classId, studentId);
+  }
+
   // --- GET: GET STUDENTS IN CLASS ---
   @Get(':id/students')
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
@@ -154,6 +176,7 @@ export class ClassController {
     return this.classService.getStudentsByClass(classId, query.session_id);
   }
 
+  // --- GET: GET TEACHERS IN CLASS ---
   @Get(':id/teachers')
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @DocsGetClassTeachers()
@@ -173,6 +196,18 @@ export class ClassController {
   ): Promise<ClassResponseDto> {
     return this.classService.getClassById(classId);
   }
+
+  // --- PATCH: UPDATE CLASS (ADMIN ONLY) ---
+  @Patch(':id')
+  @Roles(UserRole.ADMIN)
+  @DocsUpdateClass()
+  async updateClass(
+    @Param('id', ParseUUIDPipe) classId: string,
+    @Body() updateClassDto: UpdateClassDto,
+  ) {
+    return this.classService.updateClass(classId, updateClassDto);
+  }
+
   // --- DELETE: SOFT DELETE CLASS (ADMIN ONLY) ---
   @Delete(':id')
   @Roles(UserRole.ADMIN)

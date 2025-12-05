@@ -137,6 +137,19 @@ export const DocsGetClassStudents = () => {
   );
 };
 
+export const DocsUnassignStudent = () => {
+  const { operation, parameters, responses } =
+    ClassSwagger.endpoints.unassignStudent;
+
+  return applyDecorators(
+    ApiOperation(operation),
+    ApiParam(parameters.id),
+    ApiParam(parameters.studentId),
+    ApiOkResponse(responses.ok),
+    ApiNotFoundResponse(responses.notFound),
+  );
+};
+
 export const DocsGetTeacherClasses = () => {
   const { operation, parameters, responses } =
     ClassSwagger.endpoints.getTeacherClasses;
@@ -146,5 +159,18 @@ export const DocsGetTeacherClasses = () => {
     ApiQuery(parameters.sessionId),
     ApiOkResponse(responses.ok),
     ApiResponse(responses.badRequest),
+  );
+};
+
+export const DocsGetClassByTeacherId = () => {
+  const { operation, parameters, responses } =
+    ClassSwagger.endpoints.getClassByTeacherId;
+
+  return applyDecorators(
+    ApiOperation(operation),
+    ApiParam(parameters.teacherId),
+    ApiQuery(parameters.sessionId),
+    ApiOkResponse(responses.ok),
+    ApiNotFoundResponse(responses.notFound),
   );
 };

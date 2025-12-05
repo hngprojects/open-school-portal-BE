@@ -33,13 +33,13 @@ import {
   TeacherDailyAttendanceDecisionEnum,
   TeacherDailyAttendanceSourceEnum,
   TeacherDailyAttendanceStatusEnum,
+  TeacherManualCheckinStatusEnum,
 } from '../enums';
-import { TeacherManualCheckinStatusEnum } from '../enums/teacher-manual-checkin.enum';
 import { TeacherManualCheckinModelAction } from '../model-actions';
 import { TeacherDailyAttendanceModelAction } from '../model-actions/teacher-daily-attendance.action';
 
 @Injectable()
-export class TeacherManualCheckinService {
+export class TeachersAttendanceService {
   private readonly logger: Logger;
 
   constructor(
@@ -50,7 +50,7 @@ export class TeacherManualCheckinService {
     private readonly dataSource: DataSource,
   ) {
     this.logger = baseLogger.child({
-      context: TeacherManualCheckinService.name,
+      context: TeachersAttendanceService.name,
     });
   }
 
@@ -353,7 +353,8 @@ export class TeacherManualCheckinService {
           check_out_time: checkoutTime,
           total_hours: roundedHours,
           notes: dto.notes
-            ? `${attendance.notes || ''} | Checkout: ${dto.notes}`
+            ? (attendance.notes ? `${attendance.notes} | ` : '') +
+              `Checkout: ${dto.notes}`
             : attendance.notes,
         },
         transactionOptions: { useTransaction: false },
@@ -422,6 +423,122 @@ export class TeacherManualCheckinService {
         is_checked_out: !!attendance?.check_out_time,
         has_pending_request: !!pendingRequest,
       },
+    };
+  }
+
+  // --- AUTO MANUAL CHECK-IN (MANUAL CHECK-IN WITHOUT ADMIN APPROVAL) ---
+  async createAutoManualCheckin(
+    user: IRequestWithUser,
+    dto: CreateTeacherManualCheckinDto,
+  ): Promise<{
+    message: string;
+    data: TeacherManualCheckinResponseDto;
+  }> {
+    // --- Validate teacher exists ---
+    const teacher = await this.teacherModelAction.get({
+      identifierOptions: { user_id: user.user.userId },
+    });
+
+    if (!teacher) {
+      throw new NotFoundException(sysMsg.TEACHER_NOT_FOUND);
+    }
+
+    // --- Validate teacher is active ---
+    if (!teacher.is_active) {
+      throw new BadRequestException(sysMsg.TEACHER_IS_NOT_ACTIVE);
+    }
+
+    // --- Parse and validate date (default to today if not provided) ---
+    const checkInDate = dto.date ? new Date(dto.date) : new Date();
+    checkInDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // --- Validate date is not in the future ---
+    if (checkInDate > today) {
+      throw new BadRequestException(sysMsg.CHECK_IN_DATE_IS_IN_THE_FUTURE);
+    }
+
+    // --- Validate date is not too far in the past (e.g., max 7 days) ---
+    const maxPastDays = 7; //todo: get from school settings when implemented
+    const minDate = new Date(today);
+    minDate.setDate(today.getDate() - maxPastDays);
+    if (checkInDate < minDate) {
+      throw new BadRequestException(
+        sysMsg.CHECK_IN_DATE_CANNOT_BE_MORE_THAN_DAYS_IN_THE_PAST(maxPastDays),
+      );
+    }
+
+    // --- Validate check-in time is within school hours ---
+    const schoolStartHour = 7; // 7:00 AM
+    const schoolEndHour = 17; // 5:00 PM
+    const [hours] = dto.check_in_time.split(':').map(Number);
+
+    if (hours < schoolStartHour || hours >= schoolEndHour) {
+      throw new BadRequestException(
+        sysMsg.CHECK_IN_TIME_NOT_WITHIN_SCHOOL_HOURS,
+      );
+    }
+
+    // --- Check if attendance already exists for this date (automatic or manual) ---
+    const existingAttendance = await this.teacherDailyAttendanceModelAction.get(
+      {
+        identifierOptions: {
+          teacher_id: teacher.id,
+          date: checkInDate,
+        },
+      },
+    );
+
+    if (existingAttendance) {
+      throw new ConflictException(sysMsg.ALREADY_CHECKED_IN_FOR_THE_SAME_DATE);
+    }
+
+    // --- Check if pending manual check-in request exists ---
+    const pendingRequest = await this.teacherManualCheckinModelAction.get({
+      identifierOptions: {
+        teacher_id: teacher.id,
+        check_in_date: checkInDate,
+        status: TeacherManualCheckinStatusEnum.PENDING,
+      },
+    });
+
+    if (pendingRequest) {
+      throw new ConflictException(
+        sysMsg.PENDING_MANUAL_CHECKIN_REQUEST_EXISTS_FOR_THIS_DATE,
+      );
+    }
+
+    // --- Determine status based on check-in time (9 AM thresh) ---
+    const dateString = checkInDate.toISOString().split('T')[0];
+    const checkInTimestamp = new Date(`${dateString}T${dto.check_in_time}`);
+    const checkInHour = checkInTimestamp.getHours();
+    const lateThreshold = 9; //todo: get from school settings when implemented
+    const attendanceStatus =
+      checkInHour >= lateThreshold
+        ? TeacherDailyAttendanceStatusEnum.LATE
+        : TeacherDailyAttendanceStatusEnum.PRESENT;
+
+    // --- Create attendance record directly (w/o admin approval) ---
+    const attendance = await this.teacherDailyAttendanceModelAction.create({
+      createPayload: {
+        teacher_id: teacher.id,
+        date: checkInDate,
+        check_in_time: checkInTimestamp,
+        status: attendanceStatus,
+        source: TeacherDailyAttendanceSourceEnum.MANUAL,
+        marked_by: user.user.userId,
+        marked_at: new Date(),
+        notes: dto.reason,
+      },
+      transactionOptions: { useTransaction: false },
+    });
+
+    return {
+      message: sysMsg.TEACHER_AUTO_CHECKIN_SUCCESS,
+      data: plainToInstance(TeacherManualCheckinResponseDto, attendance, {
+        excludeExtraneousValues: true,
+      }),
     };
   }
 }

@@ -19,6 +19,7 @@ import {
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { Stream } from '../../stream/entities/stream.entity';
 import { StudentModelAction } from '../../student/model-actions/student-actions';
+import { TeacherModelAction } from '../../teacher/model-actions/teacher-actions';
 import {
   CreateClassDto,
   TeacherAssignmentResponseDto,
@@ -49,6 +50,7 @@ export class ClassService {
     private readonly classStudentModelAction: ClassStudentModelAction,
     private readonly studentModelAction: StudentModelAction,
     private readonly academicSessionModelAction: AcademicSessionModelAction,
+    private readonly teacherModelAction: TeacherModelAction,
     private readonly dataSource: DataSource,
     private readonly classStudentValidationService: ClassStudentValidationService,
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
@@ -112,13 +114,16 @@ export class ClassService {
   async create(createClassDto: CreateClassDto): Promise<ICreateClassResponse> {
     const { name, arm, teacherIds } = createClassDto;
 
-    // Validate teacherIds are valid UUIDs
-    if (Array.isArray(teacherIds)) {
+    // Validate teacherIds are valid UUIDs and remove duplicates
+    let uniqueTeacherIds: string[] = [];
+    if (Array.isArray(teacherIds) && teacherIds.length > 0) {
       for (const teacherId of teacherIds) {
         if (!isUUID(teacherId)) {
           throw new BadRequestException(sysMsg.INVALID_TEACHER_ID);
         }
       }
+      // Remove duplicates
+      uniqueTeacherIds = [...new Set(teacherIds)];
     }
 
     // Fetch active academic session
@@ -154,8 +159,8 @@ export class ClassService {
       });
 
       // Assign teachers if provided
-      if (Array.isArray(teacherIds) && teacherIds.length) {
-        for (const teacherId of teacherIds) {
+      if (uniqueTeacherIds.length > 0) {
+        for (const teacherId of uniqueTeacherIds) {
           await this.classTeacherModelAction.create({
             createPayload: {
               class: newClass,
@@ -185,7 +190,7 @@ export class ClassService {
         id: academicSession.id,
         name: academicSession.name,
       },
-      teacherIds: teacherIds || [],
+      teacherIds: uniqueTeacherIds,
     };
   }
 
@@ -521,6 +526,62 @@ export class ClassService {
   }
 
   /**
+   * Unassigns a student from a class.
+   * Sets current_class_id to null and deactivates the class assignment.
+   */
+  async unassignStudentFromClass(
+    classId: string,
+    studentId: string,
+  ): Promise<{ message: string }> {
+    // 1. Validate class exists and get session ID
+    const classEntity =
+      await this.classStudentValidationService.validateClassExists(classId);
+    const sessionId = classEntity.academicSession.id;
+
+    // 2. Validate student exists
+    await this.classStudentValidationService.validateStudentExists(studentId);
+
+    // 4. Perform unassignment in transaction
+    await this.dataSource.transaction(async (manager) => {
+      // Fetch and validate the assignment inside the transaction to prevent race conditions
+      const existingAssignment =
+        await this.classStudentValidationService.getExistingAssignment(
+          classId,
+          studentId,
+          sessionId,
+          manager,
+        );
+
+      if (!existingAssignment || !existingAssignment.is_active) {
+        throw new NotFoundException(sysMsg.STUDENT_NOT_ASSIGNED_TO_CLASS);
+      }
+
+      // Deactivate assignment
+      existingAssignment.is_active = false;
+      await manager.save(ClassStudent, existingAssignment);
+
+      // Conditionally update student's current_class_id to null
+      // This prevents incorrectly nullifying the ID if it points to another class
+      await this.studentModelAction.update({
+        identifierOptions: { id: studentId, current_class_id: classId },
+        updatePayload: { current_class_id: null },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+    });
+
+    this.logger.info(
+      `Student ${studentId} unassigned from class ${classId} in session ${sessionId}`,
+    );
+
+    return {
+      message: sysMsg.STUDENT_UNASSIGNED_SUCCESSFULLY,
+    };
+  }
+
+  /**
    * Assigns multiple students to a class.
    * Uses the class's academic session automatically.
    */
@@ -748,6 +809,81 @@ export class ClassService {
             id: classEntity.academicSession.id,
             name: classEntity.academicSession.name,
           },
+        });
+      }
+    });
+
+    return Array.from(uniqueClasses.values());
+  }
+
+  /**
+   * Fetches all classes assigned to a specific teacher.
+   * Returns an array of classes (can be empty if no classes are assigned).
+   * Optionally filters by session ID, defaults to active session.
+   */
+  async getClassByTeacherId(
+    teacherId: string,
+    sessionId?: string,
+  ): Promise<ClassResponseDto[]> {
+    // 1. Validate teacher exists
+    const teacher = await this.teacherModelAction.get({
+      identifierOptions: { id: teacherId },
+    });
+
+    if (!teacher) {
+      throw new NotFoundException(sysMsg.TEACHER_NOT_FOUND);
+    }
+
+    // 2. Handle Session Logic - validate if provided, otherwise default to active
+    let target_session: AcademicSession | string;
+
+    if (sessionId) {
+      // Validate provided session exists
+      const session = await this.academicSessionModelAction.get({
+        identifierOptions: { id: sessionId },
+      });
+
+      if (!session) {
+        throw new NotFoundException(sysMsg.ACADEMIC_SESSION_NOT_FOUND);
+      }
+
+      target_session = sessionId;
+    } else {
+      // Use active session
+      target_session = await this.getActiveSession();
+    }
+
+    // 3. Fetch Assignments with Relations
+    const assignments = await this.classTeacherModelAction.list({
+      filterRecordOptions: {
+        teacher: { id: teacherId },
+        session_id:
+          typeof target_session === 'string'
+            ? target_session
+            : target_session.id,
+        is_active: true,
+      },
+      relations: {
+        class: { academicSession: true },
+      },
+    });
+
+    // 4. Map to DTO and remove duplicates
+    const uniqueClasses = new Map<string, ClassResponseDto>();
+    assignments.payload.forEach((assignment) => {
+      const classEntity = assignment.class;
+      if (!classEntity.is_deleted && !uniqueClasses.has(classEntity.id)) {
+        uniqueClasses.set(classEntity.id, {
+          id: classEntity.id,
+          name: classEntity.name,
+          arm: classEntity.arm,
+          academicSession: {
+            id: classEntity.academicSession.id,
+            name: classEntity.academicSession.name,
+          },
+          assignment_date: assignment.assignment_date,
+          created_at: assignment.createdAt,
+          updated_at: assignment.updatedAt,
         });
       }
     });

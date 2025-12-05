@@ -21,6 +21,7 @@ import { UserRole } from 'src/modules/shared/enums';
 
 import { IRequestWithUser } from '../../../common/types/request-with-user.interface';
 import {
+  ApiAutoManualCheckinDocs,
   ApiCreateTeacherManualCheckinDocs,
   ApiGetTodayAttendanceSummaryDocs,
   ApiListTeacherCheckinRequestsDocs,
@@ -33,15 +34,15 @@ import {
   ReviewTeacherManualCheckinDto,
 } from '../dto';
 import { CreateTeacherCheckoutDto } from '../dto/teacher-manual-checkout.dto';
-import { TeacherManualCheckinService } from '../services';
+import { TeachersAttendanceService } from '../services';
 
 @Controller('attendance/teacher/')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiTags('Attendance')
 @ApiBearerAuth()
-export class TeacherManualCheckinController {
+export class TeachersAttendanceController {
   constructor(
-    private readonly teacherManualCheckinService: TeacherManualCheckinService,
+    private readonly teachersAttendanceService: TeachersAttendanceService,
   ) {}
 
   // --- TEACHER MANUAL CHECKIN ---
@@ -53,7 +54,7 @@ export class TeacherManualCheckinController {
     @Req() req: IRequestWithUser,
     @Body() dto: CreateTeacherManualCheckinDto,
   ) {
-    return this.teacherManualCheckinService.create(req, dto);
+    return this.teachersAttendanceService.create(req, dto);
   }
 
   // --- REVIEW TEACHER MANUAL CHECKIN ---
@@ -66,7 +67,7 @@ export class TeacherManualCheckinController {
     @Req() req: IRequestWithUser,
     @Body() dto: ReviewTeacherManualCheckinDto,
   ) {
-    return this.teacherManualCheckinService.reviewTeacherCheckinRequest(
+    return this.teachersAttendanceService.reviewTeacherCheckinRequest(
       req,
       id,
       dto,
@@ -81,7 +82,7 @@ export class TeacherManualCheckinController {
   async listTeacherCheckinRequests(
     @Query() query: ListTeacherCheckinRequestsQueryDto,
   ) {
-    return this.teacherManualCheckinService.listTeacherCheckinRequests(query);
+    return this.teachersAttendanceService.listTeacherCheckinRequests(query);
   }
 
   // --- TEACHER CHECKOUT ---
@@ -93,7 +94,7 @@ export class TeacherManualCheckinController {
     @Req() req: IRequestWithUser,
     @Body() dto: CreateTeacherCheckoutDto,
   ) {
-    return this.teacherManualCheckinService.teacherCheckout(req, dto);
+    return this.teachersAttendanceService.teacherCheckout(req, dto);
   }
 
   // --- GET TODAY'S ATTENDANCE SUMMARY ---
@@ -102,6 +103,18 @@ export class TeacherManualCheckinController {
   @HttpCode(HttpStatus.OK)
   @ApiGetTodayAttendanceSummaryDocs()
   async getTodayAttendanceSummary(@Req() req: IRequestWithUser) {
-    return this.teacherManualCheckinService.getTodayAttendanceSummary(req);
+    return this.teachersAttendanceService.getTodayAttendanceSummary(req);
+  }
+
+  // --- AUTO MANUAL CHECK-IN (MANUAL CHECK-IN WITHOUT ADMIN APPROVAL) ---
+  @Post('checkin')
+  @Roles(UserRole.TEACHER)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiAutoManualCheckinDocs()
+  async createAutoManualCheckin(
+    @Req() req: IRequestWithUser,
+    @Body() dto: CreateTeacherManualCheckinDto,
+  ) {
+    return this.teachersAttendanceService.createAutoManualCheckin(req, dto);
   }
 }

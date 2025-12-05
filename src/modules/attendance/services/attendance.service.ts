@@ -17,13 +17,17 @@ import { AcademicSessionService } from '../../academic-session/academic-session.
 import { TermName } from '../../academic-term/entities/term.entity';
 import { TermModelAction } from '../../academic-term/model-actions';
 import { ClassStudent } from '../../class/entities/class-student.entity';
+import { ClassTeacher } from '../../class/entities/class-teacher.entity';
 import { Teacher } from '../../teacher/entities/teacher.entity';
 import { Schedule } from '../../timetable/entities/schedule.entity';
 import { DayOfWeek } from '../../timetable/enums/timetable.enums';
 import {
+  AttendanceRecordDto,
   AttendanceResponseDto,
+  CreateEditRequestDto,
   GetScheduleAttendanceQueryDto,
   MarkAttendanceDto,
+  ReviewEditRequestDto,
   UpdateAttendanceDto,
 } from '../dto';
 import { ScheduleBasedAttendance } from '../entities';
@@ -31,10 +35,13 @@ import { StudentDailyAttendance } from '../entities/student-daily-attendance.ent
 import {
   AttendanceStatus,
   DailyAttendanceStatus,
+  AttendanceType,
+  EditRequestStatus,
 } from '../enums/attendance-status.enum';
 import {
   AttendanceModelAction,
   StudentDailyAttendanceModelAction,
+  AttendanceEditRequestModelAction,
 } from '../model-actions';
 
 @Injectable()
@@ -62,6 +69,7 @@ export class AttendanceService {
     private readonly academicSessionService: AcademicSessionService,
     private readonly termModelAction: TermModelAction,
     private readonly dataSource: DataSource,
+    private readonly editRequestModelAction: AttendanceEditRequestModelAction,
   ) {
     this.logger = baseLogger.child({ context: AttendanceService.name });
   }
@@ -84,8 +92,8 @@ export class AttendanceService {
   }
 
   /**
-   * Bulk mark attendance for a schedule/period on a specific date
-   * Teacher marks attendance for multiple students at once
+   * Unified method to mark attendance (both schedule-based and daily)
+   * Handles both types based on schedule_id or class_id in the DTO
    */
   async markAttendance(
     userId: string,
@@ -96,7 +104,20 @@ export class AttendanceService {
     updated: number;
     total: number;
   }> {
-    const { schedule_id, date, attendance_records } = dto;
+    const { schedule_id, class_id, date, attendance_records } = dto;
+
+    // Validate that either schedule_id or class_id is provided
+    if (!schedule_id && !class_id) {
+      throw new BadRequestException(
+        'Either schedule_id or class_id must be provided',
+      );
+    }
+
+    if (schedule_id && class_id) {
+      throw new BadRequestException(
+        'Cannot provide both schedule_id and class_id',
+      );
+    }
 
     // Validate date is not in the future
     const attendanceDate = new Date(date);
@@ -107,6 +128,64 @@ export class AttendanceService {
       throw new BadRequestException(sysMsg.ATTENDANCE_FUTURE_DATE_NOT_ALLOWED);
     }
 
+    // Get active session
+    const activeSession = await this.academicSessionService
+      .activeSessions()
+      .then((s) => s.data);
+
+    let markedCount = 0;
+    let updatedCount = 0;
+
+    // Route to appropriate marking logic
+    if (schedule_id) {
+      // Schedule-based attendance
+      const result = await this.markScheduleBasedAttendance(
+        userId,
+        schedule_id,
+        attendanceDate,
+        activeSession.id,
+        attendance_records,
+      );
+      markedCount = result.marked;
+      updatedCount = result.updated;
+    } else {
+      // Daily attendance
+      if (!class_id) {
+        throw new BadRequestException(
+          'class_id is required for daily attendance',
+        );
+      }
+      const result = await this.markDailyAttendance(
+        userId,
+        class_id,
+        attendanceDate,
+        activeSession.id,
+        attendance_records,
+      );
+      markedCount = result.marked;
+      updatedCount = result.updated;
+    }
+
+    return {
+      message: schedule_id
+        ? sysMsg.ATTENDANCE_MARKED_SUCCESSFULLY
+        : 'Student daily attendance marked successfully',
+      marked: markedCount,
+      updated: updatedCount,
+      total: attendance_records.length,
+    };
+  }
+
+  /**
+   * Internal method for schedule-based attendance marking
+   */
+  private async markScheduleBasedAttendance(
+    userId: string,
+    scheduleId: string,
+    attendanceDate: Date,
+    sessionId: string,
+    attendanceRecords: AttendanceRecordDto[],
+  ): Promise<{ marked: number; updated: number }> {
     // Get teacher ID from user ID
     const teacher = await this.dataSource.manager.findOne(Teacher, {
       where: { user: { id: userId } },
@@ -117,19 +196,13 @@ export class AttendanceService {
     }
 
     const teacherId = teacher.id;
-
-    // Get active session
-    const activeSession = await this.academicSessionService
-      .activeSessions()
-      .then((s) => s.data);
-
     let markedCount = 0;
     let updatedCount = 0;
 
     await this.dataSource.transaction(async (manager) => {
       // Verify schedule exists and teacher is assigned to it
       const schedule = await manager.findOne(Schedule, {
-        where: { id: schedule_id },
+        where: { id: scheduleId },
         relations: ['timetable', 'timetable.class'],
       });
 
@@ -146,7 +219,7 @@ export class AttendanceService {
         throw new NotFoundException(sysMsg.CLASS_NOT_FOUND);
       }
 
-      for (const record of attendance_records) {
+      for (const record of attendanceRecords) {
         const { student_id, status, notes } = record;
 
         // Verify student is enrolled in this class
@@ -172,13 +245,18 @@ export class AttendanceService {
           {
             where: {
               student_id,
-              schedule_id,
+              schedule_id: scheduleId,
               date: attendanceDate,
             },
           },
         );
 
         if (existingAttendance) {
+          // Check if attendance is locked - cannot update via marking
+          if (existingAttendance.is_locked) {
+            throw new ForbiddenException(sysMsg.ATTENDANCE_LOCKED);
+          }
+
           // Update existing attendance using model action
           await this.attendanceModelAction.update({
             identifierOptions: { id: existingAttendance.id },
@@ -187,6 +265,7 @@ export class AttendanceService {
               notes: notes || existingAttendance.notes,
               marked_by: userId,
               marked_at: new Date(),
+              is_locked: true, // Auto-lock on marking
             },
             transactionOptions: {
               useTransaction: true,
@@ -198,14 +277,15 @@ export class AttendanceService {
           // Create new attendance record
           await this.attendanceModelAction.create({
             createPayload: {
-              schedule_id,
+              schedule_id: scheduleId,
               student_id,
-              session_id: activeSession.id,
+              session_id: sessionId,
               date: attendanceDate,
               status: status as AttendanceStatus,
               marked_by: userId,
               marked_at: new Date(),
               notes,
+              is_locked: true, // Auto-lock on creation
             },
             transactionOptions: {
               useTransaction: true,
@@ -218,15 +298,137 @@ export class AttendanceService {
     });
 
     this.logger.info(
-      `Teacher ${teacherId} marked attendance for schedule ${schedule_id} on ${date}. Marked: ${markedCount}, Updated: ${updatedCount}`,
+      `Teacher ${teacherId} marked attendance for schedule ${scheduleId} on ${attendanceDate.toISOString().split('T')[0]}. Marked: ${markedCount}, Updated: ${updatedCount}`,
     );
 
-    return {
-      message: sysMsg.ATTENDANCE_MARKED_SUCCESSFULLY,
-      marked: markedCount,
-      updated: updatedCount,
-      total: attendance_records.length,
-    };
+    return { marked: markedCount, updated: updatedCount };
+  }
+
+  /**
+   * Internal method for daily attendance marking
+   */
+  private async markDailyAttendance(
+    userId: string,
+    classId: string,
+    attendanceDate: Date,
+    sessionId: string,
+    attendanceRecords: AttendanceRecordDto[],
+  ): Promise<{ marked: number; updated: number }> {
+    // Get teacher ID from user ID and validate
+    const teacher = await this.dataSource.manager.findOne(Teacher, {
+      where: { user: { id: userId } },
+    });
+
+    if (!teacher) {
+      throw new NotFoundException(sysMsg.TEACHER_NOT_FOUND);
+    }
+
+    const teacherId = teacher.id;
+
+    // Validate that this teacher is the class teacher for this class
+    const classTeacherAssignment = await this.dataSource.manager.findOne(
+      ClassTeacher,
+      {
+        where: {
+          teacher: { id: teacherId },
+          class: { id: classId },
+          is_active: true,
+        },
+      },
+    );
+
+    if (!classTeacherAssignment) {
+      throw new ForbiddenException(
+        'Only the class teacher can mark daily attendance for this class',
+      );
+    }
+
+    let markedCount = 0;
+    let updatedCount = 0;
+
+    await this.dataSource.transaction(async (manager) => {
+      const markTime = new Date();
+
+      for (const record of attendanceRecords) {
+        const { student_id, status, notes } = record;
+
+        // Check if student is enrolled in class
+        const enrollment = await manager.findOne(ClassStudent, {
+          where: {
+            student: { id: student_id },
+            class: { id: classId },
+            is_active: true,
+          },
+        });
+
+        if (!enrollment) {
+          throw new NotFoundException(
+            `Student ${student_id} not enrolled in class ${classId}`,
+          );
+        }
+
+        // Check for existing record
+        const existingRecord = await manager.findOne(StudentDailyAttendance, {
+          where: {
+            student_id,
+            class_id: classId,
+            date: attendanceDate,
+          },
+        });
+
+        if (existingRecord) {
+          // Check if attendance is locked - cannot update via marking
+          if (existingRecord.is_locked) {
+            throw new ForbiddenException(sysMsg.ATTENDANCE_LOCKED);
+          }
+
+          // Update existing record using model action
+          await this.studentDailyAttendanceModelAction.update({
+            identifierOptions: { id: existingRecord.id },
+            updatePayload: {
+              status: status as DailyAttendanceStatus,
+              check_in_time: existingRecord.check_in_time || markTime,
+              notes: notes || existingRecord.notes,
+              marked_by: userId,
+              marked_at: new Date(),
+              is_locked: true, // Auto-lock on marking
+            },
+            transactionOptions: {
+              useTransaction: true,
+              transaction: manager,
+            },
+          });
+          updatedCount++;
+        } else {
+          // Create new record using model action - auto-set check_in_time
+          await this.studentDailyAttendanceModelAction.create({
+            createPayload: {
+              student_id,
+              class_id: classId,
+              session_id: sessionId,
+              date: attendanceDate,
+              status: status as DailyAttendanceStatus,
+              check_in_time: markTime,
+              notes,
+              marked_by: userId,
+              marked_at: new Date(),
+              is_locked: true, // Auto-lock on creation
+            },
+            transactionOptions: {
+              useTransaction: true,
+              transaction: manager,
+            },
+          });
+          markedCount++;
+        }
+      }
+    });
+
+    this.logger.info(
+      `Teacher ${teacherId} marked daily attendance for class ${classId} on ${attendanceDate.toISOString().split('T')[0]}. Marked: ${markedCount}, Updated: ${updatedCount}`,
+    );
+
+    return { marked: markedCount, updated: updatedCount };
   }
 
   /**
@@ -273,9 +475,15 @@ export class AttendanceService {
       throw new NotFoundException(sysMsg.ATTENDANCE_NOT_FOUND);
     }
 
+    // Check if attendance is locked - admin approval required
+    if (attendance.is_locked) {
+      throw new ForbiddenException(sysMsg.ATTENDANCE_LOCKED);
+    }
+
     // Build update payload with proper type handling
     const updatePayload: Partial<ScheduleBasedAttendance> = {
       marked_at: new Date(),
+      is_locked: true, // Auto-lock after update
     };
 
     if (dto.status !== undefined) {
@@ -318,9 +526,15 @@ export class AttendanceService {
       throw new NotFoundException(sysMsg.ATTENDANCE_NOT_FOUND);
     }
 
+    // Check if attendance is locked - admin approval required
+    if (attendance.is_locked) {
+      throw new ForbiddenException(sysMsg.ATTENDANCE_LOCKED);
+    }
+
     // Build update payload
     const updateData: Partial<StudentDailyAttendance> = {
       marked_at: new Date(),
+      is_locked: true, // Auto-lock after update
     };
 
     if (dto.status !== undefined) {
@@ -468,121 +682,6 @@ export class AttendanceService {
     return {
       is_marked: records.length > 0,
       count: records.length,
-    };
-  }
-
-  /**
-   * Mark student daily attendance (morning register)
-   * Class teacher marks overall daily presence for all students
-   */
-  async markStudentDailyAttendance(
-    userId: string,
-    dto: MarkAttendanceDto,
-  ): Promise<{
-    message: string;
-    marked: number;
-    updated: number;
-    total: number;
-  }> {
-    const { class_id, date, attendance_records } = dto;
-
-    // Validate date
-    const attendanceDate = new Date(date);
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-
-    if (attendanceDate > today) {
-      throw new BadRequestException(sysMsg.ATTENDANCE_FUTURE_DATE_NOT_ALLOWED);
-    }
-
-    // Get active session
-    const activeSession = await this.academicSessionService
-      .activeSessions()
-      .then((s) => s.data);
-
-    let markedCount = 0;
-    let updatedCount = 0;
-
-    await this.dataSource.transaction(async (manager) => {
-      const markTime = new Date();
-
-      for (const record of attendance_records) {
-        const { student_id, status, notes } = record;
-
-        // Check if student is enrolled in class
-        const enrollment = await manager.findOne(ClassStudent, {
-          where: {
-            student: { id: student_id },
-            class: { id: class_id },
-            is_active: true,
-          },
-        });
-
-        if (!enrollment) {
-          throw new NotFoundException(
-            `Student ${student_id} not enrolled in class ${class_id}`,
-          );
-        }
-
-        // Check for existing record
-        const existingRecord = await manager.findOne(StudentDailyAttendance, {
-          where: {
-            student_id,
-            class_id,
-            date: attendanceDate,
-          },
-        });
-
-        if (existingRecord) {
-          // Update existing record using model action
-          await this.studentDailyAttendanceModelAction.update({
-            identifierOptions: { id: existingRecord.id },
-            updatePayload: {
-              status: status as DailyAttendanceStatus,
-              check_in_time: existingRecord.check_in_time || markTime,
-              notes: notes || existingRecord.notes,
-              marked_by: userId,
-              marked_at: new Date(),
-            },
-            transactionOptions: {
-              useTransaction: true,
-              transaction: manager,
-            },
-          });
-          updatedCount++;
-        } else {
-          // Create new record using model action - auto-set check_in_time
-          await this.studentDailyAttendanceModelAction.create({
-            createPayload: {
-              student_id,
-              class_id,
-              session_id: activeSession.id,
-              date: attendanceDate,
-              status: status as DailyAttendanceStatus,
-              check_in_time: markTime,
-              notes,
-              marked_by: userId,
-              marked_at: new Date(),
-            },
-            transactionOptions: {
-              useTransaction: true,
-              transaction: manager,
-            },
-          });
-          markedCount++;
-        }
-      }
-    });
-
-    this.logger.info(
-      `User ${userId} marked daily attendance for class ${class_id} on ${date}. Marked: ${markedCount}, Updated: ${updatedCount}`,
-    );
-
-    return {
-      message: 'Student daily attendance marked successfully',
-      marked: markedCount,
-      updated: updatedCount,
-      total: attendance_records.length,
     };
   }
 
@@ -1214,6 +1313,209 @@ export class AttendanceService {
       days_excused: daysExcused,
       days_half_day: daysHalfDay,
       attendance_details: attendanceDetails,
+    };
+  }
+
+  /**
+   * Create a new edit request for a locked attendance record
+   */
+  async createEditRequest(userId: string, dto: CreateEditRequestDto) {
+    // Verify attendance record exists and is locked
+    const modelAction =
+      dto.attendance_type === AttendanceType.DAILY
+        ? this.studentDailyAttendanceModelAction
+        : this.attendanceModelAction;
+
+    const attendance = await modelAction.get({
+      identifierOptions: { id: dto.attendance_id },
+    });
+
+    if (!attendance) {
+      throw new NotFoundException(
+        `${sysMsg.ATTENDANCE_NOT_FOUND}. The record may have been deleted or does not exist.`,
+      );
+    }
+
+    if (!attendance.is_locked) {
+      throw new BadRequestException(
+        'Attendance record is not locked. You can edit it directly.',
+      );
+    }
+
+    // Verify teacher owns this attendance record
+    if (attendance.marked_by !== userId) {
+      throw new ForbiddenException(
+        'You can only request edits for attendance records you created',
+      );
+    }
+
+    // Check for existing pending request
+    const { payload: existingRequests } =
+      await this.editRequestModelAction.list({
+        filterRecordOptions: {
+          attendance_id: dto.attendance_id,
+          attendance_type: dto.attendance_type,
+          status: EditRequestStatus.PENDING,
+        },
+      });
+
+    if (existingRequests.length > 0) {
+      throw new BadRequestException(
+        'A pending edit request already exists for this attendance record',
+      );
+    }
+
+    const editRequest = await this.editRequestModelAction.create({
+      createPayload: {
+        ...dto,
+        requested_by: userId,
+        status: EditRequestStatus.PENDING,
+      },
+      transactionOptions: {
+        useTransaction: false,
+      },
+    });
+
+    this.logger.info(
+      `Edit request created: request_id=${editRequest.id}, attendance_id=${dto.attendance_id}, type=${dto.attendance_type}, requested_by=${userId}`,
+    );
+
+    return {
+      message: sysMsg.EDIT_REQUEST_CREATED_SUCCESSFULLY,
+      data: {
+        request_id: editRequest.id,
+      },
+    };
+  }
+
+  /**
+   * Get all edit requests submitted by current user
+   */
+  async getMyEditRequests(userId: string) {
+    const { payload: requests } = await this.editRequestModelAction.list({
+      filterRecordOptions: { requested_by: userId },
+      relations: { reviewedBy: true },
+      order: { createdAt: 'DESC' },
+    });
+
+    return {
+      message: sysMsg.EDIT_REQUESTS_RETRIEVED_SUCCESSFULLY,
+      data: requests,
+    };
+  }
+
+  /**
+   * Review (approve/reject) an edit request
+   * Admin only - automatically applies changes if approved
+   */
+  async reviewEditRequest(
+    requestId: string,
+    adminId: string,
+    dto: ReviewEditRequestDto,
+  ) {
+    const request = await this.editRequestModelAction.get({
+      identifierOptions: { id: requestId },
+    });
+
+    if (!request) {
+      throw new NotFoundException('Edit request not found');
+    }
+
+    if (request.status !== EditRequestStatus.PENDING) {
+      throw new BadRequestException(
+        `Cannot review request with status: ${request.status}`,
+      );
+    }
+
+    // Validate rejection requires comment
+    if (dto.status === EditRequestStatus.REJECTED && !dto.admin_comment) {
+      throw new BadRequestException(
+        'Admin comment is required when rejecting a request',
+      );
+    }
+
+    // If approved, apply changes to attendance
+    if (dto.status === EditRequestStatus.APPROVED) {
+      const modelAction =
+        request.attendance_type === AttendanceType.DAILY
+          ? this.studentDailyAttendanceModelAction
+          : this.attendanceModelAction;
+
+      const attendance = await modelAction.get({
+        identifierOptions: { id: request.attendance_id },
+      });
+
+      if (!attendance) {
+        throw new NotFoundException(sysMsg.ATTENDANCE_NOT_FOUND);
+      }
+
+      // Validate attendance hasn't been modified since request was created
+      // This prevents applying stale changes if admin manually edited the record
+      if (
+        attendance.updatedAt &&
+        request.createdAt &&
+        new Date(attendance.updatedAt) > new Date(request.createdAt)
+      ) {
+        this.logger.warn(
+          `Edit request ${requestId} is stale: attendance ${request.attendance_id} was modified after request creation`,
+        );
+        throw new BadRequestException(sysMsg.EDIT_REQUEST_STALE);
+      }
+
+      // Apply proposed changes with proper enum conversion
+      const proposedChanges = { ...request.proposed_changes };
+
+      // Convert status to uppercase if present
+      if (
+        proposedChanges.status &&
+        typeof proposedChanges.status === 'string'
+      ) {
+        proposedChanges.status = proposedChanges.status.toUpperCase();
+      }
+
+      // Apply proposed changes using model action update
+      await modelAction.update({
+        identifierOptions: { id: request.attendance_id },
+        updatePayload: proposedChanges,
+        transactionOptions: {
+          useTransaction: false,
+        },
+      });
+
+      this.logger.info(
+        `Attendance updated via approved edit request: attendance_id=${request.attendance_id}, type=${request.attendance_type}, changes=${JSON.stringify(proposedChanges)}`,
+      );
+    }
+
+    // Update request status
+    await this.editRequestModelAction.update({
+      identifierOptions: { id: requestId },
+      updatePayload: {
+        status: dto.status,
+        reviewed_by: adminId,
+        reviewed_at: new Date(),
+        admin_comment: dto.admin_comment,
+      },
+      transactionOptions: {
+        useTransaction: false,
+      },
+    });
+
+    this.logger.info(
+      `Edit request ${dto.status.toLowerCase()}: request_id=${requestId}, reviewed_by=${adminId}, attendance_id=${request.attendance_id}, requested_by=${request.requested_by}`,
+    );
+
+    const message =
+      dto.status === EditRequestStatus.APPROVED
+        ? 'Edit request approved and changes applied successfully'
+        : 'Edit request rejected successfully';
+
+    return {
+      message,
+      data: {
+        request_id: requestId,
+        status: dto.status,
+      },
     };
   }
 }

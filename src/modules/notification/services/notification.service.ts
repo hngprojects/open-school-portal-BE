@@ -6,6 +6,7 @@ import {
 import { plainToInstance } from 'class-transformer';
 
 import * as sysMsg from '../../../constants/system.messages';
+import { CreateNotificationDto } from '../dto/create-notification.dto';
 import { UserNotificationByIdResponseDto } from '../dto/user-notification-by-id-response.dto';
 import { ListNotificationsQueryDto } from '../dto/user-notification-list-query.dto';
 import {
@@ -13,6 +14,7 @@ import {
   PaginatedNotificationsResponseDto,
   PaginationMetaDto,
 } from '../dto/user-notification-response.dto';
+import { Notification } from '../entities/notification.entity';
 import { NotificationModelAction } from '../model-actions/notification.model-action';
 import {
   NotificationType,
@@ -119,6 +121,43 @@ export class NotificationService {
       },
       pagination,
     };
+  }
+  async markNotificationAsReadUnread(
+    notificationId: string,
+    userId: string,
+    isRead: boolean,
+  ): Promise<Notification | undefined> {
+    const notification =
+      await this.notificationModelAction.findOneById(notificationId);
+
+    if (!notification) {
+      return undefined; // Return undefined instead of throwing NotFoundException
+    }
+
+    if (notification.recipient_id !== userId) {
+      return undefined; // Return undefined instead of throwing ForbiddenException
+    }
+
+    notification.is_read = isRead;
+    return this.notificationModelAction.save({
+      entity: notification,
+      transactionOptions: { useTransaction: false },
+    });
+  }
+
+  async createBulkNotifications(
+    dtos: CreateNotificationDto[],
+  ): Promise<Notification[]> {
+    const notifications = dtos.map((dto) => ({
+      recipient_id: dto.recipient_id,
+      title: dto.title,
+      message: dto.message,
+      type: dto.type,
+      metadata: dto.metadata,
+      is_read: false,
+    }));
+
+    return this.notificationModelAction.createBulk(notifications);
   }
 
   async getNotificationById(

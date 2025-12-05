@@ -8,7 +8,7 @@ import { TeachersModule } from '../teacher/teacher.module';
 import {
   ScheduleBasedAttendanceController,
   StudentDailyAttendanceController,
-  TeacherManualCheckinController,
+  TeachersAttendanceController,
 } from './controllers';
 import {
   ScheduleBasedAttendance,
@@ -16,13 +16,15 @@ import {
   TeacherDailyAttendance,
   TeacherManualCheckin,
 } from './entities';
+import { AttendanceEditRequest } from './entities/student-daily-attendance.entity';
 import {
   AttendanceModelAction,
   StudentDailyAttendanceModelAction,
   TeacherManualCheckinModelAction,
+  AttendanceEditRequestModelAction,
 } from './model-actions';
 import { TeacherDailyAttendanceModelAction } from './model-actions/teacher-daily-attendance.action';
-import { AttendanceService, TeacherManualCheckinService } from './services';
+import { AttendanceService, TeachersAttendanceService } from './services';
 
 @Module({
   imports: [
@@ -31,6 +33,7 @@ import { AttendanceService, TeacherManualCheckinService } from './services';
       StudentDailyAttendance,
       TeacherManualCheckin,
       TeacherDailyAttendance,
+      AttendanceEditRequest,
     ]),
     AcademicSessionModule,
     TermModule,
@@ -39,16 +42,17 @@ import { AttendanceService, TeacherManualCheckinService } from './services';
   controllers: [
     ScheduleBasedAttendanceController,
     StudentDailyAttendanceController,
-    TeacherManualCheckinController,
+    TeachersAttendanceController,
   ],
   providers: [
     AttendanceService,
-    TeacherManualCheckinService,
+    TeachersAttendanceService,
     AttendanceModelAction,
     StudentDailyAttendanceModelAction,
     TeacherManualCheckinModelAction,
     TeacherDailyAttendanceModelAction,
+    AttendanceEditRequestModelAction,
   ],
-  exports: [AttendanceService, TeacherManualCheckinService],
+  exports: [AttendanceService, TeachersAttendanceService],
 })
 export class AttendanceModule {}

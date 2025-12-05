@@ -1,2 +1,2 @@
-export * from './teacher-manual-checkin-service';
+export * from './teachers-attendance.service';
 export * from './attendance.service';

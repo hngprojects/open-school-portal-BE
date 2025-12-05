@@ -6,12 +6,14 @@ import { TimetableModule } from '../timetable/timetable.module';
 
 import { NotificationController } from './controller';
 import { Notification } from './entities/notification.entity';
-import { NotificationModelAction } from './model-actions';
+import { NotificationModelAction } from './model-actions/notification.model-action';
+import { NotificationPreferenceModule } from './notification-preference.module';
 import { NotificationService, FeeNotificationService } from './services';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Notification]),
+    NotificationPreferenceModule,
     forwardRef(() => FeesModule),
     forwardRef(() => TimetableModule),
   ],

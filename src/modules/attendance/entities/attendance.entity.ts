@@ -27,6 +27,9 @@ export abstract class BaseAttendanceEntity extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   notes?: string;
 
+  @Column({ name: 'is_locked', type: 'boolean', default: false })
+  is_locked: boolean;
+
   // Common relations
   @ManyToOne(() => Student, { nullable: true })
   @JoinColumn({ name: 'student_id' })
