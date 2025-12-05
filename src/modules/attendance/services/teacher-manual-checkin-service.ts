@@ -22,7 +22,12 @@ import {
   TeacherManualCheckinResponseDto,
   ReviewTeacherManualCheckinDto,
   ReviewTeacherManualCheckinResponseDto,
+  TeacherAttendanceTodaySummaryResponseDto,
 } from '../dto';
+import {
+  CreateTeacherCheckoutDto,
+  TeacherCheckoutResponseDto,
+} from '../dto/teacher-manual-checkout.dto';
 import { TeacherManualCheckin } from '../entities/teacher-manual-checkin.entity';
 import {
   TeacherDailyAttendanceDecisionEnum,
@@ -274,6 +279,149 @@ export class TeacherManualCheckinService {
           excludeExtraneousValues: true,
         },
       ),
+    };
+  }
+
+  // --- TEACHER CHECKOUT ---
+  async teacherCheckout(
+    user: IRequestWithUser,
+    dto: CreateTeacherCheckoutDto,
+  ): Promise<{
+    message: string;
+    data: TeacherCheckoutResponseDto;
+  }> {
+    // --- Validate teacher exists ---
+    const teacher = await this.teacherModelAction.get({
+      identifierOptions: { user_id: user.user.userId },
+    });
+
+    if (!teacher) {
+      throw new NotFoundException(sysMsg.TEACHER_NOT_FOUND);
+    }
+
+    // --- Validate teacher is active ---
+    if (!teacher.is_active) {
+      throw new BadRequestException(sysMsg.TEACHER_IS_NOT_ACTIVE);
+    }
+
+    // --- Get today's date (server time) ---
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // --- Check if attendance record exists for today ---
+    const attendance = await this.teacherDailyAttendanceModelAction.get({
+      identifierOptions: {
+        teacher_id: teacher.id,
+        date: today,
+      },
+    });
+
+    if (!attendance) {
+      // No check-in for today — check if there's a pending manual request
+      const pendingRequest = await this.teacherManualCheckinModelAction.get({
+        identifierOptions: {
+          teacher_id: teacher.id,
+          check_in_date: today,
+          status: TeacherManualCheckinStatusEnum.PENDING,
+        },
+      });
+
+      if (pendingRequest) {
+        throw new BadRequestException(sysMsg.CANNOT_CHECKOUT_PENDING_CHECKIN);
+      }
+
+      throw new BadRequestException(sysMsg.NO_CHECKIN_FOR_TODAY);
+    }
+
+    // --- Check if already checked out ---
+    if (attendance.check_out_time) {
+      throw new BadRequestException(sysMsg.ALREADY_CHECKED_OUT);
+    }
+
+    // --- Calculate checkout time and total hours ---
+    const checkoutTime = new Date();
+    const checkInTime = new Date(attendance.check_in_time);
+    const totalHoursWorked =
+      (checkoutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60);
+    const roundedHours = Math.round(totalHoursWorked * 100) / 100; // Round to 2 decimal places
+
+    // --- Update attendance record ---
+    const updatedAttendance =
+      await this.teacherDailyAttendanceModelAction.update({
+        identifierOptions: { id: attendance.id },
+        updatePayload: {
+          check_out_time: checkoutTime,
+          total_hours: roundedHours,
+          notes: dto.notes
+            ? `${attendance.notes || ''} | Checkout: ${dto.notes}`
+            : attendance.notes,
+        },
+        transactionOptions: { useTransaction: false },
+      });
+
+    return {
+      message: sysMsg.TEACHER_CHECKOUT_SUCCESS,
+      data: plainToInstance(TeacherCheckoutResponseDto, updatedAttendance, {
+        excludeExtraneousValues: true,
+      }),
+    };
+  }
+
+  // --- GET TODAY'S ATTENDANCE SUMMARY ---
+  async getTodayAttendanceSummary(user: IRequestWithUser): Promise<{
+    message: string;
+    data: TeacherAttendanceTodaySummaryResponseDto;
+  }> {
+    // --- Validate teacher exists ---
+    const teacher = await this.teacherModelAction.get({
+      identifierOptions: { user_id: user.user.userId },
+    });
+
+    if (!teacher) {
+      throw new NotFoundException(sysMsg.TEACHER_NOT_FOUND);
+    }
+    // --- Validate teacher is active ---
+    if (!teacher.is_active) {
+      throw new BadRequestException(sysMsg.TEACHER_IS_NOT_ACTIVE);
+    }
+
+    // --- Get today's date (midnight) ---
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // --- Query attendance for today ---
+    const attendance = await this.teacherDailyAttendanceModelAction.get({
+      identifierOptions: {
+        teacher_id: teacher.id,
+        date: today,
+      },
+    });
+
+    // --- Check for pending manual request ---
+    const pendingRequest = await this.teacherManualCheckinModelAction.get({
+      identifierOptions: {
+        teacher_id: teacher.id,
+        check_in_date: today,
+        status: TeacherManualCheckinStatusEnum.PENDING,
+      },
+    });
+
+    // --- Return attendance summary ---
+    return {
+      message: attendance
+        ? sysMsg.ATTENDANCE_SUMMARY_FETCHED
+        : sysMsg.NO_ATTENDANCE_FOR_TODAY,
+      data: {
+        date: today,
+        status: attendance?.status ?? null,
+        check_in_time: attendance?.check_in_time ?? null,
+        check_out_time: attendance?.check_out_time ?? null,
+        total_hours: attendance?.total_hours ?? null,
+        source: attendance?.source ?? null,
+        has_attendance: !!attendance,
+        is_checked_out: !!attendance?.check_out_time,
+        has_pending_request: !!pendingRequest,
+      },
     };
   }
 }

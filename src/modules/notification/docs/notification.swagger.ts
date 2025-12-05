@@ -14,6 +14,9 @@ import {
   NotificationResponseDto,
 } from '../dto/user-notification-response.dto';
 
+import { UserNotificationByIdResponseDto } from '../dto/user-notification-by-id-response.dto';
+import { PaginatedNotificationsResponseDto } from '../dto/user-notification-response.dto';
+
 export const ApiNotificationTags = () =>
   applyDecorators(ApiTags('Notifications'));
 export const ApiNotificationBearerAuth = () => applyDecorators(ApiBearerAuth());
@@ -105,6 +108,38 @@ export const ApiUpdateNotificationReadStatus = () =>
       status: HttpStatus.OK,
       description: 'Notification read status updated successfully',
       type: NotificationResponseDto,
+
+export const ApiGetNotificationById = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Get notification by ID',
+      description:
+        'Retrieves a single notification by its ID for the authenticated user. ' +
+        'User ID is automatically extracted from the JWT token. ' +
+        'Users can only access their own notifications (authorization enforced).',
+    }),
+    ApiParam({
+      name: 'id',
+      description: 'Unique identifier of the notification',
+      type: String,
+      example: 'd4872d98-380c-4745-a4d9-d4c3161b92e0',
+    }),
+    ApiResponse({
+      status: HttpStatus.OK,
+      description: 'Notification retrieved successfully',
+      schema: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            example: 'Notification retrieved successfully',
+          },
+          data: {
+            $ref: '#/components/schemas/UserNotificationByIdResponseDto',
+          },
+        },
+      },
+      type: UserNotificationByIdResponseDto,
     }),
     ApiResponse({
       status: HttpStatus.UNAUTHORIZED,
@@ -117,5 +152,53 @@ export const ApiUpdateNotificationReadStatus = () =>
     ApiResponse({
       status: HttpStatus.BAD_REQUEST,
       description: 'Bad Request - Invalid input',
+      schema: {
+        type: 'object',
+        properties: {
+          statusCode: { type: 'number', example: 401 },
+          message: { type: 'string', example: 'Unauthorized' },
+        },
+      },
+    }),
+    ApiResponse({
+      status: HttpStatus.BAD_REQUEST,
+      description: 'Bad Request - Invalid UUID format',
+      schema: {
+        type: 'object',
+        properties: {
+          statusCode: { type: 'number', example: 400 },
+          message: {
+            type: 'string',
+            example: 'Validation failed (uuid is expected)',
+          },
+          error: { type: 'string', example: 'Bad Request' },
+        },
+      },
+    }),
+    ApiResponse({
+      status: HttpStatus.NOT_FOUND,
+      description: 'Notification not found',
+      schema: {
+        type: 'object',
+        properties: {
+          statusCode: { type: 'number', example: 404 },
+          message: { type: 'string', example: 'Notification not found' },
+        },
+      },
+    }),
+    ApiResponse({
+      status: HttpStatus.FORBIDDEN,
+      description:
+        "Forbidden - User attempting to access another user's notification",
+      schema: {
+        type: 'object',
+        properties: {
+          statusCode: { type: 'number', example: 403 },
+          message: {
+            type: 'string',
+            example: 'You are not authorized to view these notifications',
+          },
+        },
+      },
     }),
   );

@@ -1,7 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 
 import * as sysMsg from '../../../constants/system.messages';
+import { UserNotificationByIdResponseDto } from '../dto/user-notification-by-id-response.dto';
 import { ListNotificationsQueryDto } from '../dto/user-notification-list-query.dto';
 import {
   NotificationResponseDto,
@@ -88,10 +93,21 @@ export class NotificationService {
       },
     );
 
+    // Map notifications to include snake_case timestamps
+    const mappedPayload = payload.map((notification) => ({
+      ...notification,
+      created_at: notification.createdAt,
+      updated_at: notification.updatedAt,
+    }));
+
     // Transform to response DTOs
-    const notifications = plainToInstance(NotificationResponseDto, payload, {
-      excludeExtraneousValues: true,
-    });
+    const notifications = plainToInstance(
+      NotificationResponseDto,
+      mappedPayload,
+      {
+        excludeExtraneousValues: true,
+      },
+    );
 
     // Calculate pagination metadata
     const total = paginationMeta?.total ?? 0;
@@ -126,5 +142,45 @@ export class NotificationService {
       entity: notification,
       transactionOptions: { useTransaction: false },
     });
+
+  async getNotificationById(
+    notificationId: string,
+    userId: string,
+  ): Promise<{ message: string; data: UserNotificationByIdResponseDto }> {
+    // Fetch the notification by ID
+    const notification = await this.notificationModelAction.get({
+      identifierOptions: { id: notificationId },
+    });
+
+    // Check if notification exists
+    if (!notification) {
+      throw new NotFoundException(sysMsg.NOTIFICATION_NOT_FOUND);
+    }
+
+    // Verify user authorization - user can only access their own notifications
+    if (notification.recipient_id !== userId) {
+      throw new ForbiddenException(sysMsg.UNAUTHORIZED_NOTIFICATION_ACCESS);
+    }
+
+    // Map notification to include snake_case timestamps
+    const mappedNotification = {
+      ...notification,
+      created_at: notification.createdAt,
+      updated_at: notification.updatedAt,
+    };
+
+    // Transform to response DTO
+    const notificationDto = plainToInstance(
+      UserNotificationByIdResponseDto,
+      mappedNotification,
+      {
+        excludeExtraneousValues: true,
+      },
+    );
+
+    return {
+      message: sysMsg.NOTIFICATION_RETRIEVED,
+      data: notificationDto,
+    };
   }
 }

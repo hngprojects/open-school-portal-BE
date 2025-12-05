@@ -12,6 +12,7 @@ import * as sysMsg from '../../../constants/system.messages';
 import { TeacherModelAction } from '../../teacher/model-actions/teacher-actions';
 import {
   CreateTeacherManualCheckinDto,
+  CreateTeacherCheckoutDto,
   ListTeacherCheckinRequestsQueryDto,
   ReviewTeacherManualCheckinDto,
 } from '../dto';
@@ -693,6 +694,358 @@ describe('TeacherManualCheckinService', () => {
           }),
         }),
       );
+    });
+  });
+
+  describe('teacherCheckout', () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const mockAttendanceRecord = {
+      id: 'attendance-123',
+      teacher_id: 'teacher-123',
+      date: today,
+      check_in_time: new Date(`${today.toISOString().split('T')[0]}T08:00:00`),
+      check_out_time: null,
+      status: 'PRESENT',
+      notes: null,
+    };
+
+    const checkoutDto: CreateTeacherCheckoutDto = {
+      notes: 'Leaving for appointment',
+    };
+
+    it('should successfully checkout a teacher', async () => {
+      const updatedAttendance = {
+        ...mockAttendanceRecord,
+        check_out_time: new Date(),
+        total_hours: 8.5,
+      };
+
+      teacherModelAction.get.mockResolvedValue(mockTeacher as never);
+      teacherDailyAttendanceModelAction.get.mockResolvedValue(
+        mockAttendanceRecord as never,
+      );
+      teacherDailyAttendanceModelAction.update.mockResolvedValue(
+        updatedAttendance as never,
+      );
+
+      const result = await service.teacherCheckout(mockUser, checkoutDto);
+
+      expect(result.message).toBe(sysMsg.TEACHER_CHECKOUT_SUCCESS);
+      expect(result.data).toBeDefined();
+      expect(teacherDailyAttendanceModelAction.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          identifierOptions: { id: mockAttendanceRecord.id },
+          updatePayload: expect.objectContaining({
+            check_out_time: expect.any(Date),
+            total_hours: expect.any(Number),
+          }),
+        }),
+      );
+    });
+
+    it('should checkout without notes', async () => {
+      const dtoWithoutNotes: CreateTeacherCheckoutDto = {};
+
+      const updatedAttendance = {
+        ...mockAttendanceRecord,
+        check_out_time: new Date(),
+        total_hours: 8.5,
+      };
+
+      teacherModelAction.get.mockResolvedValue(mockTeacher as never);
+      teacherDailyAttendanceModelAction.get.mockResolvedValue(
+        mockAttendanceRecord as never,
+      );
+      teacherDailyAttendanceModelAction.update.mockResolvedValue(
+        updatedAttendance as never,
+      );
+
+      const result = await service.teacherCheckout(mockUser, dtoWithoutNotes);
+
+      expect(result.message).toBe(sysMsg.TEACHER_CHECKOUT_SUCCESS);
+    });
+
+    it('should throw NotFoundException when teacher not found', async () => {
+      teacherModelAction.get.mockResolvedValue(null);
+
+      await expect(
+        service.teacherCheckout(mockUser, checkoutDto),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        service.teacherCheckout(mockUser, checkoutDto),
+      ).rejects.toThrow(sysMsg.TEACHER_NOT_FOUND);
+    });
+
+    it('should throw BadRequestException when teacher is not active', async () => {
+      const inactiveTeacher = { ...mockTeacher, is_active: false };
+      teacherModelAction.get.mockResolvedValue(inactiveTeacher as never);
+
+      await expect(
+        service.teacherCheckout(mockUser, checkoutDto),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.teacherCheckout(mockUser, checkoutDto),
+      ).rejects.toThrow(sysMsg.TEACHER_IS_NOT_ACTIVE);
+    });
+
+    it('should throw BadRequestException when no checkin for today', async () => {
+      teacherModelAction.get.mockResolvedValue(mockTeacher as never);
+      teacherDailyAttendanceModelAction.get.mockResolvedValue(null);
+      teacherManualCheckinModelAction.get.mockResolvedValue(null);
+
+      await expect(
+        service.teacherCheckout(mockUser, checkoutDto),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.teacherCheckout(mockUser, checkoutDto),
+      ).rejects.toThrow(sysMsg.NO_CHECKIN_FOR_TODAY);
+    });
+
+    it('should throw BadRequestException when checkin is pending approval', async () => {
+      const pendingRequest = {
+        id: 'pending-123',
+        teacher_id: 'teacher-123',
+        check_in_date: today,
+        status: TeacherManualCheckinStatusEnum.PENDING,
+      };
+
+      teacherModelAction.get.mockResolvedValue(mockTeacher as never);
+      teacherDailyAttendanceModelAction.get.mockResolvedValue(null);
+      teacherManualCheckinModelAction.get.mockResolvedValue(
+        pendingRequest as never,
+      );
+
+      await expect(
+        service.teacherCheckout(mockUser, checkoutDto),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.teacherCheckout(mockUser, checkoutDto),
+      ).rejects.toThrow(sysMsg.CANNOT_CHECKOUT_PENDING_CHECKIN);
+    });
+
+    it('should throw BadRequestException when already checked out', async () => {
+      const alreadyCheckedOut = {
+        ...mockAttendanceRecord,
+        check_out_time: new Date(),
+      };
+
+      teacherModelAction.get.mockResolvedValue(mockTeacher as never);
+      teacherDailyAttendanceModelAction.get.mockResolvedValue(
+        alreadyCheckedOut as never,
+      );
+
+      await expect(
+        service.teacherCheckout(mockUser, checkoutDto),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.teacherCheckout(mockUser, checkoutDto),
+      ).rejects.toThrow(sysMsg.ALREADY_CHECKED_OUT);
+    });
+
+    it('should append checkout notes to existing notes', async () => {
+      const attendanceWithNotes = {
+        ...mockAttendanceRecord,
+        notes: 'Existing note',
+      };
+
+      const updatedAttendance = {
+        ...attendanceWithNotes,
+        check_out_time: new Date(),
+        total_hours: 8.5,
+        notes: 'Existing note | Checkout: Leaving for appointment',
+      };
+
+      teacherModelAction.get.mockResolvedValue(mockTeacher as never);
+      teacherDailyAttendanceModelAction.get.mockResolvedValue(
+        attendanceWithNotes as never,
+      );
+      teacherDailyAttendanceModelAction.update.mockResolvedValue(
+        updatedAttendance as never,
+      );
+
+      await service.teacherCheckout(mockUser, checkoutDto);
+
+      expect(teacherDailyAttendanceModelAction.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          updatePayload: expect.objectContaining({
+            notes: 'Existing note | Checkout: Leaving for appointment',
+          }),
+        }),
+      );
+    });
+
+    it('should calculate total hours worked correctly', async () => {
+      // Create a check-in time 8.5 hours ago
+      const checkInTime = new Date();
+      checkInTime.setHours(
+        checkInTime.getHours() - 8,
+        checkInTime.getMinutes() - 30,
+      );
+
+      const attendanceWith8HourShift = {
+        ...mockAttendanceRecord,
+        check_in_time: checkInTime,
+      };
+
+      teacherModelAction.get.mockResolvedValue(mockTeacher as never);
+      teacherDailyAttendanceModelAction.get.mockResolvedValue(
+        attendanceWith8HourShift as never,
+      );
+      teacherDailyAttendanceModelAction.update.mockResolvedValue({
+        ...attendanceWith8HourShift,
+        check_out_time: new Date(),
+        total_hours: 8.5,
+      } as never);
+
+      await service.teacherCheckout(mockUser, { notes: undefined });
+
+      expect(teacherDailyAttendanceModelAction.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          updatePayload: expect.objectContaining({
+            total_hours: expect.any(Number),
+          }),
+        }),
+      );
+    });
+  });
+
+  describe('getTodayAttendanceSummary', () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const mockAttendanceRecord = {
+      id: 'attendance-123',
+      teacher_id: 'teacher-123',
+      date: today,
+      check_in_time: new Date(`${today.toISOString().split('T')[0]}T08:00:00`),
+      check_out_time: null,
+      status: 'PRESENT',
+      total_hours: null,
+      source: 'MANUAL',
+    };
+
+    it('should return attendance summary when attendance exists', async () => {
+      teacherModelAction.get.mockResolvedValue(mockTeacher as never);
+      teacherDailyAttendanceModelAction.get.mockResolvedValue(
+        mockAttendanceRecord as never,
+      );
+      teacherManualCheckinModelAction.get.mockResolvedValue(null);
+
+      const result = await service.getTodayAttendanceSummary(mockUser);
+
+      expect(result.message).toBe(sysMsg.ATTENDANCE_SUMMARY_FETCHED);
+      expect(result.data).toBeDefined();
+      expect(result.data.has_attendance).toBe(true);
+      expect(result.data.status).toBe('PRESENT');
+      expect(result.data.check_in_time).toBeDefined();
+      expect(result.data.is_checked_out).toBe(false);
+      expect(result.data.has_pending_request).toBe(false);
+    });
+
+    it('should return summary with no attendance when none exists', async () => {
+      teacherModelAction.get.mockResolvedValue(mockTeacher as never);
+      teacherDailyAttendanceModelAction.get.mockResolvedValue(null);
+      teacherManualCheckinModelAction.get.mockResolvedValue(null);
+
+      const result = await service.getTodayAttendanceSummary(mockUser);
+
+      expect(result.message).toBe(sysMsg.NO_ATTENDANCE_FOR_TODAY);
+      expect(result.data.has_attendance).toBe(false);
+      expect(result.data.status).toBeNull();
+      expect(result.data.check_in_time).toBeNull();
+      expect(result.data.check_out_time).toBeNull();
+      expect(result.data.total_hours).toBeNull();
+      expect(result.data.is_checked_out).toBe(false);
+      expect(result.data.has_pending_request).toBe(false);
+    });
+
+    it('should indicate pending request when one exists', async () => {
+      const pendingRequest = {
+        id: 'pending-123',
+        teacher_id: 'teacher-123',
+        check_in_date: today,
+        status: TeacherManualCheckinStatusEnum.PENDING,
+      };
+
+      teacherModelAction.get.mockResolvedValue(mockTeacher as never);
+      teacherDailyAttendanceModelAction.get.mockResolvedValue(null);
+      teacherManualCheckinModelAction.get.mockResolvedValue(
+        pendingRequest as never,
+      );
+
+      const result = await service.getTodayAttendanceSummary(mockUser);
+
+      expect(result.data.has_pending_request).toBe(true);
+      expect(result.data.has_attendance).toBe(false);
+    });
+
+    it('should indicate checked out when checkout time exists', async () => {
+      const checkedOutAttendance = {
+        ...mockAttendanceRecord,
+        check_out_time: new Date(
+          `${today.toISOString().split('T')[0]}T17:00:00`,
+        ),
+        total_hours: 9,
+      };
+
+      teacherModelAction.get.mockResolvedValue(mockTeacher as never);
+      teacherDailyAttendanceModelAction.get.mockResolvedValue(
+        checkedOutAttendance as never,
+      );
+      teacherManualCheckinModelAction.get.mockResolvedValue(null);
+
+      const result = await service.getTodayAttendanceSummary(mockUser);
+
+      expect(result.data.is_checked_out).toBe(true);
+      expect(result.data.check_out_time).toBeDefined();
+      expect(result.data.total_hours).toBe(9);
+    });
+
+    it('should throw NotFoundException when teacher not found', async () => {
+      teacherModelAction.get.mockResolvedValue(null);
+
+      await expect(service.getTodayAttendanceSummary(mockUser)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.getTodayAttendanceSummary(mockUser)).rejects.toThrow(
+        sysMsg.TEACHER_NOT_FOUND,
+      );
+    });
+
+    it('should throw BadRequestException when teacher is not active', async () => {
+      const inactiveTeacher = { ...mockTeacher, is_active: false };
+      teacherModelAction.get.mockResolvedValue(inactiveTeacher as never);
+
+      await expect(service.getTodayAttendanceSummary(mockUser)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.getTodayAttendanceSummary(mockUser)).rejects.toThrow(
+        sysMsg.TEACHER_IS_NOT_ACTIVE,
+      );
+    });
+
+    it('should return correct date in summary', async () => {
+      teacherModelAction.get.mockResolvedValue(mockTeacher as never);
+      teacherDailyAttendanceModelAction.get.mockResolvedValue(null);
+      teacherManualCheckinModelAction.get.mockResolvedValue(null);
+
+      const result = await service.getTodayAttendanceSummary(mockUser);
+
+      expect(result.data.date).toEqual(today);
+    });
+
+    it('should return source when attendance exists', async () => {
+      teacherModelAction.get.mockResolvedValue(mockTeacher as never);
+      teacherDailyAttendanceModelAction.get.mockResolvedValue(
+        mockAttendanceRecord as never,
+      );
+      teacherManualCheckinModelAction.get.mockResolvedValue(null);
+
+      const result = await service.getTodayAttendanceSummary(mockUser);
+
+      expect(result.data.source).toBe('MANUAL');
     });
   });
 });

@@ -62,15 +62,15 @@ export class NotificationResponseDto {
   action_url?: string;
 
   @ApiProperty({
-    description: 'Timestamp when the notification was created',
-    example: '2025-12-04T23:30:00.000Z',
+    description: 'Date and time when the notification was created',
+    example: '2024-12-05T10:30:00.000Z',
   })
   @Expose()
   created_at: Date;
 
   @ApiProperty({
-    description: 'Timestamp when the notification was last updated',
-    example: '2025-12-04T23:30:00.000Z',
+    description: 'Date and time when the notification was last updated',
+    example: '2024-12-05T10:30:00.000Z',
   })
   @Expose()
   updated_at: Date;

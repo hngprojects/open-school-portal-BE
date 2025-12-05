@@ -8,6 +8,7 @@ import {
   Param,
   Body,
   NotFoundException,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
@@ -19,6 +20,7 @@ import { RolesGuard } from '../../auth/guards/roles.guard';
 import {
   ApiGetUserNotifications,
   ApiUpdateNotificationReadStatus,
+  ApiGetNotificationById,
 } from '../docs/notification.swagger';
 import { ListNotificationsQueryDto } from '../dto/user-notification-list-query.dto';
 import { NotificationService } from '../services/notification.service';
@@ -66,5 +68,16 @@ export class NotificationController {
       message: sysMsg.NOTIFICATION_READ_STATUS_UPDATED,
       data: updatedNotification,
     };
+
+  @Get(':id')
+  @SkipWrap()
+  @ApiGetNotificationById()
+  async getNotificationById(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: IRequestWithUser,
+  ) {
+    const userId = req.user.userId;
+
+    return this.notificationService.getNotificationById(id, userId);
   }
 }
