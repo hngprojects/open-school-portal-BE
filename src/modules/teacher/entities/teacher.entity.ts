@@ -29,8 +29,8 @@ export class Teacher extends BaseEntity {
   @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })
   user: User;
 
-  @OneToMany('Class', (cls: Class) => cls.teacher)
-  classes: Class[];
+  @OneToOne('Class', (cls: Class) => cls.teacher)
+  class: Class;
 
   @OneToMany(() => ClassSubject, (assignment) => assignment.teacher)
   subject_assignments: ClassSubject[];
