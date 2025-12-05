@@ -521,6 +521,60 @@ export class ClassService {
   }
 
   /**
+   * Unassigns a student from a class.
+   * Sets current_class_id to null and deactivates the class assignment.
+   */
+  async unassignStudentFromClass(
+    classId: string,
+    studentId: string,
+  ): Promise<{ message: string }> {
+    // 1. Validate class exists and get session ID
+    const classEntity =
+      await this.classStudentValidationService.validateClassExists(classId);
+    const sessionId = classEntity.academicSession.id;
+
+    // 2. Validate student exists
+    await this.classStudentValidationService.validateStudentExists(studentId);
+
+    // 3. Check for existing active assignment
+    const existingAssignment =
+      await this.classStudentValidationService.getExistingAssignment(
+        classId,
+        studentId,
+        sessionId,
+      );
+
+    if (!existingAssignment || !existingAssignment.is_active) {
+      throw new NotFoundException(sysMsg.STUDENT_NOT_ASSIGNED_TO_CLASS);
+    }
+
+    // 4. Perform unassignment in transaction
+    await this.dataSource.transaction(async (manager) => {
+      // Deactivate assignment
+      existingAssignment.is_active = false;
+      await manager.save(ClassStudent, existingAssignment);
+
+      // Update student's current_class_id to null
+      await this.studentModelAction.update({
+        identifierOptions: { id: studentId },
+        updatePayload: { current_class_id: null },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+    });
+
+    this.logger.info(
+      `Student ${studentId} unassigned from class ${classId} in session ${sessionId}`,
+    );
+
+    return {
+      message: sysMsg.STUDENT_UNASSIGNED_SUCCESSFULLY,
+    };
+  }
+
+  /**
    * Assigns multiple students to a class.
    * Uses the class's academic session automatically.
    */

@@ -97,6 +97,7 @@ describe('ClassService', () => {
 
   const mockClassStudentValidationService = {
     validateClassExists: jest.fn(),
+    validateStudentExists: jest.fn(),
     validateStudentAssignment: jest.fn(),
     validateBatchStudentAssignment: jest.fn(),
     getExistingAssignment: jest.fn(),
@@ -1078,6 +1079,99 @@ describe('ClassService', () => {
 
       expect(error.message).toContain('Cannot assign students:');
       expect(error.message).toContain('already assigned');
+    });
+  });
+
+  describe('unassignStudentFromClass', () => {
+    const classId = 'class-uuid-1';
+    const studentId = 'student-uuid-1';
+    const sessionId = 'session-uuid-1';
+
+    const mockClassEntity = {
+      id: classId,
+      name: 'JSS1',
+      academicSession: { id: sessionId },
+    } as unknown as Class;
+
+    it('should successfully unassign a student from a class', async () => {
+      // Arrange
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateStudentExists.mockResolvedValue(
+        undefined,
+      );
+      mockClassStudentValidationService.getExistingAssignment.mockResolvedValue(
+        {
+          id: 'assignment-id',
+          is_active: true,
+        } as ClassStudent,
+      );
+
+      // Act
+      const result = await service.unassignStudentFromClass(classId, studentId);
+
+      // Assert
+      expect(
+        mockClassStudentValidationService.validateClassExists,
+      ).toHaveBeenCalledWith(classId);
+      expect(
+        mockClassStudentValidationService.validateStudentExists,
+      ).toHaveBeenCalledWith(studentId);
+      expect(
+        mockClassStudentValidationService.getExistingAssignment,
+      ).toHaveBeenCalledWith(classId, studentId, sessionId);
+      expect(mockDataSource.transaction).toHaveBeenCalled();
+      expect(mockStudentModelAction.update).toHaveBeenCalledWith({
+        identifierOptions: { id: studentId },
+        updatePayload: { current_class_id: null },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: expect.any(Object),
+        },
+      });
+      expect(result).toEqual({
+        message: sysMsg.STUDENT_UNASSIGNED_SUCCESSFULLY,
+      });
+    });
+
+    it('should throw NotFoundException if student is not assigned to the class', async () => {
+      // Arrange
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateStudentExists.mockResolvedValue(
+        undefined,
+      );
+      mockClassStudentValidationService.getExistingAssignment.mockResolvedValue(
+        null,
+      );
+
+      // Act & Assert
+      await expect(
+        service.unassignStudentFromClass(classId, studentId),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException if assignment is inactive', async () => {
+      // Arrange
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateStudentExists.mockResolvedValue(
+        undefined,
+      );
+      mockClassStudentValidationService.getExistingAssignment.mockResolvedValue(
+        {
+          id: 'assignment-id',
+          is_active: false,
+        } as ClassStudent,
+      );
+
+      // Act & Assert
+      await expect(
+        service.unassignStudentFromClass(classId, studentId),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });
