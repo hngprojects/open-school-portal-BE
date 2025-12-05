@@ -521,6 +521,13 @@ export const TEACHER_CHECKOUT_SUCCESS = 'Teacher checkout successful';
 export const NO_ATTENDANCE_FOR_TODAY = 'No attendance record for today';
 export const ATTENDANCE_SUMMARY_FETCHED =
   'Attendance summary fetched successfully';
+export const CHECK_IN_DATE_CANNOT_BE_MORE_THAN_DAYS_IN_THE_PAST = (
+  maxPastDays: number,
+) => `Check-in date cannot be more than ${maxPastDays} days in the past`;
+export const PENDING_MANUAL_CHECKIN_REQUEST_EXISTS_FOR_THIS_DATE =
+  'A pending manual check-in request exists for this date. Please wait for approval or cancel the request.';
+export const TEACHER_AUTO_CHECKIN_SUCCESS =
+  'Teacher auto checkin created successfully';
 //attendance message
 export const REGISTRATION_NUMBER_REQUIRED =
   'Child registration number is required';
