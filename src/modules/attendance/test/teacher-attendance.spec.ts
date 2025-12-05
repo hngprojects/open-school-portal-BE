@@ -20,7 +20,7 @@ import { TeacherDailyAttendanceDecisionEnum } from '../enums';
 import { TeacherManualCheckinStatusEnum } from '../enums/teacher-manual-checkin.enum';
 import { TeacherManualCheckinModelAction } from '../model-actions';
 import { TeacherDailyAttendanceModelAction } from '../model-actions/teacher-daily-attendance.action';
-import { TeacherManualCheckinService } from '../services/teacher-manual-checkin-service';
+import { TeacherManualCheckinService } from '../services/teachers-attendance.service';
 
 describe('TeacherManualCheckinService', () => {
   let service: TeacherManualCheckinService;

@@ -8,7 +8,7 @@ export enum TeacherDailyAttendanceStatusEnum {
 
 export enum TeacherDailyAttendanceSourceEnum {
   MANUAL = 'MANUAL',
-  AUTOMATED = 'NFC',
+  AUTOMATED = 'AUTOMATED',
 }
 
 export enum TeacherDailyAttendanceDecisionEnum {

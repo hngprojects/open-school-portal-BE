@@ -353,7 +353,8 @@ export class TeacherManualCheckinService {
           check_out_time: checkoutTime,
           total_hours: roundedHours,
           notes: dto.notes
-            ? `${attendance.notes || ''} | Checkout: ${dto.notes}`
+            ? (attendance.notes ? `${attendance.notes} | ` : '') +
+              `Checkout: ${dto.notes}`
             : attendance.notes,
         },
         transactionOptions: { useTransaction: false },
