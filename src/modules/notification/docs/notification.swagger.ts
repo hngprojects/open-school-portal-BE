@@ -122,6 +122,21 @@ export const ApiGetNotificationById = () =>
       },
     }),
     ApiResponse({
+      status: HttpStatus.BAD_REQUEST,
+      description: 'Bad Request - Invalid UUID format',
+      schema: {
+        type: 'object',
+        properties: {
+          statusCode: { type: 'number', example: 400 },
+          message: {
+            type: 'string',
+            example: 'Validation failed (uuid is expected)',
+          },
+          error: { type: 'string', example: 'Bad Request' },
+        },
+      },
+    }),
+    ApiResponse({
       status: HttpStatus.NOT_FOUND,
       description: 'Notification not found',
       schema: {

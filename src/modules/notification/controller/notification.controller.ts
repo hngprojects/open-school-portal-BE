@@ -1,4 +1,12 @@
-import { Controller, Get, Query, UseGuards, Req, Param } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  UseGuards,
+  Req,
+  Param,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { SkipWrap } from '../../../common/decorators/skip-wrap.decorator';
@@ -35,7 +43,7 @@ export class NotificationController {
   @SkipWrap()
   @ApiGetNotificationById()
   async getNotificationById(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Req() req: IRequestWithUser,
   ) {
     const userId = req.user.userId;
