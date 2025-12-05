@@ -20,10 +20,10 @@ import { TeacherDailyAttendanceDecisionEnum } from '../enums';
 import { TeacherManualCheckinStatusEnum } from '../enums/teacher-manual-checkin.enum';
 import { TeacherManualCheckinModelAction } from '../model-actions';
 import { TeacherDailyAttendanceModelAction } from '../model-actions/teacher-daily-attendance.action';
-import { TeacherManualCheckinService } from '../services/teachers-attendance.service';
+import { TeachersAttendanceService } from '../services/teachers-attendance.service';
 
-describe('TeacherManualCheckinService', () => {
-  let service: TeacherManualCheckinService;
+describe('TeachersAttendanceService', () => {
+  let service: TeachersAttendanceService;
   let module: TestingModule;
   let teacherManualCheckinModelAction: jest.Mocked<TeacherManualCheckinModelAction>;
   let teacherModelAction: jest.Mocked<TeacherModelAction>;
@@ -96,7 +96,7 @@ describe('TeacherManualCheckinService', () => {
 
     module = await Test.createTestingModule({
       providers: [
-        TeacherManualCheckinService,
+        TeachersAttendanceService,
         {
           provide: TeacherManualCheckinModelAction,
           useValue: mockTeacherManualCheckinModelAction,
@@ -120,9 +120,7 @@ describe('TeacherManualCheckinService', () => {
       ],
     }).compile();
 
-    service = module.get<TeacherManualCheckinService>(
-      TeacherManualCheckinService,
-    );
+    service = module.get<TeachersAttendanceService>(TeachersAttendanceService);
     teacherManualCheckinModelAction = module.get(
       TeacherManualCheckinModelAction,
     );

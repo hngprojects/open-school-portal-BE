@@ -8,7 +8,7 @@ import { TeachersModule } from '../teacher/teacher.module';
 import {
   ScheduleBasedAttendanceController,
   StudentDailyAttendanceController,
-  TeacherManualCheckinController,
+  TeachersAttendanceController,
 } from './controllers';
 import {
   ScheduleBasedAttendance,
@@ -22,7 +22,7 @@ import {
   TeacherManualCheckinModelAction,
 } from './model-actions';
 import { TeacherDailyAttendanceModelAction } from './model-actions/teacher-daily-attendance.action';
-import { AttendanceService, TeacherManualCheckinService } from './services';
+import { AttendanceService, TeachersAttendanceService } from './services';
 
 @Module({
   imports: [
@@ -39,16 +39,16 @@ import { AttendanceService, TeacherManualCheckinService } from './services';
   controllers: [
     ScheduleBasedAttendanceController,
     StudentDailyAttendanceController,
-    TeacherManualCheckinController,
+    TeachersAttendanceController,
   ],
   providers: [
     AttendanceService,
-    TeacherManualCheckinService,
+    TeachersAttendanceService,
     AttendanceModelAction,
     StudentDailyAttendanceModelAction,
     TeacherManualCheckinModelAction,
     TeacherDailyAttendanceModelAction,
   ],
-  exports: [AttendanceService, TeacherManualCheckinService],
+  exports: [AttendanceService, TeachersAttendanceService],
 })
 export class AttendanceModule {}
