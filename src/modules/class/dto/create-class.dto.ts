@@ -30,9 +30,13 @@ export class CreateClassDto {
   })
   @IsOptional()
   @IsString()
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.trim().toUpperCase() : value,
-  )
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      return trimmed === '' ? undefined : trimmed.toUpperCase();
+    }
+    return value;
+  })
   arm?: string;
 
   @ApiPropertyOptional({
@@ -41,7 +45,7 @@ export class CreateClassDto {
     example: '550e8400-e29b-41d4-a716-446655440000',
   })
   @IsOptional()
-  @IsUUID('4')
+  @IsUUID('4', { message: 'teacherId must be a valid UUID' })
   teacherId?: string;
 }
 

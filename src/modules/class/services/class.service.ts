@@ -25,7 +25,7 @@ import {
   UpdateClassDto,
   AssignStudentsToClassDto,
   StudentAssignmentResponseDto,
-  ClassResponseDto,
+  GetTeacherClassResponseDto,
 } from '../dto';
 import { ClassStudent } from '../entities/class-student.entity';
 import { ClassStudentModelAction } from '../model-actions/class-student.action';
@@ -86,7 +86,7 @@ export class ClassService {
   async getTeachersByClass(
     classId: string,
     sessionId?: string,
-  ): Promise<TeacherAssignmentResponseDto[]> {
+  ): Promise<{ message: string; data: TeacherAssignmentResponseDto[] }> {
     const classEntity = await this.classModelAction.get({
       identifierOptions: { id: classId },
       relations: {
@@ -107,23 +107,29 @@ export class ClassService {
 
     // If no teacher assigned, return empty array
     if (!classEntity.teacher) {
-      return [];
+      return {
+        message: sysMsg.TEACHERS_FETCHED,
+        data: [],
+      };
     }
 
     // Return single teacher as array for backward compatibility
     const streamList: Stream[] = classEntity.streams || [];
     const streamNames = streamList.map((s) => s.name).join(', ');
 
-    return [
-      {
-        teacher_id: classEntity.teacher.id,
-        name: classEntity.teacher.user
-          ? `${classEntity.teacher.user.first_name} ${classEntity.teacher.user.last_name}`
-          : `Teacher ${classEntity.teacher.employment_id}`,
-        assignment_date: classEntity.createdAt,
-        streams: streamNames,
-      },
-    ];
+    return {
+      message: sysMsg.TEACHERS_FETCHED,
+      data: [
+        {
+          teacher_id: classEntity.teacher.id,
+          name: classEntity.teacher.user
+            ? `${classEntity.teacher.user.first_name} ${classEntity.teacher.user.last_name}`
+            : `Teacher ${classEntity.teacher.employment_id}`,
+          assignment_date: classEntity.createdAt,
+          streams: streamNames,
+        },
+      ],
+    };
   }
 
   /**
@@ -132,15 +138,29 @@ export class ClassService {
   async create(createClassDto: CreateClassDto): Promise<ICreateClassResponse> {
     const { name, arm, teacherId } = createClassDto;
 
-    let teacherDetails = null;
+    let teacherDetails: {
+      id: string;
+      name: string;
+      employment_id: string;
+    } | null = null;
     // Validate teacher exists if teacherId is provided
     if (teacherId) {
       const teacher = await this.teacherModelAction.get({
         identifierOptions: { id: teacherId },
-        relations: { user: true },
+        relations: { user: true, class: true },
       });
       if (!teacher) {
         throw new NotFoundException(sysMsg.TEACHER_NOT_FOUND);
+      }
+
+      // Check if teacher is already assigned to another class
+      if (teacher.class) {
+        throw new ConflictException(
+          sysMsg.TEACHER_ALREADY_ASSIGNED_TO_CLASS(
+            teacher.class.name,
+            teacher.class.arm,
+          ),
+        );
       }
 
       teacherDetails = this.mapTeacherToDetailsDto(teacher);
@@ -259,7 +279,11 @@ export class ClassService {
       }
 
       // 4. Handle teacher assignment logic
-      let teacherDetails = null;
+      let teacherDetails: {
+        id: string;
+        name: string;
+        employment_id: string;
+      } | null = null;
       const updatePayload: Partial<{
         name: string;
         arm: string;
@@ -271,10 +295,20 @@ export class ClassService {
           // Assign new teacher
           const teacher = await this.teacherModelAction.get({
             identifierOptions: { id: teacherId },
-            relations: { user: true },
+            relations: { user: true, class: true },
           });
           if (!teacher) {
             throw new NotFoundException(sysMsg.TEACHER_NOT_FOUND);
+          }
+
+          // Check if teacher is already assigned to another class (not this one)
+          if (teacher.class && teacher.class.id !== classId) {
+            throw new ConflictException(
+              sysMsg.TEACHER_ALREADY_ASSIGNED_TO_CLASS(
+                teacher.class.name,
+                teacher.class.arm,
+              ),
+            );
           }
 
           updatePayload.teacher = { id: teacherId };
@@ -314,11 +348,17 @@ export class ClassService {
   /**
    * Fetches all classes grouped by name and academic session, including arm.
    */
-  async getGroupedClasses(page = 1, limit = 20) {
+  async getGroupedClasses(page = 1, limit = 20, teacherId?: string) {
+    // Build filter options
+    const filterOptions: Record<string, unknown> = { is_deleted: false };
+    if (teacherId) {
+      filterOptions.teacher = { id: teacherId };
+    }
+
     // Use generic list method from AbstractModelAction
     const { payload: classesRaw, paginationMeta } =
       await this.classModelAction.list({
-        filterRecordOptions: { is_deleted: false },
+        filterRecordOptions: filterOptions,
         relations: { academicSession: true, teacher: { user: true } },
         order: { name: 'ASC', arm: 'ASC' },
         paginationPayload: { page, limit },
@@ -772,21 +812,22 @@ export class ClassService {
   }
 
   /**
-   * Fetches classes assigned to a specific teacher as form teacher.
+   * Fetches the class assigned to a specific teacher as form teacher.
    * Optionally filters by session ID, defaults to active session.
+   * Returns null if no class is assigned (one-to-one relationship).
    */
-  async getClassesByTeacher(
+  async getClassByTeacher(
     teacherId: string,
     sessionId?: string,
-  ): Promise<ClassResponseDto[]> {
+  ): Promise<GetTeacherClassResponseDto> {
     // Handle Session Logic (Default to active if null)
     const target_session = sessionId || (await this.getActiveSession());
     const target_session_id =
       typeof target_session === 'string' ? target_session : target_session.id;
 
-    // Fetch classes directly assigned to this teacher
-    const { payload: classes } = await this.classModelAction.list({
-      filterRecordOptions: {
+    // Fetch class directly assigned to this teacher (one-to-one)
+    const classEntity = await this.classModelAction.get({
+      identifierOptions: {
         teacher: { id: teacherId },
         academicSession: { id: target_session_id },
         is_deleted: false,
@@ -796,15 +837,26 @@ export class ClassService {
       },
     });
 
+    // Return null if no class found
+    if (!classEntity) {
+      return {
+        message: sysMsg.CLASS_FETCHED,
+        data: null,
+      };
+    }
+
     // Map to DTO
-    return classes.map((classEntity) => ({
-      id: classEntity.id,
-      name: classEntity.name,
-      arm: classEntity.arm,
-      academicSession: {
-        id: classEntity.academicSession.id,
-        name: classEntity.academicSession.name,
+    return {
+      message: sysMsg.CLASS_FETCHED,
+      data: {
+        id: classEntity.id,
+        name: classEntity.name,
+        arm: classEntity.arm,
+        academicSession: {
+          id: classEntity.academicSession.id,
+          name: classEntity.academicSession.name,
+        },
       },
-    }));
+    };
   }
 }

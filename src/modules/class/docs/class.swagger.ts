@@ -83,11 +83,13 @@ export const ClassSwagger = {
         },
         notFound: {
           status: HttpStatus.NOT_FOUND,
-          description: sysMsg.SESSION_NOT_FOUND,
+          description: 'Teacher not found or ' + sysMsg.SESSION_NOT_FOUND,
         },
         conflict: {
           status: HttpStatus.CONFLICT,
-          description: sysMsg.CLASS_ALREADY_EXIST,
+          description:
+            sysMsg.CLASS_ALREADY_EXIST +
+            ' or teacher is already assigned to another class',
         },
       },
     },
@@ -197,12 +199,12 @@ export const ClassSwagger = {
         },
         notFound: {
           status: HttpStatus.NOT_FOUND,
-          description: 'Class not found',
+          description: 'Class not found or teacher not found',
         },
         conflict: {
           status: HttpStatus.CONFLICT,
           description:
-            'Class with this name/arm already exists in the session.',
+            'Class with this name/arm already exists in the session or teacher is already assigned to another class.',
         },
       },
     },
@@ -428,9 +430,9 @@ export const ClassSwagger = {
     },
     getTeacherClasses: {
       operation: {
-        summary: 'Get classes assigned to the authenticated teacher',
+        summary: 'Get class assigned to the authenticated teacher',
         description:
-          'Returns a list of classes assigned to the currently authenticated teacher. Filters by active session by default, but can be filtered by a specific sessionId via query parameter.',
+          'Returns the class assigned to the currently authenticated teacher (one-to-one relationship). Returns null if no class is assigned. Filters by active session by default, but can be filtered by a specific sessionId via query parameter.',
       },
       parameters: {
         sessionId: {
@@ -444,13 +446,66 @@ export const ClassSwagger = {
       },
       responses: {
         ok: {
-          description: 'List of classes assigned to the teacher',
+          description: 'Class assigned to the teacher (null if none)',
           type: ClassResponseDto,
-          isArray: true,
+          isArray: false,
         },
         badRequest: {
           status: HttpStatus.BAD_REQUEST,
           description: 'Teacher profile not found for the authenticated user',
+        },
+      },
+    },
+    getClassByTeacherId: {
+      operation: {
+        summary: 'Get class assigned to a specific teacher (Admin/Teacher)',
+        description:
+          'Returns the class assigned to a specific teacher ID (one-to-one relationship). Returns null if no class is assigned. Available to both Admin and Teacher roles. Filters by active session by default, but can be filtered by a specific sessionId via query parameter.',
+      },
+      parameters: {
+        teacherId: {
+          name: 'teacherId',
+          description: 'The UUID of the teacher',
+          required: true,
+          type: String,
+        },
+        sessionId: {
+          name: 'sessionId',
+          description:
+            'Optional session ID to filter by specific session. If not provided, uses the active session.',
+          required: false,
+          type: String,
+        },
+      },
+      responses: {
+        ok: {
+          description: 'Class assigned to the teacher (null if none)',
+          schema: {
+            type: 'object',
+            properties: {
+              message: {
+                type: 'string',
+                example: 'class fetched successfully',
+              },
+              data: {
+                oneOf: [
+                  {
+                    type: 'object',
+                    $ref: '#/components/schemas/ClassResponseDto',
+                  },
+                  { type: 'null' },
+                ],
+              },
+            },
+          },
+        },
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          description: 'Teacher not found',
+        },
+        badRequest: {
+          status: HttpStatus.BAD_REQUEST,
+          description: 'Invalid teacher ID or session ID (must be valid UUIDs)',
         },
       },
     },

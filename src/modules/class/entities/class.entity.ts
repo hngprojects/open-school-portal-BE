@@ -33,7 +33,7 @@ export class Class extends BaseEntity {
   @JoinColumn({ name: 'academic_session_id' })
   academicSession: AcademicSession;
 
-  @ManyToOne(() => Teacher, (teacher) => teacher.classes, { nullable: true })
+  @OneToOne(() => Teacher, (teacher) => teacher.class, { nullable: true })
   @JoinColumn({ name: 'teacher_id' })
   teacher?: Teacher;
 

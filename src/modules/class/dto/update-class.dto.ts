@@ -24,9 +24,13 @@ export class UpdateClassDto {
   })
   @IsOptional()
   @IsString()
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.trim().toUpperCase() : value,
-  )
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      return trimmed === '' ? undefined : trimmed.toUpperCase();
+    }
+    return value;
+  })
   arm?: string;
 
   @ApiProperty({
@@ -34,8 +38,10 @@ export class UpdateClassDto {
     description:
       'Teacher UUID to assign as the form teacher. Set to null to remove the teacher (optional).',
     required: false,
+    nullable: true,
   })
   @IsOptional()
-  @IsUUID('4')
+  @IsUUID('4', { message: 'teacherId must be a valid UUID' })
+  @Transform(({ value }) => (value === null ? null : value))
   teacherId?: string | null;
 }

@@ -31,6 +31,7 @@ import {
   DocsAssignSingleStudent,
   DocsGetClassStudents,
   DocsGetTeacherClasses,
+  DocsGetClassByTeacherId,
 } from '../docs/class.decorator';
 import {
   CreateClassDto,
@@ -43,6 +44,7 @@ import {
   StudentAssignmentResponseDto,
   AssignSingleStudentResponseDto,
   GetStudentsQueryDto,
+  GetTeacherClassResponseDto,
 } from '../dto';
 import { GetTeachersQueryDto } from '../dto/get-teachers-query.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
@@ -80,18 +82,11 @@ export class ClassController {
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @DocsGetGroupedClasses()
   async getGroupedClasses(@Query() query: ListGroupedClassesDto) {
-    return this.classService.getGroupedClasses(query.page, query.limit);
-  }
-
-  // --- PATCH: UPDATE CLASS (ADMIN ONLY) ---
-  @Patch(':id')
-  @Roles(UserRole.ADMIN)
-  @DocsUpdateClass()
-  async updateClass(
-    @Param('id', ParseUUIDPipe) classId: string,
-    @Body() updateClassDto: UpdateClassDto,
-  ) {
-    return this.classService.updateClass(classId, updateClassDto);
+    return this.classService.getGroupedClasses(
+      query.page,
+      query.limit,
+      query.teacherId,
+    );
   }
 
   // --- GET: TOTAL NUMBER OF CLASSES ---
@@ -104,6 +99,17 @@ export class ClassController {
       query.name,
       query.arm,
     );
+  }
+
+  // --- PATCH: UPDATE CLASS (ADMIN ONLY) ---
+  @Patch(':id')
+  @Roles(UserRole.ADMIN)
+  @DocsUpdateClass()
+  async updateClass(
+    @Param('id', ParseUUIDPipe) classId: string,
+    @Body() updateClassDto: UpdateClassDto,
+  ) {
+    return this.classService.updateClass(classId, updateClassDto);
   }
 
   // --- POST: ASSIGN SINGLE STUDENT TO CLASS (ADMIN ONLY) ---
@@ -128,19 +134,30 @@ export class ClassController {
     return this.classService.assignStudentsToClass(classId, assignStudentsDto);
   }
 
-  // --- GET: GET CLASSES ASSIGNED TO TEACHER ---
+  // --- GET: GET CLASS ASSIGNED TO TEACHER ---
   @Get('teacher/assigned')
   @Roles(UserRole.TEACHER)
   @DocsGetTeacherClasses()
   async getTeacherClasses(
     @Req() req: IRequestWithUser,
     @Query('session_id') sessionId?: string,
-  ): Promise<ClassResponseDto[]> {
+  ): Promise<GetTeacherClassResponseDto> {
     const teacherId = req.user.teacher_id;
     if (!teacherId) {
       throw new BadRequestException(sysMsg.TEACHER_PROFILE_NOT_FOUND);
     }
-    return this.classService.getClassesByTeacher(teacherId, sessionId);
+    return this.classService.getClassByTeacher(teacherId, sessionId);
+  }
+
+  // --- GET: GET CLASS ASSIGNED TO A SPECIFIC TEACHER (ADMIN/TEACHER) ---
+  @Get('teacher/:teacherId/class')
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @DocsGetClassByTeacherId()
+  async getClassByTeacherId(
+    @Param('teacherId', ParseUUIDPipe) teacherId: string,
+    @Query('sessionId') sessionId?: string,
+  ): Promise<GetTeacherClassResponseDto> {
+    return this.classService.getClassByTeacher(teacherId, sessionId);
   }
 
   // --- GET: GET STUDENTS IN CLASS ---
@@ -154,13 +171,14 @@ export class ClassController {
     return this.classService.getStudentsByClass(classId, query.session_id);
   }
 
+  // --- GET: GET TEACHERS IN CLASS ---
   @Get(':id/teachers')
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @DocsGetClassTeachers()
   async getTeachers(
     @Param('id', ParseUUIDPipe) classId: string,
     @Query() query: GetTeachersQueryDto,
-  ): Promise<TeacherAssignmentResponseDto[]> {
+  ): Promise<{ message: string; data: TeacherAssignmentResponseDto[] }> {
     return this.classService.getTeachersByClass(classId, query.session_id);
   }
 
@@ -173,6 +191,7 @@ export class ClassController {
   ): Promise<ClassResponseDto> {
     return this.classService.getClassById(classId);
   }
+
   // --- DELETE: SOFT DELETE CLASS (ADMIN ONLY) ---
   @Delete(':id')
   @Roles(UserRole.ADMIN)

@@ -187,12 +187,16 @@ describe('ClassService', () => {
         },
       });
 
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual({
-        teacher_id: 'teacher-uuid-101',
-        name: 'John Doe',
-        assignment_date: mockClass.createdAt,
-        streams: 'Science',
+      expect(result).toEqual({
+        message: 'teachers fetched successfully',
+        data: [
+          {
+            teacher_id: 'teacher-uuid-101',
+            name: 'John Doe',
+            assignment_date: mockClass.createdAt,
+            streams: 'Science',
+          },
+        ],
       });
     });
 
@@ -202,7 +206,10 @@ describe('ClassService', () => {
 
       const result = await service.getTeachersByClass(MOCK_CLASS_ID);
 
-      expect(result).toEqual([]);
+      expect(result).toEqual({
+        message: 'teachers fetched successfully',
+        data: [],
+      });
     });
 
     it('should throw NotFoundException if the class does not exist', async () => {
@@ -248,7 +255,7 @@ describe('ClassService', () => {
 
       expect(mockTeacherModelAction.get).toHaveBeenCalledWith({
         identifierOptions: { id: 'teacher-uuid-1' },
-        relations: { user: true },
+        relations: { user: true, class: true },
       });
 
       expect(classModelAction.find).toHaveBeenCalledWith({
