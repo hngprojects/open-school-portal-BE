@@ -2,6 +2,7 @@ import { PaginationMeta } from '@hng-sdk/orm';
 import {
   BadRequestException,
   ForbiddenException,
+  forwardRef,
   Inject,
   Injectable,
   NotFoundException,
@@ -9,6 +10,8 @@ import {
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource, FindOptionsWhere } from 'typeorm';
 import { Logger } from 'winston';
+
+import { ResultService } from 'src/modules/result/services';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { ClassSubject } from '../../class/entities';
@@ -46,6 +49,8 @@ export class GradeSubmissionService {
     private readonly gradeModelAction: GradeModelAction,
     private readonly studentModelAction: StudentModelAction,
     private readonly dataSource: DataSource,
+    @Inject(forwardRef(() => ResultService))
+    private readonly resultService: ResultService,
   ) {
     this.logger = baseLogger.child({ context: GradeSubmissionService.name });
   }
@@ -425,6 +430,22 @@ export class GradeSubmissionService {
     this.logger.info(sysMsg.GRADE_APPROVED, {
       submissionId: id,
     });
+
+    // Automatically generate results
+    try {
+      await this.resultService.generateClassResults(
+        submission.class_id,
+        submission.term_id,
+        submission.academic_session_id,
+      );
+    } catch (error) {
+      this.logger.error(sysMsg.AUTO_RESULTS_FAILED, {
+        submissionId: id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      // We do not throw here, because the grade was approved successfully.
+      // The generation failure can be retried later.
+    }
 
     return { message: sysMsg.GRADE_APPROVED };
   }

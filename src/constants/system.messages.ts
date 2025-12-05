@@ -470,6 +470,8 @@ export const RESULT_NOT_FOUND = 'Result not found';
 export const RESULT_GENERATED_SUCCESS = (count: number) =>
   `Successfully generated ${count} result(s)`;
 export const RESULTS_RETRIEVED_SUCCESS = 'Results retrieved successfully';
+export const AUTO_RESULTS_FAILED =
+  'Failed to auto-generate results after grade approval';
 
 export const ACADEMIC_SESSION_NOT_FOUND = 'Academic session not found';
 export const TERM_NOT_IN_SESSION =

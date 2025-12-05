@@ -9,6 +9,8 @@ import {
   TermName,
   TermStatus,
 } from 'src/modules/academic-term/entities/term.entity';
+import { ClassSubjectModelAction } from 'src/modules/class/model-actions';
+import { ResultNotificationService } from 'src/modules/notification/services/result.notification.service';
 import { Student } from 'src/modules/student/entities/student.entity';
 
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
@@ -248,6 +250,20 @@ describe('ResultService', () => {
             getRepository: jest.fn().mockReturnValue({
               createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
             }),
+          },
+        },
+        {
+          provide: ResultNotificationService,
+          useValue: {
+            handleResultPublication: jest.fn().mockResolvedValue(null),
+          },
+        },
+        {
+          provide: ClassSubjectModelAction,
+          useValue: {
+            list: jest
+              .fn()
+              .mockResolvedValue({ payload: [], paginationMeta: {} }),
           },
         },
       ],

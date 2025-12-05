@@ -7,6 +7,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
 
+import { ResultService } from 'src/modules/result/services';
+
 import { StudentModelAction } from '../../student/model-actions';
 import { CreateGradeSubmissionDto } from '../dto';
 import { GradeSubmissionStatus } from '../entities';
@@ -69,6 +71,16 @@ describe('GradeService', () => {
             repository: {
               createQueryBuilder: jest.fn(),
             },
+          },
+        },
+        {
+          provide: ResultService,
+          useValue: {
+            generateClassResults: jest.fn().mockResolvedValue({
+              message: 'Results generated',
+              generated_count: 0,
+              result_ids: [],
+            }),
           },
         },
         {
