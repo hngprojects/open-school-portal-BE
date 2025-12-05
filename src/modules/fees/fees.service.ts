@@ -11,6 +11,8 @@ import { Logger } from 'winston';
 import * as sysMsg from '../../constants/system.messages';
 import { TermModelAction } from '../academic-term/model-actions';
 import { ClassModelAction } from '../class/model-actions/class.actions';
+import { FeeNotificationService } from '../notification/services/fee-notification.service';
+import { FeeNotificationType } from '../shared/enums';
 
 import { FeeComponentResponseDto } from './dto/fee-component-response.dto';
 import { FeeStudentResponseDto } from './dto/fee-students-response.dto';
@@ -29,6 +31,7 @@ export class FeesService {
     private readonly termModelAction: TermModelAction,
     private readonly classModelAction: ClassModelAction,
     private readonly dataSource: DataSource,
+    private readonly feeNotificationService: FeeNotificationService,
     @Inject(WINSTON_MODULE_PROVIDER) logger: Logger,
   ) {
     this.logger = logger.child({ context: FeesService.name });
@@ -83,6 +86,13 @@ export class FeesService {
         class_count: classes.length,
         created_by: createdBy,
       });
+
+      // TODO: Consider emitting an event here for fee update
+      // this.eventEmitter.emit('fee.created', savedFee.id);
+      this.feeNotificationService.createAndUpdateFeesNotification(
+        savedFee.id,
+        FeeNotificationType.CREATED,
+      );
 
       return savedFee;
     });
@@ -179,6 +189,12 @@ export class FeesService {
         status: updatedFee.status,
       });
 
+      // TODO: Consider emitting an event here for fee update
+      // this.eventEmitter.emit('fee.updated', id);
+      this.feeNotificationService.createAndUpdateFeesNotification(
+        id,
+        FeeNotificationType.UPDATED,
+      );
       return updatedFee;
     });
   }
@@ -257,6 +273,13 @@ export class FeesService {
       new_status: FeeStatus.INACTIVE,
     });
 
+    // TODO: Consider emitting an event here for fee update
+    // this.eventEmitter.emit('fee.deactivated', id);
+    this.feeNotificationService.createAndUpdateFeesNotification(
+      id,
+      FeeNotificationType.DEACTIVATED,
+    );
+
     return updatedFee;
   }
 
@@ -294,6 +317,13 @@ export class FeesService {
       previous_status: fee.status,
       new_status: FeeStatus.ACTIVE,
     });
+
+    // TODO: Consider emitting an event here for fee update
+    // this.eventEmitter.emit('fee.activated', id);
+    this.feeNotificationService.createAndUpdateFeesNotification(
+      id,
+      FeeNotificationType.ACTIVATED,
+    );
 
     return updatedFee;
   }

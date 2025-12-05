@@ -13,6 +13,7 @@ import {
 import { TermModelAction } from '../academic-term/model-actions';
 import { Class } from '../class/entities/class.entity'; // Added Class entity
 import { ClassModelAction } from '../class/model-actions/class.actions';
+import { FeeNotificationService } from '../notification/services';
 
 import { CreateFeesDto, QueryFeesDto, UpdateFeesDto } from './dto/fees.dto';
 import { Fees } from './entities/fees.entity';
@@ -123,6 +124,9 @@ describe('FeesService', () => {
   const mockTermModelActionValue = { get: jest.fn() };
   const mockClassModelActionValue = { find: jest.fn() };
   const mockDataSourceValue = { transaction: jest.fn() };
+  const mockFeeNotificationService = {
+    createAndUpdateFeesNotification: jest.fn(),
+  };
 
   beforeEach(async () => {
     mockDataSourceValue.transaction = jest
@@ -142,6 +146,10 @@ describe('FeesService', () => {
         { provide: TermModelAction, useValue: mockTermModelActionValue },
         { provide: ClassModelAction, useValue: mockClassModelActionValue },
         { provide: DataSource, useValue: mockDataSourceValue },
+        {
+          provide: FeeNotificationService,
+          useValue: mockFeeNotificationService,
+        },
         { provide: WINSTON_MODULE_PROVIDER, useValue: mockLogger },
       ],
     }).compile();
