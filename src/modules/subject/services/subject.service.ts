@@ -16,17 +16,25 @@ import {
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { ClassSubject } from '../../class/entities/class-subject.entity';
 import { Class } from '../../class/entities/class.entity';
+import { ClassStudentModelAction } from '../../class/model-actions/class-student.action';
 import { GradeSubmission } from '../../grade/entities/grade-submission.entity';
+import { EventAction } from '../../notification/dto/event-trigger.dto';
+import { NotificationService } from '../../notification/services/notification.service';
+import {
+  ISubjectMetadata,
+  NotificationMetadata,
+  NotificationType,
+} from '../../notification/types/notification.types';
 import { AssignClassesToSubjectDto } from '../dto/assign-classes-to-subject.dto';
 import { CreateSubjectDto } from '../dto/create-subject.dto';
 import { SubjectResponseDto } from '../dto/subject-response.dto';
 import { UpdateSubjectDto } from '../dto/update-subject.dto';
 import { Subject } from '../entities/subject.entity';
 import {
+  IAssignClassesToSubjectResponse,
   IBaseResponse,
   IPaginatedResponse,
   IPaginationMeta,
-  IAssignClassesToSubjectResponse,
 } from '../interface/types';
 import { SubjectModelAction } from '../model-actions/subject.actions';
 
@@ -37,6 +45,8 @@ export class SubjectService {
   constructor(
     private readonly subjectModelAction: SubjectModelAction,
     private readonly academicSessionModelAction: AcademicSessionModelAction,
+    private readonly classStudentModelAction: ClassStudentModelAction,
+    private readonly notificationService: NotificationService,
     private readonly dataSource: DataSource,
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
   ) {
@@ -67,6 +77,19 @@ export class SubjectService {
           transaction: manager,
         },
       });
+
+      // --- NOTIFICATION TRIGGER (ASYNCHRONOUS) ---
+      this.notifyAffectedUsers(
+        newSubject.id,
+        newSubject.name,
+        EventAction.CREATED,
+      ).catch((err) => {
+        this.logger.error('Failed to send notifications on subject creation', {
+          subjectId: newSubject.id,
+          error: err,
+        });
+      });
+      // --- END NOTIFICATION TRIGGER ---
 
       return {
         message: sysMsg.SUBJECT_CREATED,
@@ -169,6 +192,19 @@ export class SubjectService {
           transaction: manager,
         },
       });
+
+      // --- NOTIFICATION TRIGGER (ASYNCHRONOUS) ---
+      this.notifyAffectedUsers(
+        updatedSubject.id,
+        updatedSubject.name,
+        EventAction.UPDATED,
+      ).catch((err) => {
+        this.logger.error('Failed to send notifications on subject update', {
+          subjectId: updatedSubject.id,
+          error: err,
+        });
+      });
+      // --- END NOTIFICATION TRIGGER ---
 
       return {
         message: sysMsg.SUBJECT_UPDATED,
@@ -275,6 +311,19 @@ export class SubjectService {
         }
       }
 
+      // --- NOTIFICATION TRIGGER (ASYNCHRONOUS) ---
+      this.notifyAffectedUsers(
+        subjectId,
+        subject.name,
+        EventAction.UPDATED,
+      ).catch((err) => {
+        this.logger.error('Failed to send notifications on class assignment', {
+          subjectId,
+          error: err,
+        });
+      });
+      // --- END NOTIFICATION TRIGGER ---
+
       return {
         message: sysMsg.CLASSES_ASSIGNED_TO_SUBJECT,
         id: subject.id,
@@ -331,6 +380,19 @@ export class SubjectService {
         class: { id: In(dto.classIds) },
       });
 
+      // --- NOTIFICATION TRIGGER (ASYNCHRONOUS) ---
+      this.notifyAffectedUsers(
+        subjectId,
+        subject.name,
+        EventAction.UPDATED,
+      ).catch((err) => {
+        this.logger.error(
+          'Failed to send notifications on class unassignment',
+          { subjectId, error: err },
+        );
+      });
+      // --- END NOTIFICATION TRIGGER ---
+
       return {
         message: sysMsg.CLASSES_UNASSIGNED_TO_SUBJECT,
         data: null,
@@ -361,5 +423,98 @@ export class SubjectService {
       updated_at: subject.updatedAt,
       classes: classes.length > 0 ? classes : undefined,
     };
+  }
+
+  // --- PROTECTED HELPER METHOD: Notify Users Based on Subject ID ---
+  public async notifyAffectedUsers(
+    subjectId: string,
+    subjectName: string,
+    action: EventAction,
+  ): Promise<void> {
+    try {
+      // 1. Get all ClassSubject links for this subject
+      const classSubjects = await this.dataSource
+        .getRepository(ClassSubject)
+        .find({
+          where: { subject: { id: subjectId } },
+          relations: [
+            'class',
+            'teacher',
+            'teacher.user', // Teacher user details
+          ],
+        });
+
+      const recipientIds = new Set<string>();
+
+      // 2. Collect IDs of Teachers (Assigned to the ClassSubject link)
+      classSubjects.forEach((cs) => {
+        if (cs.teacher?.user?.id) {
+          recipientIds.add(cs.teacher.user.id);
+        }
+      });
+
+      // 3. Collect IDs of Students and Parents from the related classes
+      const classIds = classSubjects.map((cs) => cs.class.id);
+
+      if (classIds.length > 0) {
+        const classStudents = await this.classStudentModelAction.list({
+          filterRecordOptions: {
+            class: { id: In(classIds) },
+            is_active: true,
+          },
+          relations: {
+            student: {
+              user: true,
+              parent: { user: true },
+            },
+          },
+        });
+
+        classStudents.payload.forEach((cs) => {
+          // Add Student User ID
+          if (cs.student?.user?.id) recipientIds.add(cs.student.user.id);
+
+          // Add Parent User ID
+          if (cs.student?.parent?.user?.id) {
+            recipientIds.add(cs.student.parent.user.id);
+          }
+        });
+      }
+
+      // 4. Prepare Notifications
+      const notificationDtos = Array.from(recipientIds).map((userId) => {
+        const actionText =
+          action === EventAction.CREATED ? 'created' : 'updated';
+        const title = `Subject ${actionText}: ${subjectName}`;
+        const message = `The subject '${subjectName}' has been ${actionText} in your associated curriculum.`;
+
+        const metadata: ISubjectMetadata = {
+          subject_id: subjectId,
+          action: action,
+        };
+
+        return {
+          recipient_id: userId as string,
+          title: title,
+          message: message,
+          type: NotificationType.ACADEMIC_UPDATE,
+          metadata: metadata as NotificationMetadata,
+        };
+      });
+
+      // 5. Send Notifications (Bulk creation is efficient)
+      await this.notificationService.createBulkNotifications(notificationDtos);
+
+      this.logger.info(
+        `Notifications created for ${recipientIds.size} users following subject ${action}.`,
+        { subjectId, action },
+      );
+    } catch (error) {
+      // Log error but ensure the original transaction/request is NOT blocked.
+      this.logger.error(
+        `Error in notifyAffectedUsers for subject ${subjectId}:`,
+        error,
+      );
+    }
   }
 }

@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AcademicSessionModule } from '../academic-session/academic-session.module';
 import { ClassModule } from '../class/class.module';
 import { ClassSubject } from '../class/entities/class-subject.entity';
+import { NotificationModule } from '../notification/notification.module';
 
 import { SubjectController } from './controllers/subject.controller';
 import { Subject } from './entities/subject.entity';
@@ -15,6 +16,7 @@ import { SubjectService } from './services/subject.service';
     TypeOrmModule.forFeature([Subject, ClassSubject]),
     AcademicSessionModule,
     forwardRef(() => ClassModule),
+    NotificationModule,
   ],
   controllers: [SubjectController],
   providers: [SubjectService, SubjectModelAction],
