@@ -1,6 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { Logger } from 'winston';
 
+import { ResultModelAction } from '../../result/model-actions/result.actions';
 import { StudentModelAction } from '../../student/model-actions/student-actions';
 import { TimetableService } from '../../timetable/timetable.service';
 import { UserService } from '../../user/user.service';
@@ -12,6 +13,7 @@ describe('StudentDashboardService', () => {
   let userService: UserService;
   let studentModelAction: StudentModelAction;
   let timetableService: TimetableService;
+  let resultModelAction: ResultModelAction;
   let logger: Logger;
 
   beforeEach(() => {
@@ -24,6 +26,9 @@ describe('StudentDashboardService', () => {
     timetableService = {
       findByClass: jest.fn(),
     } as unknown as TimetableService;
+    resultModelAction = {
+      list: jest.fn(),
+    } as unknown as ResultModelAction;
     logger = {
       child: () => logger,
       warn: jest.fn(),
@@ -35,6 +40,7 @@ describe('StudentDashboardService', () => {
       userService,
       studentModelAction,
       timetableService,
+      resultModelAction,
       logger,
     );
   });
@@ -43,11 +49,21 @@ describe('StudentDashboardService', () => {
     const mockStudent = {
       id: 'student-1',
       user: { id: 'user-1' },
-      stream: { name: 'Grade 10A' },
+      stream: { name: 'Grade 10A', class: { id: 'class-1' } },
     };
 
-    (studentModelAction.list as jest.Mock).mockResolvedValue({
-      payload: [mockStudent],
+    (studentModelAction.list as jest.Mock)
+      .mockResolvedValueOnce({
+        payload: [mockStudent],
+      })
+      .mockResolvedValueOnce({
+        payload: [mockStudent],
+      });
+
+    (timetableService.findByClass as jest.Mock).mockResolvedValue(null);
+
+    (resultModelAction.list as jest.Mock).mockResolvedValue({
+      payload: [],
     });
 
     const result = await service.loadStudentDashboard('user-1');
@@ -74,11 +90,21 @@ describe('StudentDashboardService', () => {
     const mockStudent = {
       id: 'student-1',
       user: { id: 'user-1' },
-      stream: { name: 'Grade 10A' },
+      stream: { name: 'Grade 10A', class: { id: 'class-1' } },
     };
 
-    (studentModelAction.list as jest.Mock).mockResolvedValue({
-      payload: [mockStudent],
+    (studentModelAction.list as jest.Mock)
+      .mockResolvedValueOnce({
+        payload: [mockStudent],
+      })
+      .mockResolvedValueOnce({
+        payload: [mockStudent],
+      });
+
+    (timetableService.findByClass as jest.Mock).mockResolvedValue(null);
+
+    (resultModelAction.list as jest.Mock).mockResolvedValue({
+      payload: [],
     });
 
     const result = await service.loadStudentDashboard('user-1');
@@ -97,6 +123,10 @@ describe('StudentDashboardService', () => {
 
     (studentModelAction.list as jest.Mock).mockResolvedValue({
       payload: [mockStudent],
+    });
+
+    (resultModelAction.list as jest.Mock).mockResolvedValue({
+      payload: [],
     });
 
     const result = await service.loadStudentDashboard('user-1');

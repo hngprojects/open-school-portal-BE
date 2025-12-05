@@ -2,6 +2,7 @@ import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
+import { ResultModelAction } from '../../result/model-actions/result.actions';
 import { StudentModelAction } from '../../student/model-actions/student-actions';
 import { TimetableService } from '../../timetable/timetable.service';
 import { UserService } from '../../user/user.service';
@@ -21,6 +22,7 @@ export class StudentDashboardService {
     private readonly userService: UserService,
     private readonly studentModelAction: StudentModelAction,
     private readonly timetableService: TimetableService,
+    private readonly resultModelAction: ResultModelAction,
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
   ) {
     this.logger = baseLogger.child({ context: StudentDashboardService.name });
@@ -137,37 +139,46 @@ export class StudentDashboardService {
 
   /**
    * Fetches the latest 5 results for a student
-   * Dependencies: ResultsService, SubjectService
-   * Note: This is a placeholder implementation - requires external services
+   * Retrieves student results with subject details from the Result entity
    */
   private async getLatestResults(
     studentId: string,
   ): Promise<LatestResultDto[]> {
     this.logger.info(`Fetching latest results for student ${studentId}`);
 
-    // TODO: Implement when ResultsService is available
-    // const results = await this.resultModelAction.list({
-    //   filterRecordOptions: { student_id: studentId },
-    //   relations: { subject: true, term: true },
-    //   order: { recorded_at: 'DESC' },
-    //   paginationPayload: { page: 1, limit: 5 }
-    // });
-    //
-    // return results.payload.map(result => ({
-    //   id: result.id,
-    //   subject_name: result.subject?.name || 'Unknown',
-    //   score: result.score,
-    //   grade: result.grade,
-    //   remark: result.remark,
-    //   term: result.term?.name || 'N/A',
-    //   recorded_at: result.recorded_at
-    // }));
+    const { payload: results } = await this.resultModelAction.list({
+      filterRecordOptions: { student_id: studentId },
+      relations: { term: true, subject_lines: { subject: true } },
+      order: { createdAt: 'DESC' },
+      paginationPayload: { page: 1, limit: 5 },
+    });
 
-    // Placeholder: Return empty array until service is available
-    this.logger.warn(
-      'ResultsService not yet available - returning empty results',
+    if (!results || results.length === 0) {
+      this.logger.info(`No results found for student ${studentId}`);
+      return [];
+    }
+
+    const latestResults: LatestResultDto[] = results.flatMap((result) => {
+      if (!result.subject_lines || result.subject_lines.length === 0) {
+        return [];
+      }
+
+      return result.subject_lines.slice(0, 5).map((subjectLine) => ({
+        id: subjectLine.id,
+        subject_name: subjectLine.subject?.name || 'Unknown Subject',
+        score: subjectLine.total_score || 0,
+        grade: subjectLine.grade_letter || 'N/A',
+        remark: subjectLine.remark || '',
+        term: result.term?.name || 'N/A',
+        recorded_at: result.createdAt,
+      }));
+    });
+
+    this.logger.info(
+      `Retrieved ${latestResults.length} latest results for student ${studentId}`,
     );
-    return [];
+
+    return latestResults.slice(0, 5);
   }
 
   /**
