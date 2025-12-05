@@ -17,6 +17,7 @@ import { AttendanceStatus, DailyAttendanceStatus } from '../enums';
 import {
   AttendanceModelAction,
   StudentDailyAttendanceModelAction,
+  AttendanceEditRequestModelAction,
 } from '../model-actions';
 import { AttendanceService } from '../services/attendance.service';
 
@@ -82,6 +83,14 @@ describe('AttendanceService', () => {
       list: jest.fn(),
     };
 
+    const mockEditRequestModelAction = {
+      create: jest.fn(),
+      get: jest.fn(),
+      list: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    };
+
     const mockDataSource = {
       transaction: jest.fn((callback) => callback(mockEntityManager)),
       manager: {
@@ -124,6 +133,10 @@ describe('AttendanceService', () => {
         {
           provide: DataSource,
           useValue: mockDataSource,
+        },
+        {
+          provide: AttendanceEditRequestModelAction,
+          useValue: mockEditRequestModelAction,
         },
         {
           provide: WINSTON_MODULE_PROVIDER,
@@ -338,7 +351,7 @@ describe('AttendanceService', () => {
       mockFindOne.mockResolvedValue({ id: 'enrollment-1', is_active: true });
       mockSave.mockResolvedValue({});
 
-      const result = await service.markStudentDailyAttendance(teacherId, dto);
+      const result = await service.markAttendance(teacherId, dto);
 
       expect(result.message).toBe(
         'Student daily attendance marked successfully',
@@ -358,9 +371,9 @@ describe('AttendanceService', () => {
         attendance_records: [],
       };
 
-      await expect(
-        service.markStudentDailyAttendance('teacher-123', dto),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.markAttendance('teacher-123', dto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 

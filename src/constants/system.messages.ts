@@ -469,6 +469,20 @@ export const STUDENT_MONTHLY_ATTENDANCE_RETRIEVED =
 export const STUDENTS_CAN_ONLY_VIEW_OWN_ATTENDANCE =
   'Students can only view their own attendance';
 
+// Attendance Lock message
+export const ATTENDANCE_LOCKED =
+  'The attendance record is locked. Please submit an edit request for admin approval.';
+
+// Attendance Edit Request messages
+export const EDIT_REQUEST_CREATED_SUCCESSFULLY =
+  'edit request created successfully';
+export const EDIT_REQUESTS_RETRIEVED_SUCCESSFULLY =
+  'edit requests retrieved successfully';
+export const EDIT_REQUEST_REVIEWED_SUCCESSFULLY =
+  'edit request reviewed successfully';
+export const EDIT_REQUEST_STALE =
+  'The attendance record has been modified since this edit request was created. Please review the current attendance state and create a new request if needed.';
+
 // Result messages
 export const RESULT_NOT_FOUND = 'Result not found';
 export const RESULT_GENERATED_SUCCESS = (count: number) =>

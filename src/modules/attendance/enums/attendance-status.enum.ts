@@ -14,3 +14,16 @@ export enum DailyAttendanceStatus {
   EXCUSED = 'EXCUSED',
   HALF_DAY = 'HALF_DAY',
 }
+
+// Edit request status
+export enum EditRequestStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}
+
+// Attendance type
+export enum AttendanceType {
+  SCHEDULE_BASED = 'SCHEDULE_BASED',
+  DAILY = 'DAILY',
+}
