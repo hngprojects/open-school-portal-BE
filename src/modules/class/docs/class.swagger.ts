@@ -446,5 +446,88 @@ export const ClassSwagger = {
         },
       },
     },
+    getClassByTeacherId: {
+      operation: {
+        summary: 'Get classes assigned to a specific teacher',
+        description:
+          'Returns all classes assigned to a specific teacher ID with assignment dates. Validates that the teacher exists. Returns an empty array if the teacher has no class assignments. Available to both Admin and Teacher roles. Filters by active session by default, but can be filtered by a specific sessionId via query parameter.',
+      },
+      parameters: {
+        teacherId: {
+          name: 'teacherId',
+          description: 'The Teacher ID (UUID)',
+        },
+        sessionId: {
+          name: 'session_id',
+          in: 'query',
+          required: false,
+          description:
+            'Academic session ID to filter by (optional, defaults to active session)',
+          schema: { type: 'string' },
+        },
+      },
+      responses: {
+        ok: {
+          description:
+            'List of classes assigned to the teacher with assignment_date, created_at, and updated_at timestamps',
+          schema: {
+            type: 'object',
+            properties: {
+              message: {
+                type: 'string',
+                example: sysMsg.TEACHER_CLASS_FETCHED,
+              },
+              data: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string', example: 'class-uuid' },
+                    name: { type: 'string', example: 'JSS1' },
+                    arm: { type: 'string', example: 'A' },
+                    academicSession: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string', example: 'session-uuid' },
+                        name: { type: 'string', example: '2024/2025' },
+                      },
+                    },
+                    assignment_date: {
+                      type: 'string',
+                      format: 'date-time',
+                      example: '2024-09-01T08:00:00Z',
+                    },
+                    created_at: {
+                      type: 'string',
+                      format: 'date-time',
+                      example: '2024-09-01T08:00:00Z',
+                    },
+                    updated_at: {
+                      type: 'string',
+                      format: 'date-time',
+                      example: '2024-09-01T08:00:00Z',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          description: 'Teacher not found or Academic session not found',
+          schema: {
+            type: 'object',
+            properties: {
+              status_code: { type: 'integer', example: 404 },
+              message: {
+                type: 'string',
+                example: sysMsg.TEACHER_NOT_FOUND,
+              },
+            },
+          },
+        },
+      },
+    },
   },
 };

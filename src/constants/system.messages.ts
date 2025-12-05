@@ -356,6 +356,8 @@ export const INVALID_TEACHER_ID = 'Invalid teacher ID provided';
 export const TEACHER_NOT_FOUND = 'Teacher not found';
 export const INVALID_TEACHER_AGE = (minAge: number) =>
   `Teacher must be at least ${minAge} years old`;
+export const TEACHER_CLASS_FETCHED = 'Teacher class retrieved successfully';
+export const NO_CLASS_ASSIGNED_TO_TEACHER = 'No class assigned to teacher';
 
 // Timetable messages
 export const TIMETABLE_CREATED = 'Timetable created successfully';

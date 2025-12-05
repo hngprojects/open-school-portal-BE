@@ -75,6 +75,27 @@ export class ClassResponseDto {
     example: ['teacher-uuid-1', 'teacher-uuid-2'],
   })
   teacherIds?: string[];
+
+  @ApiPropertyOptional({
+    example: '2023-09-01T08:00:00Z',
+    description: 'Date when the teacher was assigned to the class',
+    required: false,
+  })
+  assignment_date?: Date;
+
+  @ApiPropertyOptional({
+    example: '2023-09-01T08:00:00Z',
+    description: 'Date when the assignment was created',
+    required: false,
+  })
+  created_at?: Date;
+
+  @ApiPropertyOptional({
+    example: '2023-09-01T08:00:00Z',
+    description: 'Date when the assignment was last updated',
+    required: false,
+  })
+  updated_at?: Date;
 }
 
 export class ClassItemDto {
