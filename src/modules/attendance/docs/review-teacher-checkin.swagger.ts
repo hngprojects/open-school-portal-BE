@@ -16,6 +16,7 @@ import {
   ReviewTeacherManualCheckinResponseDto,
   TeacherCheckinRequestResponseDto,
 } from '../dto';
+import { TeacherCheckoutResponseDto } from '../dto/teacher-manual-checkout.dto';
 import { TeacherManualCheckinStatusEnum } from '../enums/teacher-manual-checkin.enum';
 
 // --- REVIEW TEACHER CHECKIN REQUEST ---
@@ -90,6 +91,32 @@ export const ApiListTeacherCheckinRequestsDocs = () =>
       status: HttpStatus.OK,
       description: 'Requests fetched successfully',
       type: [TeacherCheckinRequestResponseDto],
+    }),
+    ApiInternalServerErrorResponse({
+      description: 'Internal server error',
+    }),
+  );
+
+// --- TEACHER CHECKOUT ---
+export const ApiTeacherCheckoutDocs = () =>
+  applyDecorators(
+    ApiTags('Attendance'),
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: 'Teacher checkout (Teacher only)',
+      description: 'Check out for the day and calculate total hours worked',
+    }),
+    ApiResponse({
+      status: HttpStatus.OK,
+      description: 'Checkout successful',
+      type: TeacherCheckoutResponseDto,
+    }),
+    ApiBadRequestResponse({
+      description:
+        'No check-in for today / Already checked out / Pending check-in awaiting approval',
+    }),
+    ApiNotFoundResponse({
+      description: 'Teacher not found',
     }),
     ApiInternalServerErrorResponse({
       description: 'Internal server error',

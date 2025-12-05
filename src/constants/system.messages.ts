@@ -503,3 +503,8 @@ export const ATTENDANCE_ALREADY_MARKED_FOR_DATE =
   'Attendance already marked for this date';
 export const CHECKIN_REQUEST_APPROVED = 'Checkin request approved';
 export const CHECKIN_REQUEST_REJECTED = 'Checkin request rejected';
+export const CANNOT_CHECKOUT_PENDING_CHECKIN =
+  'Cannot checkout while a pending checkin request exists';
+export const NO_CHECKIN_FOR_TODAY = 'No checkin found for today';
+export const ALREADY_CHECKED_OUT = 'Already checked out';
+export const TEACHER_CHECKOUT_SUCCESS = 'Teacher checkout successful';

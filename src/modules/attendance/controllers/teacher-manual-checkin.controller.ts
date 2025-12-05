@@ -24,15 +24,17 @@ import {
   ApiCreateTeacherManualCheckinDocs,
   ApiListTeacherCheckinRequestsDocs,
   ApiReviewTeacherManualCheckinDocs,
+  ApiTeacherCheckoutDocs,
 } from '../docs';
 import {
   CreateTeacherManualCheckinDto,
   ListTeacherCheckinRequestsQueryDto,
   ReviewTeacherManualCheckinDto,
 } from '../dto';
+import { CreateTeacherCheckoutDto } from '../dto/teacher-manual-checkout.dto';
 import { TeacherManualCheckinService } from '../services';
 
-@Controller('attendance/teacher/manual-checkin')
+@Controller('attendance/teacher/')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiTags('Attendance')
 @ApiBearerAuth()
@@ -42,7 +44,7 @@ export class TeacherManualCheckinController {
   ) {}
 
   // --- TEACHER MANUAL CHECKIN ---
-  @Post()
+  @Post('manual-checkin')
   @Roles(UserRole.TEACHER)
   @HttpCode(HttpStatus.CREATED)
   @ApiCreateTeacherManualCheckinDocs()
@@ -54,7 +56,7 @@ export class TeacherManualCheckinController {
   }
 
   // --- REVIEW TEACHER MANUAL CHECKIN ---
-  @Patch(':id/review')
+  @Patch('manual-checkin/:id/review')
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiReviewTeacherManualCheckinDocs()
@@ -71,7 +73,7 @@ export class TeacherManualCheckinController {
   }
 
   // --- ALL CHECKIN REQUESTS ---
-  @Get('requests')
+  @Get('manual-checkin/requests')
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiListTeacherCheckinRequestsDocs()
@@ -79,5 +81,17 @@ export class TeacherManualCheckinController {
     @Query() query: ListTeacherCheckinRequestsQueryDto,
   ) {
     return this.teacherManualCheckinService.listTeacherCheckinRequests(query);
+  }
+
+  // --- TEACHER CHECKOUT ---
+  @Post('manual-checkout')
+  @Roles(UserRole.TEACHER)
+  @HttpCode(HttpStatus.OK)
+  @ApiTeacherCheckoutDocs()
+  async teacherCheckout(
+    @Req() req: IRequestWithUser,
+    @Body() dto: CreateTeacherCheckoutDto,
+  ) {
+    return this.teacherManualCheckinService.teacherCheckout(req, dto);
   }
 }
