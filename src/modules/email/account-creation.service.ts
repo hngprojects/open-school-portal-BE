@@ -29,7 +29,7 @@ export class AccountCreationService {
     role: UserRole,
   ) {
     const website_url = this.configService.get<string>('frontend.url');
-    const change_password = `${website_url}/change_password`;
+    const change_password = `${website_url}/change-password`;
     const school_name =
       this.configService.get<string>('app.name') || 'School Base';
     const logo_url =
