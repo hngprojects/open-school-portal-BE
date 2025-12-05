@@ -1,4 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
+
+import { TeacherManualCheckinStatusEnum } from '../../../attendance/enums/teacher-manual-checkin.enum';
 
 export class TeacherCheckinRecordDto {
   @ApiProperty({ example: 'uuid-123' })
@@ -97,6 +100,9 @@ export class ReviewCheckinDto {
     enum: ['APPROVED', 'REJECTED'],
     description: 'Review decision',
   })
+  @IsEnum(TeacherManualCheckinStatusEnum, {
+    message: 'Status must be either APPROVED or REJECTED',
+  })
   status: 'APPROVED' | 'REJECTED';
 
   @ApiProperty({
@@ -104,6 +110,8 @@ export class ReviewCheckinDto {
     description: 'Review notes',
     required: false,
   })
+  @IsOptional()
+  @IsString()
   review_notes?: string;
 }
 
