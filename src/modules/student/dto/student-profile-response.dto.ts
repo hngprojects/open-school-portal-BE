@@ -1,7 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 import { SessionStatus } from '../../academic-session/entities';
-import { ClassSubject, ClassTeacher } from '../../class/entities';
+import { ClassSubject } from '../../class/entities';
+import { Teacher } from '../../teacher/entities/teacher.entity';
 import { Schedule } from '../../timetable/entities/schedule.entity';
 import { User } from '../../user/entities/user.entity';
 import { Student } from '../entities';
@@ -44,11 +45,11 @@ export class StudentAcademicDetailDto {
 
 export class StudentSubjectDetailDto {
   @ApiProperty({
-    description: "The teacher's details",
-    type: ClassTeacher,
-    isArray: true,
+    description: 'The teacher assigned to the class (one-to-one relationship)',
+    type: Teacher,
+    nullable: true,
   })
-  teachers: ClassTeacher[] | [];
+  teacher: Teacher | null;
 
   @ApiProperty({
     description: "The subject's detail",
@@ -118,7 +119,7 @@ export class StudentProfileResponseDto extends StudentResponseDto {
       : null;
     this.subject_details = student.stream
       ? {
-          teachers: student.stream.class.teacher_assignment || [],
+          teacher: student.stream.class.teacher || null,
           subjects: student.stream.class.classSubjects || [],
         }
       : null;

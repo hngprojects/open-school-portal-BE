@@ -163,7 +163,7 @@ describe('StudentService', () => {
           stream: {
             class: {
               academicSession: true,
-              teacher_assignment: true,
+              teacher: { user: true },
               classSubjects: true,
               timetable: { schedules: true },
             },
