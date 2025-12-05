@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
@@ -9,6 +9,8 @@ import { ClassStudentModelAction } from '../../../modules/class/model-actions/cl
 import { ClassModelAction } from '../../../modules/class/model-actions/class.actions';
 import { User } from '../../../modules/user/entities/user.entity';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
+import { IUserPayload } from '../../parent/parent.service';
+import { UserRole } from '../../shared/enums';
 import { FileService } from '../../shared/file/file.service';
 import { UserModelAction } from '../../user/model-actions/user-actions';
 import { StudentProfileResponseDto } from '../dto';
@@ -104,10 +106,23 @@ describe('StudentService', () => {
 
   describe('getMyProfile', () => {
     const studentId = 'a-student-uuid';
+    const userId = 'user-uuid';
+
+    const mockAuthUser: IUserPayload = {
+      id: userId,
+      email: 'student@test.com',
+      roles: [UserRole.STUDENT],
+    };
+
+    const mockAdminUser: IUserPayload = {
+      id: 'admin-user-uuid',
+      email: 'admin@test.com',
+      roles: [UserRole.ADMIN],
+    };
 
     it('should return the student profile when found', async () => {
       // Arrange
-      const mockUser = { id: 'user-uuid', email: 'student@test.com' } as User;
+      const mockUser = { id: userId, email: 'student@test.com' } as User;
       // The mockStudent needs to have the full nested structure expected by StudentProfileResponseDto
       const mockStudent = {
         id: studentId,
@@ -138,16 +153,26 @@ describe('StudentService', () => {
       mockStudentModelAction.get.mockResolvedValue(mockStudent);
 
       // Act
-      const result = await service.getMyProfile(studentId);
+      const result = await service.getMyProfile(studentId, mockAuthUser);
 
       // Assert
       expect(mockStudentModelAction.get).toHaveBeenCalledWith({
         identifierOptions: { id: studentId },
-        relations: { user: true, stream: true },
+        relations: {
+          user: true,
+          stream: {
+            class: {
+              academicSession: true,
+              teacher_assignment: true,
+              classSubjects: true,
+              timetable: { schedules: true },
+            },
+          },
+        },
       });
       expect(result).toEqual(expectedResponse);
       expect(mockLogger.info).toHaveBeenCalledWith(
-        `Fetched student profile for user ID: ${studentId}`,
+        `Fetched student profile for student ID: ${studentId}`,
       );
     });
 
@@ -156,11 +181,11 @@ describe('StudentService', () => {
       mockStudentModelAction.get.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.getMyProfile(studentId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.getMyProfile(studentId, mockAuthUser),
+      ).rejects.toThrow(NotFoundException);
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        `Student profile not found for user ID: ${studentId}`,
+        `Student profile not found with ID: ${studentId}`,
       );
     });
 
@@ -170,9 +195,46 @@ describe('StudentService', () => {
       mockStudentModelAction.get.mockResolvedValue(mockStudent);
 
       // Act & Assert
-      await expect(service.getMyProfile(studentId)).rejects.toThrow(
-        NotFoundException,
+      await expect(
+        service.getMyProfile(studentId, mockAuthUser),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ForbiddenException if a student tries to access another student profile', async () => {
+      // Arrange
+      const otherUserId = 'another-user-uuid';
+      const mockUser = { id: otherUserId, email: 'other@test.com' } as User;
+      const mockStudent = {
+        id: studentId,
+        is_deleted: false,
+        user: mockUser,
+      } as Student;
+
+      mockStudentModelAction.get.mockResolvedValue(mockStudent);
+
+      // Act & Assert
+      await expect(
+        service.getMyProfile(studentId, mockAuthUser),
+      ).rejects.toThrow(ForbiddenException);
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        `Forbidden access attempt to student profile ${studentId} by user ${mockAuthUser.id}`,
       );
+    });
+
+    it('should allow an admin to access any student profile', async () => {
+      // Arrange
+      const mockUser = { id: userId, email: 'student@test.com' } as User;
+      const mockStudent = {
+        id: studentId,
+        is_deleted: false,
+        user: mockUser,
+      } as Student;
+      mockStudentModelAction.get.mockResolvedValue(mockStudent);
+
+      // Act & Assert
+      await expect(
+        service.getMyProfile(studentId, mockAdminUser),
+      ).resolves.toBeInstanceOf(StudentProfileResponseDto);
     });
   });
 });

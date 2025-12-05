@@ -12,11 +12,14 @@ import {
   Query,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiOkResponse } from '@nestjs/swagger';
 
+import * as sysMsg from '../../../constants/system.messages';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
+import { IUserPayload } from '../../parent/parent.service';
 import { UserRole } from '../../shared/enums';
 import {
   StudentSwagger,
@@ -33,6 +36,7 @@ import {
   ListStudentsDto,
   StudentResponseDto,
   PatchStudentDto,
+  StudentProfileResponseDto,
 } from '../dto';
 import { StudentService } from '../services';
 
@@ -75,8 +79,21 @@ export class StudentController {
   @GetStudentProfileDocs()
   @Roles(UserRole.ADMIN, UserRole.STUDENT)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  getMyProfile(@Param('studentId') studentId: string) {
-    return this.studentService.getMyProfile(studentId);
+  @ApiOkResponse({ description: sysMsg.PROFILE_RETRIEVED })
+  async getMyProfile(
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+    @CurrentUser() user: IUserPayload,
+  ): Promise<{
+    message: string;
+    status_code: number;
+    data: StudentProfileResponseDto;
+  }> {
+    const data = await this.studentService.getMyProfile(studentId, user);
+    return {
+      message: sysMsg.PROFILE_RETRIEVED,
+      status_code: HttpStatus.OK,
+      data,
+    };
   }
 
   // --- GET: GET SINGLE STUDENT BY ID ---
