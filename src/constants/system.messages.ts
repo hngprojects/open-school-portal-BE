@@ -133,6 +133,8 @@ export const PAYMENTS_FETCHED_SUCCESSFULLY =
 // Notifications
 export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
+export const NOTIFICATION_RETRIEVED = 'Notification retrieved successfully';
+export const NOTIFICATION_NOT_FOUND = 'Notification not found';
 export const NOTIFICATIONS_RETRIEVED = 'Notifications retrieved successfully';
 export const UNAUTHORIZED_NOTIFICATION_ACCESS =
   'You are not authorized to view these notifications';
