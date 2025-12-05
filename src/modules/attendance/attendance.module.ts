@@ -3,31 +3,56 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AcademicSessionModule } from '../academic-session/academic-session.module';
 import { TermModule } from '../academic-term/term.module';
+import { TeachersModule } from '../teacher/teacher.module';
 
-import { ScheduleBasedAttendanceController } from './controllers/schedule-based-attendance.controller';
-import { StudentDailyAttendanceController } from './controllers/student-daily-attendance.controller';
-import { ScheduleBasedAttendance, StudentDailyAttendance } from './entities';
+import {
+  ScheduleBasedAttendanceController,
+  StudentDailyAttendanceController,
+  TeachersAttendanceController,
+} from './controllers';
+import {
+  ScheduleBasedAttendance,
+  StudentDailyAttendance,
+  TeacherDailyAttendance,
+  TeacherManualCheckin,
+} from './entities';
+import { AttendanceEditRequest } from './entities/student-daily-attendance.entity';
 import {
   AttendanceModelAction,
   StudentDailyAttendanceModelAction,
+  TeacherManualCheckinModelAction,
+  AttendanceEditRequestModelAction,
 } from './model-actions';
-import { AttendanceService } from './services/attendance.service';
+import { TeacherDailyAttendanceModelAction } from './model-actions/teacher-daily-attendance.action';
+import { AttendanceService, TeachersAttendanceService } from './services';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ScheduleBasedAttendance, StudentDailyAttendance]),
+    TypeOrmModule.forFeature([
+      ScheduleBasedAttendance,
+      StudentDailyAttendance,
+      TeacherManualCheckin,
+      TeacherDailyAttendance,
+      AttendanceEditRequest,
+    ]),
     AcademicSessionModule,
     TermModule,
+    TeachersModule,
   ],
   controllers: [
     ScheduleBasedAttendanceController,
     StudentDailyAttendanceController,
+    TeachersAttendanceController,
   ],
   providers: [
     AttendanceService,
+    TeachersAttendanceService,
     AttendanceModelAction,
     StudentDailyAttendanceModelAction,
+    TeacherManualCheckinModelAction,
+    TeacherDailyAttendanceModelAction,
+    AttendanceEditRequestModelAction,
   ],
-  exports: [AttendanceService],
+  exports: [AttendanceService, TeachersAttendanceService],
 })
 export class AttendanceModule {}

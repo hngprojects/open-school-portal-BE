@@ -1,14 +1,25 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 
 import * as sysMsg from '../../../constants/system.messages';
+import { CreateNotificationDto } from '../dto/create-notification.dto';
+import { UserNotificationByIdResponseDto } from '../dto/user-notification-by-id-response.dto';
 import { ListNotificationsQueryDto } from '../dto/user-notification-list-query.dto';
 import {
   NotificationResponseDto,
   PaginatedNotificationsResponseDto,
   PaginationMetaDto,
 } from '../dto/user-notification-response.dto';
+import { Notification } from '../entities/notification.entity';
 import { NotificationModelAction } from '../model-actions/notification.model-action';
+import {
+  NotificationType,
+  NotificationMetadata,
+} from '../types/notification.types';
 
 /**
  * Calculate pagination metadata
@@ -38,6 +49,26 @@ export class NotificationService {
     private readonly notificationModelAction: NotificationModelAction,
   ) {}
 
+  async createNotification(
+    userId: string,
+    title: string,
+    message: string,
+    type: NotificationType,
+    metadata?: NotificationMetadata,
+  ) {
+    return this.notificationModelAction.create({
+      createPayload: {
+        recipient_id: userId,
+        title,
+        message,
+        type,
+        metadata,
+        is_read: false,
+      },
+      transactionOptions: { useTransaction: false },
+    });
+  }
+
   async getUserNotifications(
     userId: string,
     query: ListNotificationsQueryDto,
@@ -63,10 +94,21 @@ export class NotificationService {
       },
     );
 
+    // Map notifications to include snake_case timestamps
+    const mappedPayload = payload.map((notification) => ({
+      ...notification,
+      created_at: notification.createdAt,
+      updated_at: notification.updatedAt,
+    }));
+
     // Transform to response DTOs
-    const notifications = plainToInstance(NotificationResponseDto, payload, {
-      excludeExtraneousValues: true,
-    });
+    const notifications = plainToInstance(
+      NotificationResponseDto,
+      mappedPayload,
+      {
+        excludeExtraneousValues: true,
+      },
+    );
 
     // Calculate pagination metadata
     const total = paginationMeta?.total ?? 0;
@@ -78,6 +120,84 @@ export class NotificationService {
         notifications,
       },
       pagination,
+    };
+  }
+  async markNotificationAsReadUnread(
+    notificationId: string,
+    userId: string,
+    isRead: boolean,
+  ): Promise<Notification | undefined> {
+    const notification =
+      await this.notificationModelAction.findOneById(notificationId);
+
+    if (!notification) {
+      return undefined; // Return undefined instead of throwing NotFoundException
+    }
+
+    if (notification.recipient_id !== userId) {
+      return undefined; // Return undefined instead of throwing ForbiddenException
+    }
+
+    notification.is_read = isRead;
+    return this.notificationModelAction.save({
+      entity: notification,
+      transactionOptions: { useTransaction: false },
+    });
+  }
+
+  async createBulkNotifications(
+    dtos: CreateNotificationDto[],
+  ): Promise<Notification[]> {
+    const notifications = dtos.map((dto) => ({
+      recipient_id: dto.recipient_id,
+      title: dto.title,
+      message: dto.message,
+      type: dto.type,
+      metadata: dto.metadata,
+      is_read: false,
+    }));
+
+    return this.notificationModelAction.createBulk(notifications);
+  }
+
+  async getNotificationById(
+    notificationId: string,
+    userId: string,
+  ): Promise<{ message: string; data: UserNotificationByIdResponseDto }> {
+    // Fetch the notification by ID
+    const notification = await this.notificationModelAction.get({
+      identifierOptions: { id: notificationId },
+    });
+
+    // Check if notification exists
+    if (!notification) {
+      throw new NotFoundException(sysMsg.NOTIFICATION_NOT_FOUND);
+    }
+
+    // Verify user authorization - user can only access their own notifications
+    if (notification.recipient_id !== userId) {
+      throw new ForbiddenException(sysMsg.UNAUTHORIZED_NOTIFICATION_ACCESS);
+    }
+
+    // Map notification to include snake_case timestamps
+    const mappedNotification = {
+      ...notification,
+      created_at: notification.createdAt,
+      updated_at: notification.updatedAt,
+    };
+
+    // Transform to response DTO
+    const notificationDto = plainToInstance(
+      UserNotificationByIdResponseDto,
+      mappedNotification,
+      {
+        excludeExtraneousValues: true,
+      },
+    );
+
+    return {
+      message: sysMsg.NOTIFICATION_RETRIEVED,
+      data: notificationDto,
     };
   }
 }

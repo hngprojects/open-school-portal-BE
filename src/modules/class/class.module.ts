@@ -37,6 +37,11 @@ import { ClassService } from './services/class.service';
     ClassSubjectModelAction,
     ClassSubjectService,
   ],
-  exports: [ClassModelAction, ClassTeacherModelAction, ClassStudentModelAction],
+  exports: [
+    ClassModelAction,
+    ClassTeacherModelAction,
+    ClassStudentModelAction,
+    ClassSubjectModelAction,
+  ],
 })
 export class ClassModule {}

@@ -1,3 +1,4 @@
+import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { ListNotificationsQueryDto } from '../dto/user-notification-list-query.dto';
@@ -11,6 +12,10 @@ describe('NotificationService', () => {
 
   const mockNotificationModelAction = {
     list: jest.fn(),
+    findOneById: jest.fn(),
+    get: jest.fn(),
+    create: jest.fn(),
+    save: jest.fn(),
   };
 
   const mockNotification = {
@@ -167,6 +172,195 @@ describe('NotificationService', () => {
         has_next: true,
         has_previous: true,
       });
+    });
+  });
+
+  describe('getNotificationById', () => {
+    const userId = 'user-123';
+    const notificationId = 'notification-1';
+
+    it('should return notification by ID when user is authorized', async () => {
+      mockNotificationModelAction.get.mockResolvedValue(mockNotification);
+
+      const result = await service.getNotificationById(notificationId, userId);
+
+      expect(notificationModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: notificationId },
+      });
+      expect(result).toEqual({
+        message: 'Notification retrieved successfully',
+        data: expect.objectContaining({
+          id: 'notification-1',
+          recipient_id: 'user-123',
+          title: 'Test Notification',
+          is_read: false,
+        }),
+      });
+    });
+
+    it('should throw NotFoundException when notification not found', async () => {
+      mockNotificationModelAction.get.mockResolvedValue(null);
+
+      await expect(
+        service.getNotificationById(notificationId, userId),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it("should throw ForbiddenException when user tries to access another user's notification", async () => {
+      const otherUserNotification = {
+        ...mockNotification,
+        recipient_id: 'other-user-456',
+      };
+
+      mockNotificationModelAction.get.mockResolvedValue(otherUserNotification);
+
+      await expect(
+        service.getNotificationById(notificationId, userId),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should include all notification fields in response', async () => {
+      const detailedNotification = {
+        ...mockNotification,
+        metadata: { action_url: '/test', entity_type: 'class' },
+      };
+
+      mockNotificationModelAction.get.mockResolvedValue(detailedNotification);
+
+      const result = await service.getNotificationById(notificationId, userId);
+
+      expect(result.data).toEqual(
+        expect.objectContaining({
+          id: 'notification-1',
+          recipient_id: 'user-123',
+          type: NotificationType.SYSTEM_ALERT,
+          title: 'Test Notification',
+          message: 'This is a test notification',
+          is_read: false,
+          metadata: { action_url: '/test', entity_type: 'class' },
+        }),
+      );
+    });
+  });
+
+  describe('createNotification', () => {
+    it('should create a notification successfully', async () => {
+      const userId = 'user-123';
+      const title = 'Test Notification';
+      const message = 'This is a test message';
+      const type = NotificationType.SYSTEM_ALERT;
+      const metadata = { key: 'value' };
+
+      const expectedPayload = {
+        createPayload: {
+          recipient_id: userId,
+          title,
+          message,
+          type,
+          metadata,
+          is_read: false,
+        },
+        transactionOptions: { useTransaction: false },
+      };
+
+      mockNotificationModelAction.create.mockResolvedValue(
+        'created-notification',
+      );
+
+      const result = await service.createNotification(
+        userId,
+        title,
+        message,
+        type,
+        metadata,
+      );
+
+      expect(notificationModelAction.create).toHaveBeenCalledWith(
+        expectedPayload,
+      );
+      expect(result).toBe('created-notification');
+    });
+  });
+  describe('markNotificationAsReadUnread', () => {
+    const notificationId = 'notification-1';
+    const userId = 'user-123';
+
+    it('should mark notification as read', async () => {
+      const unreadNotification = { ...mockNotification, is_read: false };
+      const readNotification = { ...mockNotification, is_read: true };
+
+      notificationModelAction.findOneById.mockResolvedValue(unreadNotification);
+      notificationModelAction.save.mockResolvedValue(readNotification);
+
+      const result = await service.markNotificationAsReadUnread(
+        notificationId,
+        userId,
+        true,
+      );
+
+      expect(notificationModelAction.findOneById).toHaveBeenCalledWith(
+        notificationId,
+      );
+      expect(notificationModelAction.save).toHaveBeenCalledWith({
+        entity: readNotification,
+        transactionOptions: { useTransaction: false },
+      });
+      expect(result).toEqual(readNotification);
+    });
+
+    it('should mark notification as unread', async () => {
+      const readNotification = { ...mockNotification, is_read: true };
+      const unreadNotification = { ...mockNotification, is_read: false };
+
+      notificationModelAction.findOneById.mockResolvedValue(readNotification);
+      notificationModelAction.save.mockResolvedValue(unreadNotification);
+
+      const result = await service.markNotificationAsReadUnread(
+        notificationId,
+        userId,
+        false,
+      );
+
+      expect(notificationModelAction.findOneById).toHaveBeenCalledWith(
+        notificationId,
+      );
+      expect(notificationModelAction.save).toHaveBeenCalledWith({
+        entity: unreadNotification,
+        transactionOptions: { useTransaction: false },
+      });
+      expect(result).toEqual(unreadNotification);
+    });
+
+    it('should return undefined if notification not found', async () => {
+      notificationModelAction.findOneById.mockResolvedValue(undefined);
+
+      const result = await service.markNotificationAsReadUnread(
+        notificationId,
+        userId,
+        true,
+      );
+
+      expect(result).toBeUndefined();
+      expect(notificationModelAction.save).not.toHaveBeenCalled();
+    });
+
+    it('should return undefined if user does not own notification', async () => {
+      const notificationOwnedByAnotherUser = {
+        ...mockNotification,
+        recipient_id: 'another-user',
+      };
+      notificationModelAction.findOneById.mockResolvedValue(
+        notificationOwnedByAnotherUser,
+      );
+
+      const result = await service.markNotificationAsReadUnread(
+        notificationId,
+        userId,
+        true,
+      );
+
+      expect(result).toBeUndefined();
+      expect(notificationModelAction.save).not.toHaveBeenCalled();
     });
   });
 });

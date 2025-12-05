@@ -26,15 +26,21 @@ import { UserRole } from '../../shared/enums';
 import {
   ApiAttendanceBearerAuth,
   ApiAttendanceTags,
+  ApiCreateEditRequest,
   ApiGetClassDailyAttendance,
   ApiGetClassTermAttendance,
+  ApiGetMyEditRequests,
   ApiGetStudentMonthlyAttendance,
   ApiGetStudentTermSummary,
   ApiMarkStudentDailyAttendance,
+  ApiReviewEditRequest,
   ApiUpdateStudentDailyAttendance,
+  apiParentGetChildMonthlyAttendance,
 } from '../docs';
 import {
+  CreateEditRequestDto,
   MarkStudentDailyAttendanceDto,
+  ReviewEditRequestDto,
   UpdateStudentDailyAttendanceDto,
 } from '../dto';
 import { AttendanceService } from '../services/attendance.service';
@@ -48,17 +54,26 @@ export class StudentDailyAttendanceController {
 
   // --- POST: MARK STUDENT DAILY ATTENDANCE (TEACHER/ADMIN) ---
   @Post()
-  @Roles(UserRole.TEACHER, UserRole.ADMIN)
+  @Roles(UserRole.TEACHER)
   @HttpCode(HttpStatus.OK)
   @ApiMarkStudentDailyAttendance()
   async markStudentDailyAttendance(
     @Req() req: IRequestWithUser,
     @Body() dto: MarkStudentDailyAttendanceDto,
   ) {
-    return this.attendanceService.markStudentDailyAttendance(
-      req.user.userId,
-      dto,
-    );
+    return this.attendanceService.markAttendance(req.user.userId, dto);
+  }
+
+  //PARENTS GET THEIR CHILD MONTHLY ATTENDANCE
+
+  @Get('parent')
+  @Roles(UserRole.PARENT)
+  @HttpCode(HttpStatus.OK)
+  @apiParentGetChildMonthlyAttendance()
+  async getParentChildMonthlyAttendance(
+    @Query('registration_number') matricNumber: string,
+  ) {
+    return this.attendanceService.getParentChildMonthlyAttendance(matricNumber);
   }
 
   // --- GET: CLASS DAILY ATTENDANCE SUMMARY (TEACHER/ADMIN) ---
@@ -154,4 +169,40 @@ export class StudentDailyAttendanceController {
   ) {
     return this.attendanceService.updateStudentDailyAttendance(id, dto);
   }
+
+  // --- POST: CREATE EDIT REQUEST FOR LOCKED ATTENDANCE (TEACHER/ADMIN) ---
+  @Post('edit-request')
+  @Roles(UserRole.TEACHER, UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiCreateEditRequest()
+  async createEditRequest(
+    @Req() req: IRequestWithUser,
+    @Body() dto: CreateEditRequestDto,
+  ) {
+    return this.attendanceService.createEditRequest(req.user.userId, dto);
+  }
+
+  // --- GET: MY EDIT REQUESTS (TEACHER/ADMIN) ---
+  @Get('edit-requests/my-requests')
+  @Roles(UserRole.TEACHER, UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiGetMyEditRequests()
+  async getMyEditRequests(@Req() req: IRequestWithUser) {
+    return this.attendanceService.getMyEditRequests(req.user.userId);
+  }
+
+  // --- PATCH: REVIEW EDIT REQUEST (ADMIN) ---
+  @Patch('edit-request/:id')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiReviewEditRequest()
+  async reviewEditRequest(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: IRequestWithUser,
+    @Body() dto: ReviewEditRequestDto,
+  ) {
+    return this.attendanceService.reviewEditRequest(id, req.user.userId, dto);
+  }
+
+  //parent endpoints to view child attendance
 }

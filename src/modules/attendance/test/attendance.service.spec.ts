@@ -17,6 +17,7 @@ import { AttendanceStatus, DailyAttendanceStatus } from '../enums';
 import {
   AttendanceModelAction,
   StudentDailyAttendanceModelAction,
+  AttendanceEditRequestModelAction,
 } from '../model-actions';
 import { AttendanceService } from '../services/attendance.service';
 
@@ -82,6 +83,14 @@ describe('AttendanceService', () => {
       list: jest.fn(),
     };
 
+    const mockEditRequestModelAction = {
+      create: jest.fn(),
+      get: jest.fn(),
+      list: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    };
+
     const mockDataSource = {
       transaction: jest.fn((callback) => callback(mockEntityManager)),
       manager: {
@@ -124,6 +133,10 @@ describe('AttendanceService', () => {
         {
           provide: DataSource,
           useValue: mockDataSource,
+        },
+        {
+          provide: AttendanceEditRequestModelAction,
+          useValue: mockEditRequestModelAction,
         },
         {
           provide: WINSTON_MODULE_PROVIDER,
@@ -338,7 +351,7 @@ describe('AttendanceService', () => {
       mockFindOne.mockResolvedValue({ id: 'enrollment-1', is_active: true });
       mockSave.mockResolvedValue({});
 
-      const result = await service.markStudentDailyAttendance(teacherId, dto);
+      const result = await service.markAttendance(teacherId, dto);
 
       expect(result.message).toBe(
         'Student daily attendance marked successfully',
@@ -358,9 +371,9 @@ describe('AttendanceService', () => {
         attendance_records: [],
       };
 
-      await expect(
-        service.markStudentDailyAttendance('teacher-123', dto),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.markAttendance('teacher-123', dto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -655,4 +668,125 @@ describe('AttendanceService', () => {
       expect(result.attendance_details).toEqual([]);
     });
   });
+
+  // ================== START: Parent getChildMonthlyAttendance by registration_number ==================
+  describe('getParentChildMonthlyAttendance', () => {
+    it('should retrieve monthly attendance for a child using registration_number', async () => {
+      const registrationNumber = 'STU-2025-0015';
+      const studentId = 'student-123';
+      const sessionId = 'session-123';
+
+      const mockSession = {
+        id: sessionId,
+        name: '2025/2026',
+        is_active: true,
+        status: SessionStatus.ACTIVE,
+        startDate: new Date('2025-09-01'),
+        endDate: new Date('2026-08-31'),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as AcademicSession;
+
+      // Mock active session
+      academicSessionService.activeSessions.mockResolvedValue({
+        data: mockSession,
+      } as never);
+
+      // Mock student lookup by registration_number
+      mockFindOne.mockResolvedValue({
+        id: studentId,
+        registration_number: registrationNumber,
+        user: { first_name: 'John', middle_name: 'A', last_name: 'Doe' },
+      });
+
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+
+      // Create mock attendance records for current month
+      const mockAttendanceRecords: Partial<StudentDailyAttendance>[] = [
+        {
+          id: 'attendance-1',
+          student_id: studentId,
+          session_id: sessionId,
+          date: new Date(currentYear, currentMonth, 1),
+          status: DailyAttendanceStatus.PRESENT,
+          check_in_time: new Date('2025-12-01T08:00:00'),
+          notes: null,
+        },
+        {
+          id: 'attendance-2',
+          student_id: studentId,
+          session_id: sessionId,
+          date: new Date(currentYear, currentMonth, 2),
+          status: DailyAttendanceStatus.LATE,
+          check_in_time: new Date('2025-12-02T09:15:00'),
+          notes: 'Traffic delay',
+        },
+      ];
+
+      studentDailyAttendanceModelAction.list.mockResolvedValue({
+        payload: mockAttendanceRecords as StudentDailyAttendance[],
+        paginationMeta: null,
+      });
+
+      const result =
+        await service.getParentChildMonthlyAttendance(registrationNumber);
+
+      expect(result.message).toBe(sysMsg.STUDENT_MONTHLY_ATTENDANCE_RETRIEVED);
+      expect(result.registration_number).toBe(registrationNumber);
+      expect(result.student_id).toBe(studentId);
+      expect(result.year).toBe(currentYear);
+      expect(result).toHaveProperty('month');
+      expect(result.attendance_details.length).toBe(2);
+      expect(result.days_present).toBe(2); // PRESENT + LATE counts as present
+      expect(result.days_late).toBe(1);
+    });
+
+    it('should return empty attendance details when no records exist for current month', async () => {
+      const registrationNumber = 'STU-2025-0015';
+      const studentId = 'student-123';
+      const sessionId = 'session-123';
+
+      const mockSession = {
+        id: sessionId,
+        name: '2025/2026',
+        is_active: true,
+        status: SessionStatus.ACTIVE,
+        startDate: new Date('2025-09-01'),
+        endDate: new Date('2026-08-31'),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as AcademicSession;
+
+      academicSessionService.activeSessions.mockResolvedValue({
+        data: mockSession,
+      } as never);
+
+      // Mock student lookup by registration_number
+      mockFindOne.mockResolvedValue({
+        id: studentId,
+        registration_number: registrationNumber,
+        user: { first_name: 'John', middle_name: 'A', last_name: 'Doe' },
+      });
+
+      studentDailyAttendanceModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: null,
+      });
+
+      const result =
+        await service.getParentChildMonthlyAttendance(registrationNumber);
+
+      expect(result.message).toBe(sysMsg.STUDENT_MONTHLY_ATTENDANCE_RETRIEVED);
+      expect(result.registration_number).toBe(registrationNumber);
+      expect(result.attendance_details).toEqual([]);
+      expect(result.days_present).toBe(0);
+      expect(result.days_absent).toBe(0);
+      expect(result.days_late).toBe(0);
+      expect(result.days_excused).toBe(0);
+      expect(result.days_half_day).toBe(0);
+    });
+  });
+  // ================== END: Parent getChildMonthlyAttendance by registration_number ==================
 });

@@ -33,6 +33,175 @@ export const ApiAttendanceTags = () => applyDecorators(ApiTags('Attendance'));
 export const ApiAttendanceBearerAuth = () => applyDecorators(ApiBearerAuth());
 
 /**
+ * Swagger decorators for Create Edit Request endpoint
+ */
+export const ApiCreateEditRequest = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Create an edit request for locked attendance (Teacher only)',
+      description:
+        'Teachers submit a request to edit a locked attendance record. ' +
+        'The request is reviewed by an admin. Validates that: ' +
+        '(1) The attendance record exists and is locked, ' +
+        '(2) The requesting teacher owns the attendance record, ' +
+        '(3) No pending request already exists for this attendance.',
+    }),
+    ApiOkResponse({
+      description: 'Edit request created successfully',
+      schema: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            example: sysMsg.EDIT_REQUEST_CREATED_SUCCESSFULLY,
+          },
+          data: {
+            type: 'object',
+            properties: {
+              id: {
+                type: 'string',
+                example: '123e4567-e89b-12d3-a456-426614174000',
+              },
+              attendance_id: {
+                type: 'string',
+                example: '456e4567-e89b-12d3-a456-426614174001',
+              },
+              attendance_type: {
+                type: 'string',
+                example: 'SCHEDULE_BASED',
+              },
+              requested_by: {
+                type: 'string',
+                example: '789e4567-e89b-12d3-a456-426614174002',
+              },
+              proposed_changes: {
+                type: 'object',
+                example: { status: 'PRESENT', notes: 'Corrected status' },
+              },
+              reason: {
+                type: 'string',
+                example: 'Student was present but mistakenly marked absent',
+              },
+              status: {
+                type: 'string',
+                enum: ['PENDING'],
+              },
+            },
+          },
+        },
+      },
+    }),
+    ApiBadRequestResponse({
+      description:
+        'Invalid input, duplicate pending request, or attendance record is not locked',
+    }),
+    ApiForbiddenResponse({
+      description:
+        'You can only request edits for attendance records you created',
+    }),
+    ApiNotFoundResponse({
+      description: 'Attendance record not found or has been deleted',
+    }),
+  );
+
+/**
+ * Swagger decorators for Get My Edit Requests endpoint
+ */
+export const ApiGetMyEditRequests = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Get my edit requests (Teacher only)',
+      description:
+        'Teachers retrieve all their submitted edit requests. ' +
+        'Returns a list of edit requests ordered by creation date (newest first).',
+    }),
+    ApiOkResponse({
+      description: 'Edit requests retrieved successfully',
+      schema: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            example: sysMsg.EDIT_REQUESTS_RETRIEVED_SUCCESSFULLY,
+          },
+          data: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                attendance_id: { type: 'string' },
+                attendance_type: { type: 'string' },
+                proposed_changes: { type: 'object' },
+                reason: { type: 'string' },
+                status: { type: 'string' },
+                reviewed_by: { type: 'string', nullable: true },
+                reviewed_at: { type: 'string', nullable: true },
+                admin_comment: { type: 'string', nullable: true },
+                created_at: { type: 'string' },
+              },
+            },
+          },
+        },
+      },
+    }),
+  );
+
+/**
+ * Swagger decorators for Review Edit Request endpoint
+ */
+export const ApiReviewEditRequest = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Review an edit request (Admin only)',
+      description:
+        'Admins approve or reject edit requests from teachers. ' +
+        'When approved, the proposed changes are automatically applied to the attendance record. ' +
+        'Validates that the attendance record has not been modified since the request was created. ' +
+        'Rejection requires an admin comment explaining the reason.',
+    }),
+    ApiParam({
+      name: 'id',
+      type: String,
+      description: 'Edit request ID (UUID)',
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
+    ApiOkResponse({
+      description: 'Edit request reviewed successfully',
+      schema: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            example: sysMsg.EDIT_REQUEST_REVIEWED_SUCCESSFULLY,
+          },
+          data: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              status: { type: 'string', example: 'APPROVED' },
+              reviewed_by: { type: 'string' },
+              reviewed_at: { type: 'string' },
+              admin_comment: { type: 'string', nullable: true },
+            },
+          },
+        },
+      },
+    }),
+    ApiBadRequestResponse({
+      description:
+        'Invalid status, missing admin comment for rejection, ' +
+        'or attendance record has been modified since request was created (stale request)',
+    }),
+    ApiNotFoundResponse({
+      description: 'Edit request not found',
+    }),
+    ApiForbiddenResponse({
+      description: 'Edit request has already been reviewed',
+    }),
+  );
+
+/**
  * Swagger decorators for Bulk Mark Attendance endpoint (Schedule-Based)
  */
 export const ApiBulkMarkAttendance = () =>
@@ -793,8 +962,6 @@ export const ApiUpdateStudentDailyAttendance = () =>
             type: 'string',
             example: sysMsg.ATTENDANCE_UPDATED_SUCCESSFULLY,
           },
-          status_code: { type: 'number', example: 200 },
-          data: { $ref: '#/components/schemas/AttendanceResponseDto' },
         },
       },
     }),
@@ -1003,3 +1170,19 @@ export const ApiGetStudentMonthlyAttendance = () =>
       description: sysMsg.STUDENTS_CAN_ONLY_VIEW_OWN_ATTENDANCE,
     }),
   );
+
+export function apiParentGetChildMonthlyAttendance() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary:
+        'Get monthly attendance for a child with the child registration number (PARENT ONLY)',
+      description:
+        "Allows a parent to fetch their child's monthly attendance record.",
+    }),
+
+    ApiOkResponse({
+      description: 'Student monthly attendance fetched successfully',
+    }),
+  );
+}

@@ -133,9 +133,21 @@ export const PAYMENTS_FETCHED_SUCCESSFULLY =
 // Notifications
 export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
+export const NOTIFICATION_RETRIEVED = 'Notification retrieved successfully';
+export const NOTIFICATION_NOT_FOUND = 'Notification not found';
 export const NOTIFICATIONS_RETRIEVED = 'Notifications retrieved successfully';
 export const UNAUTHORIZED_NOTIFICATION_ACCESS =
   'You are not authorized to view these notifications';
+export const NOTIFICATION_READ_STATUS_UPDATED =
+  'Notification status updated successfully';
+export const NOTIFICATION_PREFERENCE_RETRIEVED =
+  'Notification preference retrieved successfully';
+export const NOTIFICATION_PREFERENCE_NOT_FOUND =
+  'Notification preference not found';
+export const NOTIFICATION_PREFERENCE_UPDATED =
+  'Notification preference updated successfully';
+export const NOTIFICATION_PREFERENCE_CREATED =
+  'Notification preference created successfully';
 
 // Streams
 export const STREAM_NOT_FOUND = 'Stream with the provided ID does not exist';
@@ -267,6 +279,10 @@ export const TEACHER_UNASSIGNED_FROM_SUBJECT =
 export const CLASS_DELETED = 'Class deleted successfully';
 export const CANNOT_DELETE_PAST_SESSION_CLASS =
   'Only classes from the active session can be deleted.';
+export const STUDENT_NOT_ASSIGNED_TO_CLASS =
+  'Student is not currently assigned to this class.';
+export const STUDENT_UNASSIGNED_SUCCESSFULLY =
+  'Student unassigned successfully';
 
 // Parent messages
 export const PARENT_CREATED = 'Parent created successfully';
@@ -287,6 +303,8 @@ export const STUDENT_NOT_BELONG_TO_PARENT =
   'Student not found or does not belong to this parent';
 export const STUDENT_UNLINKED_FROM_PARENT =
   'Student successfully unlinked from parent';
+export const PARENT_STUDENT_PROFILE_FETCHED =
+  "Student's profiles fetched successfully";
 
 // Contact messages
 export const CONTACT_MESSAGE_SENT = 'Contact message sent successfully';
@@ -352,6 +370,8 @@ export const INVALID_TEACHER_ID = 'Invalid teacher ID provided';
 export const TEACHER_NOT_FOUND = 'Teacher not found';
 export const INVALID_TEACHER_AGE = (minAge: number) =>
   `Teacher must be at least ${minAge} years old`;
+export const TEACHER_CLASS_FETCHED = 'Teacher class retrieved successfully';
+export const NO_CLASS_ASSIGNED_TO_TEACHER = 'No class assigned to teacher';
 
 // Timetable messages
 export const TIMETABLE_CREATED = 'Timetable created successfully';
@@ -461,11 +481,27 @@ export const STUDENT_MONTHLY_ATTENDANCE_RETRIEVED =
 export const STUDENTS_CAN_ONLY_VIEW_OWN_ATTENDANCE =
   'Students can only view their own attendance';
 
+// Attendance Lock message
+export const ATTENDANCE_LOCKED =
+  'The attendance record is locked. Please submit an edit request for admin approval.';
+
+// Attendance Edit Request messages
+export const EDIT_REQUEST_CREATED_SUCCESSFULLY =
+  'edit request created successfully';
+export const EDIT_REQUESTS_RETRIEVED_SUCCESSFULLY =
+  'edit requests retrieved successfully';
+export const EDIT_REQUEST_REVIEWED_SUCCESSFULLY =
+  'edit request reviewed successfully';
+export const EDIT_REQUEST_STALE =
+  'The attendance record has been modified since this edit request was created. Please review the current attendance state and create a new request if needed.';
+
 // Result messages
 export const RESULT_NOT_FOUND = 'Result not found';
 export const RESULT_GENERATED_SUCCESS = (count: number) =>
   `Successfully generated ${count} result(s)`;
 export const RESULTS_RETRIEVED_SUCCESS = 'Results retrieved successfully';
+export const AUTO_RESULTS_FAILED =
+  'Failed to auto-generate results after grade approval';
 
 export const ACADEMIC_SESSION_NOT_FOUND = 'Academic session not found';
 export const TERM_NOT_IN_SESSION =
@@ -487,3 +523,45 @@ export const NO_APPROVED_GRADES_STUDENT =
   'No approved grades found for this student in the specified term. Ensure grades are submitted and approved.';
 export const NO_VALID_GRADES_STUDENT =
   'No valid grades found for this student in the specified term';
+
+// MANUAL TEACHER CHECKIN MESSAGES
+export const TEACHER_ID_NOT_FOUND = 'Teacher id not found in the request';
+export const TEACHER_IS_NOT_ACTIVE = 'Teacher profile is not active';
+export const CHECK_IN_DATE_IS_IN_THE_FUTURE = 'Check in date is in the future';
+export const CHECK_IN_DATE_IS_IN_THE_PAST = 'Check in date is in the past';
+export const REASON_IS_EMPTY = 'Reason is required';
+export const ALREADY_CHECKED_IN_FOR_THE_SAME_DATE =
+  'You have already checked in for this date';
+export const CHECK_IN_TIME_NOT_WITHIN_SCHOOL_HOURS =
+  'Check in time is not within school hours';
+export const TEACHER_MANUAL_CHECKIN_CREATED_SUCCESSFULLY =
+  'Teacher manual checkin created successfully';
+export const PENDING_CHECKIN_REQUESTS_FETCHED_SUCCESSFULLY =
+  'Pending checkin requests fetched successfully';
+export const CHECKIN_REQUEST_NOT_FOUND = 'Checkin request not found';
+export const CHECKIN_REQUEST_ALREADY_PROCESSED =
+  'Checkin request has already been processed';
+export const ATTENDANCE_ALREADY_MARKED_FOR_DATE =
+  'Attendance already marked for this date';
+export const CHECKIN_REQUEST_APPROVED = 'Checkin request approved';
+export const CHECKIN_REQUEST_REJECTED = 'Checkin request rejected';
+export const CANNOT_CHECKOUT_PENDING_CHECKIN =
+  'Cannot checkout while a pending checkin request exists';
+export const NO_CHECKIN_FOR_TODAY = 'No checkin found for today';
+export const ALREADY_CHECKED_OUT = 'Already checked out';
+export const TEACHER_CHECKOUT_SUCCESS = 'Teacher checkout successful';
+export const NO_ATTENDANCE_FOR_TODAY = 'No attendance record for today';
+export const ATTENDANCE_SUMMARY_FETCHED =
+  'Attendance summary fetched successfully';
+export const CHECK_IN_DATE_CANNOT_BE_MORE_THAN_DAYS_IN_THE_PAST = (
+  maxPastDays: number,
+) => `Check-in date cannot be more than ${maxPastDays} days in the past`;
+export const PENDING_MANUAL_CHECKIN_REQUEST_EXISTS_FOR_THIS_DATE =
+  'A pending manual check-in request exists for this date. Please wait for approval or cancel the request.';
+export const TEACHER_AUTO_CHECKIN_SUCCESS =
+  'Teacher auto checkin created successfully';
+//attendance message
+export const REGISTRATION_NUMBER_REQUIRED =
+  'Child registration number is required';
+export const CHILD_REGISTRATION_NUMBER_NOT_FOUNS =
+  'Registration number does not exist';
