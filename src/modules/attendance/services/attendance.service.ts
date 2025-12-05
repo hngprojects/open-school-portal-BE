@@ -31,14 +31,12 @@ import {
   UpdateAttendanceDto,
 } from '../dto';
 import { ScheduleBasedAttendance } from '../entities';
-import {
-  AttendanceType,
-  EditRequestStatus,
-  StudentDailyAttendance,
-} from '../entities/student-daily-attendance.entity';
+import { StudentDailyAttendance } from '../entities/student-daily-attendance.entity';
 import {
   AttendanceStatus,
   DailyAttendanceStatus,
+  AttendanceType,
+  EditRequestStatus,
 } from '../enums/attendance-status.enum';
 import {
   AttendanceModelAction,

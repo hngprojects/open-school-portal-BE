@@ -3,20 +3,13 @@ import { Entity, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { BaseEntity } from '../../../entities/base-entity';
 import { Class } from '../../class/entities/class.entity';
 import { User } from '../../user/entities/user.entity';
-import { DailyAttendanceStatus } from '../enums';
+import {
+  DailyAttendanceStatus,
+  EditRequestStatus,
+  AttendanceType,
+} from '../enums/attendance-status.enum';
 
 import { BaseAttendanceEntity } from './attendance.entity';
-
-export enum EditRequestStatus {
-  PENDING = 'pending',
-  APPROVED = 'approved',
-  REJECTED = 'rejected',
-}
-
-export enum AttendanceType {
-  DAILY = 'daily',
-  SCHEDULE = 'schedule',
-}
 
 /**
  * Daily student attendance - one record per student per day

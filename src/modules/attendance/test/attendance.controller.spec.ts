@@ -15,11 +15,11 @@ import { TermModelAction } from '../../academic-term/model-actions';
 import { ScheduleBasedAttendanceController } from '../controllers/schedule-based-attendance.controller';
 import { StudentDailyAttendanceController } from '../controllers/student-daily-attendance.controller';
 import { CreateEditRequestDto, ReviewEditRequestDto } from '../dto';
+import { AttendanceEditRequest } from '../entities/student-daily-attendance.entity';
 import {
-  AttendanceEditRequest,
   AttendanceType,
   EditRequestStatus,
-} from '../entities/student-daily-attendance.entity';
+} from '../enums/attendance-status.enum';
 import {
   AttendanceModelAction,
   StudentDailyAttendanceModelAction,
@@ -188,7 +188,7 @@ describe('StudentDailyAttendanceController - Edit Requests', () => {
   describe('createEditRequest', () => {
     const dto: CreateEditRequestDto = {
       attendance_id: 'attendance-456',
-      attendance_type: AttendanceType.SCHEDULE,
+      attendance_type: AttendanceType.SCHEDULE_BASED,
       proposed_changes: { status: 'PRESENT' },
       reason: 'Student was present but marked absent',
     };

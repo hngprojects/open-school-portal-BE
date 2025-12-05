@@ -1,5 +1,10 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
+import {
+  AttendanceType,
+  EditRequestStatus,
+} from '../../modules/attendance/enums/attendance-status.enum';
+
 export class AddAttendanceAutoLock1764500000000 implements MigrationInterface {
   name = 'AddAttendanceAutoLock1764500000000';
 
@@ -33,8 +38,8 @@ export class AddAttendanceAutoLock1764500000000 implements MigrationInterface {
         "reviewed_at" TIMESTAMP,
         "admin_comment" text,
         CONSTRAINT "PK_attendance_edit_requests" PRIMARY KEY ("id"),
-        CONSTRAINT "CHK_attendance_type" CHECK ("attendance_type" IN ('SCHEDULE_BASED', 'DAILY')),
-        CONSTRAINT "CHK_status" CHECK ("status" IN ('PENDING', 'APPROVED', 'REJECTED'))
+        CONSTRAINT "CHK_attendance_type" CHECK ("attendance_type" IN ('${AttendanceType.SCHEDULE_BASED}', '${AttendanceType.DAILY}')),
+        CONSTRAINT "CHK_status" CHECK ("status" IN ('${EditRequestStatus.PENDING}', '${EditRequestStatus.APPROVED}', '${EditRequestStatus.REJECTED}'))
       )
     `);
 

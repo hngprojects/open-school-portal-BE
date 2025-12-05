@@ -11,7 +11,7 @@ import {
 import {
   AttendanceType,
   EditRequestStatus,
-} from '../entities/student-daily-attendance.entity';
+} from '../enums/attendance-status.enum';
 
 /**
  * DTO for creating an edit request
