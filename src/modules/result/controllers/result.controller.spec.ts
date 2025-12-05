@@ -41,6 +41,7 @@ describe('ResultController', () => {
             getStudentResults: jest.fn(),
             getClassResults: jest.fn(),
             listResults: jest.fn(),
+            getResults: jest.fn(),
           },
         },
         {
