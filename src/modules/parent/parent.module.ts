@@ -6,6 +6,7 @@ import { ClassStudent } from '../class/entities/class-student.entity';
 import { ClassSubject } from '../class/entities/class-subject.entity';
 import { ClassStudentModelAction } from '../class/model-actions/class-student.action';
 import { ClassSubjectModelAction } from '../class/model-actions/class-subject.action';
+import { EmailModule } from '../email/email.module';
 import { FileModule } from '../shared/file/file.module';
 import { Student } from '../student/entities/student.entity';
 import { StudentModelAction } from '../student/model-actions/student-actions';
@@ -23,6 +24,7 @@ import { ParentService } from './parent.service';
     FileModule,
     UserModule,
     StudentModule,
+    EmailModule,
   ],
   controllers: [ParentController],
   providers: [

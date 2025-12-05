@@ -14,6 +14,7 @@ import { IPaginationMeta } from '../../common/types/base-response.interface';
 import * as sysMsg from '../../constants/system.messages';
 import { ClassStudentModelAction } from '../class/model-actions/class-student.action';
 import { ClassSubjectModelAction } from '../class/model-actions/class-subject.action';
+import { AccountCreationService } from '../email/account-creation.service';
 import { UserRole } from '../shared/enums';
 import { FileService } from '../shared/file/file.service';
 import {
@@ -55,6 +56,7 @@ export class ParentService {
     private readonly classSubjectModelAction: ClassSubjectModelAction,
     private readonly dataSource: DataSource,
     private readonly fileService: FileService,
+    private readonly accountCreationService: AccountCreationService,
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
   ) {
     this.logger = baseLogger.child({ context: ParentService.name });
@@ -86,7 +88,7 @@ export class ParentService {
       photo_url = this.fileService.validatePhotoUrl(createDto.photo_url);
     }
 
-    return this.dataSource.transaction(async (manager) => {
+    const response = await this.dataSource.transaction(async (manager) => {
       // 4. Create User using model action within transaction
       const savedUser = await this.userModelAction.create({
         createPayload: {
@@ -138,14 +140,21 @@ export class ParentService {
         updated_at: savedParent.updatedAt,
       };
 
-      this.logger.info(sysMsg.RESOURCE_CREATED, {
-        parentId: savedParent.id,
-        email: savedUser.email,
-      });
+      return response;
+    });
+    this.logger.info(sysMsg.RESOURCE_CREATED, {
+      parentId: response.id,
+      email: response.email,
+    });
+    await this.accountCreationService.sendAccountCreationEmail(
+      `${response.first_name} ${response.last_name}`,
+      response.email,
+      rawPassword,
+      UserRole.PARENT,
+    );
 
-      return plainToInstance(ParentResponseDto, response, {
-        excludeExtraneousValues: true,
-      });
+    return plainToInstance(ParentResponseDto, response, {
+      excludeExtraneousValues: true,
     });
   }
 

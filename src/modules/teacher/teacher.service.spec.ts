@@ -9,6 +9,7 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource, QueryRunner, Repository } from 'typeorm';
 import { Logger } from 'winston';
 
+import { AccountCreationService } from '../email/account-creation.service';
 import { UserRole } from '../shared/enums';
 import { FileService } from '../shared/file/file.service';
 import * as passwordUtil from '../shared/utils/password.util';
@@ -154,6 +155,12 @@ describe('TeacherService', () => {
         {
           provide: WINSTON_MODULE_PROVIDER,
           useValue: mockLogger,
+        },
+        {
+          provide: AccountCreationService,
+          useValue: {
+            sendAccountCreationEmail: jest.fn(),
+          },
         },
       ],
     }).compile();
