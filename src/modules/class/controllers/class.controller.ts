@@ -33,6 +33,7 @@ import {
   DocsGetClassStudents,
   DocsGetTeacherClasses,
   DocsGetClassByTeacherId,
+  DocsUnassignStudent,
 } from '../docs/class.decorator';
 import {
   CreateClassDto,
@@ -95,6 +96,39 @@ export class ClassController {
       query.name,
       query.arm,
     );
+  }
+
+  // --- POST: ASSIGN SINGLE STUDENT TO CLASS (ADMIN ONLY) ---
+  @Post(':id/students/:studentId')
+  @Roles(UserRole.ADMIN)
+  @DocsAssignSingleStudent()
+  async assignSingleStudent(
+    @Param('id', ParseUUIDPipe) classId: string,
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+  ): Promise<AssignSingleStudentResponseDto> {
+    return this.classService.assignStudentToClass(classId, studentId);
+  }
+
+  // --- DELETE: UNASSIGN STUDENT FROM CLASS (ADMIN ONLY) ---
+  @Delete(':id/students/:studentId')
+  @Roles(UserRole.ADMIN)
+  @DocsUnassignStudent()
+  async unassignStudent(
+    @Param('id', ParseUUIDPipe) classId: string,
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+  ) {
+    return this.classService.unassignStudentFromClass(classId, studentId);
+  }
+
+  // --- POST: ASSIGN STUDENTS TO CLASS (ADMIN ONLY) ---
+  @Post(':id/students')
+  @Roles(UserRole.ADMIN)
+  @DocsAssignStudents()
+  async assignStudents(
+    @Param('id', ParseUUIDPipe) classId: string,
+    @Body() assignStudentsDto: AssignStudentsToClassDto,
+  ) {
+    return this.classService.assignStudentsToClass(classId, assignStudentsDto);
   }
 
   // --- GET: GET CLASSES ASSIGNED TO TEACHER ---

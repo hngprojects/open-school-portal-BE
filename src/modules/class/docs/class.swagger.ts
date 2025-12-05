@@ -418,6 +418,43 @@ export const ClassSwagger = {
         },
       },
     },
+    unassignStudent: {
+      operation: {
+        summary: 'Unassign a student from a class',
+        description:
+          'Unassigns a student from their current class. Sets current_class_id to null and deactivates the class assignment.',
+      },
+      parameters: {
+        id: {
+          name: 'id',
+          description: 'The Class ID',
+        },
+        studentId: {
+          name: 'studentId',
+          description: 'The Student ID',
+        },
+      },
+      responses: {
+        ok: {
+          status: HttpStatus.OK,
+          description: sysMsg.STUDENT_UNASSIGNED_SUCCESSFULLY,
+          schema: {
+            type: 'object',
+            properties: {
+              message: {
+                type: 'string',
+                example: sysMsg.STUDENT_UNASSIGNED_SUCCESSFULLY,
+              },
+            },
+          },
+        },
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          description:
+            'Class or student not found, or student not assigned to this class',
+        },
+      },
+    },
     getTeacherClasses: {
       operation: {
         summary: 'Get classes assigned to the authenticated teacher',
