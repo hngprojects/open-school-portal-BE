@@ -1,4 +1,10 @@
-import { IsUUID, IsString, IsEnum, IsNotEmpty } from 'class-validator';
+import {
+  IsUUID,
+  IsString,
+  IsEnum,
+  IsNotEmpty,
+  IsBoolean,
+} from 'class-validator';
 
 export enum EventAction {
   CREATED = 'created',
@@ -54,11 +60,26 @@ export class ResultEventDto {
 
   @IsUUID()
   @IsNotEmpty()
+  class_id: string;
+
+  @IsUUID()
+  @IsNotEmpty()
   subject_id: string;
+
+  @IsUUID()
+  @IsNotEmpty()
+  term_id: string;
+
+  @IsUUID()
+  @IsNotEmpty()
+  academic_session_id: string;
 
   @IsString()
   @IsNotEmpty()
   score: string;
+
+  @IsBoolean()
+  is_published: boolean;
 }
 
 export class FeeEventDto {
