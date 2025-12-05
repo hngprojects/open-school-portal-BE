@@ -2,6 +2,7 @@ import { PaginationMeta } from '@hng-sdk/orm';
 import {
   ConflictException,
   HttpStatus,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
@@ -15,6 +16,7 @@ import { ClassStudentModelAction } from 'src/modules/class/model-actions/class-s
 import { ClassModelAction } from 'src/modules/class/model-actions/class.actions';
 
 import * as sysMsg from '../../../constants/system.messages';
+import { IUserPayload } from '../../parent/parent.service';
 import { UserRole } from '../../shared/enums';
 import { FileService } from '../../shared/file/file.service';
 import { hashPassword } from '../../shared/utils/password.util';
@@ -24,6 +26,7 @@ import {
   StudentResponseDto,
   ListStudentsDto,
   PatchStudentDto,
+  StudentProfileResponseDto,
 } from '../dto';
 import { StudentGrowthReportResponseDto } from '../dto/student.growth.dto';
 import { Student } from '../entities';
@@ -517,5 +520,58 @@ export class StudentService {
         report: aggregatedReport,
       },
     };
+  }
+
+  /**
+   * Retrieves the profile of the currently authenticated student.
+   * @param studentId - The ID of the student.
+   * @returns The student's complete profile.
+   * @throws {NotFoundException} If no student profile is linked to the user account.
+   */
+  async getMyProfile(
+    studentId: string,
+    authUser: IUserPayload,
+  ): Promise<StudentProfileResponseDto> {
+    const student = await this.studentModelAction.get({
+      identifierOptions: { id: studentId },
+      relations: {
+        user: true,
+        stream: {
+          class: {
+            academicSession: true,
+            teacher_assignment: true,
+            classSubjects: true,
+            timetable: {
+              schedules: true,
+            },
+          },
+        },
+      },
+    });
+
+    if (!student || student.is_deleted) {
+      this.logger.warn(`Student profile not found with ID: ${studentId}`);
+      throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
+    }
+
+    // --- Ownership Check ---
+    // A student can only access their own profile.
+    if (
+      authUser.roles.includes(UserRole.STUDENT) &&
+      student.user.id !== authUser.id
+    ) {
+      this.logger.warn(
+        `Forbidden access attempt to student profile ${studentId} by user ${authUser.id}`,
+      );
+      throw new ForbiddenException(sysMsg.FORBIDDEN);
+    }
+
+    this.logger.info(`Fetched student profile for student ID: ${studentId}`);
+
+    return new StudentProfileResponseDto(
+      student,
+      student.user,
+      sysMsg.PROFILE_RETRIEVED,
+    );
   }
 }
