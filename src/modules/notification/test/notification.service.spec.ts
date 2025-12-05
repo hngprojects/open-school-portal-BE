@@ -11,7 +11,9 @@ describe('NotificationService', () => {
 
   const mockNotificationModelAction = {
     list: jest.fn(),
+    findOneById: jest.fn(),
     create: jest.fn(),
+    save: jest.fn(),
   };
 
   const mockNotification = {
@@ -207,6 +209,88 @@ describe('NotificationService', () => {
         expectedPayload,
       );
       expect(result).toBe('created-notification');
+    });
+  });
+  describe('markNotificationAsReadUnread', () => {
+    const notificationId = 'notification-1';
+    const userId = 'user-123';
+
+    it('should mark notification as read', async () => {
+      const unreadNotification = { ...mockNotification, is_read: false };
+      const readNotification = { ...mockNotification, is_read: true };
+
+      notificationModelAction.findOneById.mockResolvedValue(unreadNotification);
+      notificationModelAction.save.mockResolvedValue(readNotification);
+
+      const result = await service.markNotificationAsReadUnread(
+        notificationId,
+        userId,
+        true,
+      );
+
+      expect(notificationModelAction.findOneById).toHaveBeenCalledWith(
+        notificationId,
+      );
+      expect(notificationModelAction.save).toHaveBeenCalledWith({
+        entity: readNotification,
+        transactionOptions: { useTransaction: false },
+      });
+      expect(result).toEqual(readNotification);
+    });
+
+    it('should mark notification as unread', async () => {
+      const readNotification = { ...mockNotification, is_read: true };
+      const unreadNotification = { ...mockNotification, is_read: false };
+
+      notificationModelAction.findOneById.mockResolvedValue(readNotification);
+      notificationModelAction.save.mockResolvedValue(unreadNotification);
+
+      const result = await service.markNotificationAsReadUnread(
+        notificationId,
+        userId,
+        false,
+      );
+
+      expect(notificationModelAction.findOneById).toHaveBeenCalledWith(
+        notificationId,
+      );
+      expect(notificationModelAction.save).toHaveBeenCalledWith({
+        entity: unreadNotification,
+        transactionOptions: { useTransaction: false },
+      });
+      expect(result).toEqual(unreadNotification);
+    });
+
+    it('should return undefined if notification not found', async () => {
+      notificationModelAction.findOneById.mockResolvedValue(undefined);
+
+      const result = await service.markNotificationAsReadUnread(
+        notificationId,
+        userId,
+        true,
+      );
+
+      expect(result).toBeUndefined();
+      expect(notificationModelAction.save).not.toHaveBeenCalled();
+    });
+
+    it('should return undefined if user does not own notification', async () => {
+      const notificationOwnedByAnotherUser = {
+        ...mockNotification,
+        recipient_id: 'another-user',
+      };
+      notificationModelAction.findOneById.mockResolvedValue(
+        notificationOwnedByAnotherUser,
+      );
+
+      const result = await service.markNotificationAsReadUnread(
+        notificationId,
+        userId,
+        true,
+      );
+
+      expect(result).toBeUndefined();
+      expect(notificationModelAction.save).not.toHaveBeenCalled();
     });
   });
 });

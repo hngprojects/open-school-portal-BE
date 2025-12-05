@@ -38,3 +38,8 @@ export type NotificationMetadata =
   | ISubjectMetadata
   | IFeeMetadata
   | Record<string, unknown>;
+
+export interface INotificationPreferenceSettings {
+  email?: boolean;
+  push?: boolean;
+}

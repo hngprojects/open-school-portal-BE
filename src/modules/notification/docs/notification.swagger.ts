@@ -5,9 +5,14 @@ import {
   ApiResponse,
   ApiTags,
   ApiBearerAuth,
+  ApiParam,
+  ApiBody,
 } from '@nestjs/swagger';
 
-import { PaginatedNotificationsResponseDto } from '../dto/user-notification-response.dto';
+import {
+  PaginatedNotificationsResponseDto,
+  NotificationResponseDto,
+} from '../dto/user-notification-response.dto';
 
 export const ApiNotificationTags = () =>
   applyDecorators(ApiTags('Notifications'));
@@ -73,5 +78,44 @@ export const ApiGetUserNotifications = () =>
           },
         },
       },
+    }),
+  );
+export const ApiUpdateNotificationReadStatus = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Update notification read status',
+      description: 'Marks a specific notification as read or unread.',
+    }),
+    ApiParam({
+      name: 'notificationId',
+      description: 'ID of the notification to update',
+      type: String,
+      format: 'uuid',
+    }),
+    ApiBody({
+      schema: {
+        type: 'object',
+        properties: {
+          is_read: { type: 'boolean', example: true },
+        },
+        required: ['is_read'],
+      },
+    }),
+    ApiResponse({
+      status: HttpStatus.OK,
+      description: 'Notification read status updated successfully',
+      type: NotificationResponseDto,
+    }),
+    ApiResponse({
+      status: HttpStatus.UNAUTHORIZED,
+      description: 'Unauthorized - Invalid or missing JWT token',
+    }),
+    ApiResponse({
+      status: HttpStatus.NOT_FOUND,
+      description: 'Notification not found or user does not own it',
+    }),
+    ApiResponse({
+      status: HttpStatus.BAD_REQUEST,
+      description: 'Bad Request - Invalid input',
     }),
   );
