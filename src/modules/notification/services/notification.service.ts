@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 
+import { NotificationModelAction } from '../model-actions/notification.model-action';
 import {
   NotificationType,
   NotificationMetadata,
-} from './entities/notification.entity';
-import { NotificationModelAction } from './model-actions/notification.model-action';
+} from '../types/notification.types';
 
 @Injectable()
 export class NotificationService {
