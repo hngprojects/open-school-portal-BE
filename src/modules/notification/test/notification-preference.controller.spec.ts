@@ -74,10 +74,9 @@ describe('NotificationPreferenceController', () => {
 
   describe('getUserNotificationPreferences', () => {
     it('should return user preferences', async () => {
-      jest.spyOn(service, 'findOneByUserId').mockResolvedValue({
-        message: sysMsg.NOTIFICATION_PREFERENCE_RETRIEVED,
-        data: mockNotificationPreference,
-      });
+      jest
+        .spyOn(service, 'findOneByUserId')
+        .mockResolvedValue(mockNotificationPreference);
       const result =
         await controller.getUserNotificationPreferences(MOCK_USER_ID);
       expect(result).toEqual({
@@ -87,11 +86,11 @@ describe('NotificationPreferenceController', () => {
       expect(service.findOneByUserId).toHaveBeenCalledWith(MOCK_USER_ID);
     });
 
-    it('should return undefined if preferences not found', async () => {
-      jest.spyOn(service, 'findOneByUserId').mockResolvedValue(undefined);
-      const result =
-        await controller.getUserNotificationPreferences(MOCK_USER_ID);
-      expect(result).toBeUndefined();
+    it('should throw NotFoundException if preferences not found', async () => {
+      jest.spyOn(service, 'findOneByUserId').mockResolvedValue(null);
+      await expect(
+        controller.getUserNotificationPreferences(MOCK_USER_ID),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -105,6 +104,9 @@ describe('NotificationPreferenceController', () => {
     };
 
     it('should update existing preferences', async () => {
+      jest
+        .spyOn(service, 'findOneByUserId')
+        .mockResolvedValue(mockNotificationPreference);
       jest.spyOn(service, 'update').mockResolvedValue({
         message: sysMsg.NOTIFICATION_PREFERENCE_UPDATED,
         data: updatedPreference as NotificationPreference,
@@ -123,9 +125,7 @@ describe('NotificationPreferenceController', () => {
     });
 
     it('should create preferences if none exist', async () => {
-      jest.spyOn(service, 'update').mockImplementation(() => {
-        throw new NotFoundException(sysMsg.NOTIFICATION_PREFERENCE_NOT_FOUND);
-      });
+      jest.spyOn(service, 'findOneByUserId').mockResolvedValue(undefined);
       jest.spyOn(service, 'create').mockResolvedValue({
         message: sysMsg.NOTIFICATION_PREFERENCE_CREATED,
         data: mockNotificationPreference,
@@ -136,7 +136,7 @@ describe('NotificationPreferenceController', () => {
         updateDto,
         mockReq,
       );
-      expect(service.update).toHaveBeenCalledWith(MOCK_USER_ID, updateDto);
+      expect(service.findOneByUserId).toHaveBeenCalledWith(MOCK_USER_ID);
       expect(service.create).toHaveBeenCalledWith(MOCK_USER_ID, {
         preferences: updateDto.preferences,
       });

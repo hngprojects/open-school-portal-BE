@@ -7,6 +7,7 @@ import {
   UseGuards,
   Req,
   ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
@@ -38,7 +39,15 @@ export class NotificationPreferenceController {
   @Get(':userId/notification-preferences')
   @ApiGetUserNotificationPreferences()
   async getUserNotificationPreferences(@Param('userId') userId: string) {
-    return this.notificationPreferenceService.findOneByUserId(userId);
+    const preference =
+      await this.notificationPreferenceService.findOneByUserId(userId);
+    if (!preference) {
+      throw new NotFoundException(sysMsg.NOTIFICATION_PREFERENCE_NOT_FOUND);
+    }
+    return {
+      message: sysMsg.NOTIFICATION_PREFERENCE_RETRIEVED,
+      data: preference,
+    };
   }
 
   @Patch(':userId/notification-preferences')

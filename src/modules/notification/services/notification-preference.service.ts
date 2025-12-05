@@ -18,18 +18,10 @@ export class NotificationPreferenceService {
 
   async findOneByUserId(
     userId: string,
-  ): Promise<{ message: string; data: NotificationPreference }> {
-    const preference = await this.notificationPreferenceRepository.findOne({
+  ): Promise<NotificationPreference | null> {
+    return this.notificationPreferenceRepository.findOne({
       where: { user_id: userId },
     });
-
-    if (!preference) {
-      throw new NotFoundException(sysMsg.NOTIFICATION_PREFERENCE_NOT_FOUND);
-    }
-    return {
-      message: sysMsg.NOTIFICATION_PREFERENCE_RETRIEVED,
-      data: preference,
-    };
   }
 
   async create(
