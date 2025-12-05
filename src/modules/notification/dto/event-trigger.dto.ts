@@ -64,7 +64,7 @@ export class ResultEventDto {
 
   @IsUUID()
   @IsNotEmpty()
-  subject_id: string;
+  subject_id?: string;
 
   @IsUUID()
   @IsNotEmpty()
@@ -73,10 +73,6 @@ export class ResultEventDto {
   @IsUUID()
   @IsNotEmpty()
   academic_session_id: string;
-
-  @IsString()
-  @IsNotEmpty()
-  score: string;
 
   @IsBoolean()
   is_published: boolean;

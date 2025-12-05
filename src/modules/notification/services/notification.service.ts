@@ -2,12 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 
 import * as sysMsg from '../../../constants/system.messages';
+import { CreateNotificationDto } from '../dto/create-notification.dto';
 import { ListNotificationsQueryDto } from '../dto/user-notification-list-query.dto';
 import {
   NotificationResponseDto,
   PaginatedNotificationsResponseDto,
   PaginationMetaDto,
 } from '../dto/user-notification-response.dto';
+import { Notification } from '../entities/notification.entity';
 import { NotificationModelAction } from '../model-actions/notification.model-action';
 
 /**
@@ -79,5 +81,32 @@ export class NotificationService {
       },
       pagination,
     };
+  }
+
+  async create(dto: CreateNotificationDto): Promise<Notification> {
+    return this.notificationModelAction.create({
+      createPayload: {
+        recipient_id: dto.recipient_id,
+        title: dto.title,
+        message: dto.message,
+        type: dto.type,
+        metadata: dto.metadata,
+        is_read: false,
+      },
+      transactionOptions: { useTransaction: false },
+    });
+  }
+
+  async createBulk(dtos: CreateNotificationDto[]): Promise<Notification[]> {
+    const notifications = dtos.map((dto) => ({
+      recipient_id: dto.recipient_id,
+      title: dto.title,
+      message: dto.message,
+      type: dto.type,
+      metadata: dto.metadata,
+      is_read: false,
+    }));
+
+    return this.notificationModelAction.createBulk(notifications);
   }
 }
