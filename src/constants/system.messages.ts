@@ -490,6 +490,27 @@ export const NO_APPROVED_GRADES_STUDENT =
 export const NO_VALID_GRADES_STUDENT =
   'No valid grades found for this student in the specified term';
 
+// MANUAL TEACHER CHECKIN MESSAGES
+export const TEACHER_ID_NOT_FOUND = 'Teacher id not found in the request';
+export const TEACHER_IS_NOT_ACTIVE = 'Teacher profile is not active';
+export const CHECK_IN_DATE_IS_IN_THE_FUTURE = 'Check in date is in the future';
+export const CHECK_IN_DATE_IS_IN_THE_PAST = 'Check in date is in the past';
+export const REASON_IS_EMPTY = 'Reason is required';
+export const ALREADY_CHECKED_IN_FOR_THE_SAME_DATE =
+  'You have already checked in for this date';
+export const CHECK_IN_TIME_NOT_WITHIN_SCHOOL_HOURS =
+  'Check in time is not within school hours';
+export const TEACHER_MANUAL_CHECKIN_CREATED_SUCCESSFULLY =
+  'Teacher manual checkin created successfully';
+export const PENDING_CHECKIN_REQUESTS_FETCHED_SUCCESSFULLY =
+  'Pending checkin requests fetched successfully';
+export const CHECKIN_REQUEST_NOT_FOUND = 'Checkin request not found';
+export const CHECKIN_REQUEST_ALREADY_PROCESSED =
+  'Checkin request has already been processed';
+export const ATTENDANCE_ALREADY_MARKED_FOR_DATE =
+  'Attendance already marked for this date';
+export const CHECKIN_REQUEST_APPROVED = 'Checkin request approved';
+export const CHECKIN_REQUEST_REJECTED = 'Checkin request rejected';
 //attendance message
 export const REGISTRATION_NUMBER_REQUIRED =
   'Child registration number is required';
