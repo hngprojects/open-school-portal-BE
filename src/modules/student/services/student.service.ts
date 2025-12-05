@@ -20,7 +20,7 @@ import { AccountCreationService } from '../../email/account-creation.service';
 import { IUserPayload } from '../../parent/parent.service';
 import { UserRole } from '../../shared/enums';
 import { FileService } from '../../shared/file/file.service';
-import { hashPassword } from '../../shared/utils/password.util';
+import { generateResetToken, hashPassword } from '../../shared/utils';
 import { UserModelAction } from '../../user/model-actions/user-actions';
 import {
   CreateStudentDto,
@@ -83,6 +83,8 @@ export class StudentService {
       photo_url = this.fileService.validatePhotoUrl(createStudentDto.photo_url);
     }
 
+    const { resetToken, resetTokenExpiry } = generateResetToken(24);
+
     const { savedUser, savedStudent } = await this.dataSource.transaction(
       async (manager) => {
         const savedUser = await this.userModelAction.create({
@@ -98,6 +100,8 @@ export class StudentService {
             password: hashedPassword,
             role: [UserRole.STUDENT],
             is_active: createStudentDto.is_active ?? true,
+            reset_token: resetToken,
+            reset_token_expiry: resetTokenExpiry,
           },
           transactionOptions: {
             useTransaction: true,
@@ -132,6 +136,7 @@ export class StudentService {
       savedUser.email,
       createStudentDto.password,
       UserRole.STUDENT,
+      resetToken,
     );
 
     return new StudentResponseDto(

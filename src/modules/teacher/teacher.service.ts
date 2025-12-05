@@ -16,9 +16,10 @@ import { AccountCreationService } from '../email/account-creation.service';
 import { UserRole } from '../shared/enums';
 import { FileService } from '../shared/file/file.service';
 import {
-  generateStrongPassword,
+  generateResetToken,
   hashPassword,
-} from '../shared/utils/password.util';
+  generateStrongPassword,
+} from '../shared/utils';
 import { User } from '../user/entities/user.entity';
 import { UserModelAction } from '../user/model-actions/user-actions';
 
@@ -117,6 +118,8 @@ export class TeacherService {
       photo_url = this.fileService.validatePhotoUrl(createDto.photo_url);
     }
 
+    const { resetToken, resetTokenExpiry } = generateResetToken(24);
+
     const response = await this.dataSource.transaction(async (manager) => {
       // 5. Create User using model action within transaction
       const savedUser = await this.userModelAction.create({
@@ -132,6 +135,8 @@ export class TeacherService {
           password: hashedPassword,
           role: [UserRole.TEACHER],
           is_active: createDto.is_active ?? true,
+          reset_token: resetToken,
+          reset_token_expiry: resetTokenExpiry,
         },
         transactionOptions: {
           useTransaction: true,
@@ -155,7 +160,7 @@ export class TeacherService {
       });
 
       // 7. Return response (Transform User/Teacher entities into DTO)
-      const response = {
+      return {
         ...savedTeacher,
         first_name: savedUser.first_name,
         last_name: savedUser.last_name,
@@ -171,7 +176,6 @@ export class TeacherService {
         created_at: savedTeacher.createdAt,
         updated_at: savedTeacher.updatedAt,
       };
-      return response;
     });
     this.logger.info(sysMsg.RESOURCE_CREATED, {
       teacherId: response.id,
@@ -184,6 +188,7 @@ export class TeacherService {
       response.email,
       rawPassword,
       UserRole.TEACHER,
+      resetToken,
     );
 
     return plainToInstance(TeacherResponseDto, response, {

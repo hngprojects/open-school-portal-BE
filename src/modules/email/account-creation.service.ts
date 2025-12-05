@@ -4,9 +4,9 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
 import { EmailTemplateID } from '../../constants/email-constants';
+import * as sysMsg from '../../constants/system.messages';
 import { UserRole } from '../shared/enums';
 
-// import * as sysMsg from '../../../constants/system.messages';
 import { EmailService } from './email.service';
 import { EmailPayload } from './email.types';
 
@@ -27,9 +27,10 @@ export class AccountCreationService {
     email: string,
     password: string,
     role: UserRole,
+    token: string,
   ) {
     const website_url = this.configService.get<string>('frontend.url');
-    const change_password = `${website_url}/change-password`;
+    const change_password = `${website_url}/reset-password?token=${token}`;
     const school_name =
       this.configService.get<string>('app.name') || 'School Base';
     const logo_url =
@@ -38,7 +39,7 @@ export class AccountCreationService {
 
     const emailPayload: EmailPayload = {
       to: [{ email, name }],
-      subject: `Your account as been created in ${school_name}`,
+      subject: `Your account has been created in ${school_name}`,
       templateNameID: EmailTemplateID.ACCOUNT_CREATED,
       templateData: {
         name,
@@ -52,7 +53,7 @@ export class AccountCreationService {
     };
 
     await this.emailService.sendMail(emailPayload);
-    this.logger.info('Account Creation email sent', {
+    this.logger.info(sysMsg.ACCOUNT_CREATION_EMAIL_SENT, {
       email,
     });
   }

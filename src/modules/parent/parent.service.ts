@@ -18,9 +18,10 @@ import { AccountCreationService } from '../email/account-creation.service';
 import { UserRole } from '../shared/enums';
 import { FileService } from '../shared/file/file.service';
 import {
-  generateStrongPassword,
+  generateResetToken,
   hashPassword,
-} from '../shared/utils/password.util';
+  generateStrongPassword,
+} from '../shared/utils';
 import { StudentModelAction } from '../student/model-actions/student-actions';
 import { User } from '../user/entities/user.entity';
 import { UserModelAction } from '../user/model-actions/user-actions';
@@ -88,6 +89,8 @@ export class ParentService {
       photo_url = this.fileService.validatePhotoUrl(createDto.photo_url);
     }
 
+    const { resetToken, resetTokenExpiry } = generateResetToken(24);
+
     const response = await this.dataSource.transaction(async (manager) => {
       // 4. Create User using model action within transaction
       const savedUser = await this.userModelAction.create({
@@ -103,6 +106,8 @@ export class ParentService {
           password: hashedPassword,
           role: [UserRole.PARENT],
           is_active: createDto.is_active ?? true,
+          reset_token: resetToken,
+          reset_token_expiry: resetTokenExpiry,
         },
         transactionOptions: {
           useTransaction: true,
@@ -124,7 +129,7 @@ export class ParentService {
       });
 
       // 6. Return response (Transform User/Parent entities into DTO)
-      const response = {
+      return {
         ...savedParent,
         first_name: savedUser.first_name,
         last_name: savedUser.last_name,
@@ -139,9 +144,8 @@ export class ParentService {
         created_at: savedParent.createdAt,
         updated_at: savedParent.updatedAt,
       };
-
-      return response;
     });
+
     this.logger.info(sysMsg.RESOURCE_CREATED, {
       parentId: response.id,
       email: response.email,
@@ -151,6 +155,7 @@ export class ParentService {
       response.email,
       rawPassword,
       UserRole.PARENT,
+      resetToken,
     );
 
     return plainToInstance(ParentResponseDto, response, {
