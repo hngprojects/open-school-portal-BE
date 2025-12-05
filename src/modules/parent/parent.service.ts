@@ -21,7 +21,6 @@ import {
   hashPassword,
 } from '../shared/utils/password.util';
 import { StudentModelAction } from '../student/model-actions/student-actions';
-import { TeacherModelAction } from '../teacher/model-actions/teacher-actions';
 import { User } from '../user/entities/user.entity';
 import { UserModelAction } from '../user/model-actions/user-actions';
 
@@ -56,7 +55,6 @@ export class ParentService {
     private readonly classSubjectModelAction: ClassSubjectModelAction,
     private readonly dataSource: DataSource,
     private readonly fileService: FileService,
-    private readonly teacherModelAction: TeacherModelAction,
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
   ) {
     this.logger = baseLogger.child({ context: ParentService.name });
