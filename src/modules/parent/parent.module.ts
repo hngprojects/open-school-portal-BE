@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { RateLimitGuard } from '../../common/guards/rate-limit.guard';
+import { EmailModule } from '../email/email.module';
 import { ClassModule } from '../class/class.module';
 import { FileModule } from '../shared/file/file.module';
 import { StudentModule } from '../student/student.module';
@@ -18,6 +19,7 @@ import { ParentService } from './parent.service';
     FileModule,
     UserModule,
     StudentModule,
+    EmailModule,
     ClassModule,
   ],
   controllers: [ParentController],

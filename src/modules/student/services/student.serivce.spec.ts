@@ -5,13 +5,14 @@ import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
-import { ClassStudentModelAction } from '../../../modules/class/model-actions/class-student.action';
-import { ClassModelAction } from '../../../modules/class/model-actions/class.actions';
-import { User } from '../../../modules/user/entities/user.entity';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
+import { ClassStudentModelAction } from '../../class/model-actions/class-student.action';
+import { ClassModelAction } from '../../class/model-actions/class.actions';
+import { AccountCreationService } from '../../email/account-creation.service';
 import { IUserPayload } from '../../parent/parent.service';
 import { UserRole } from '../../shared/enums';
 import { FileService } from '../../shared/file/file.service';
+import { User } from '../../user/entities/user.entity';
 import { UserModelAction } from '../../user/model-actions/user-actions';
 import { StudentProfileResponseDto } from '../dto';
 import { Student } from '../entities';
@@ -89,6 +90,12 @@ describe('StudentService', () => {
         {
           provide: AcademicSessionModelAction,
           useValue: mockAcademicSessionModelAction,
+        },
+        {
+          provide: AccountCreationService,
+          useValue: {
+            sendAccountCreationEmail: jest.fn(),
+          },
         },
       ],
     }).compile();

@@ -19,6 +19,7 @@ import { ClassStudent } from '../class/entities/class-student.entity';
 import { ClassSubject } from '../class/entities/class-subject.entity';
 import { ClassStudentModelAction } from '../class/model-actions/class-student.action';
 import { ClassSubjectModelAction } from '../class/model-actions/class-subject.action';
+import { AccountCreationService } from '../email/account-creation.service';
 import { UserRole } from '../shared/enums';
 import { FileService } from '../shared/file/file.service';
 import * as passwordUtil from '../shared/utils/password.util';
@@ -234,6 +235,12 @@ describe('ParentService', () => {
         {
           provide: WINSTON_MODULE_PROVIDER,
           useValue: mockLogger,
+        },
+        {
+          provide: AccountCreationService,
+          useValue: {
+            sendAccountCreationEmail: jest.fn(),
+          },
         },
       ],
     }).compile();

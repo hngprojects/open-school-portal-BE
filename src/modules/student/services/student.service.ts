@@ -16,10 +16,11 @@ import { ClassStudentModelAction } from 'src/modules/class/model-actions/class-s
 import { ClassModelAction } from 'src/modules/class/model-actions/class.actions';
 
 import * as sysMsg from '../../../constants/system.messages';
+import { AccountCreationService } from '../../email/account-creation.service';
 import { IUserPayload } from '../../parent/parent.service';
 import { UserRole } from '../../shared/enums';
 import { FileService } from '../../shared/file/file.service';
-import { hashPassword } from '../../shared/utils/password.util';
+import { generateResetToken, hashPassword } from '../../shared/utils';
 import { UserModelAction } from '../../user/model-actions/user-actions';
 import {
   CreateStudentDto,
@@ -44,6 +45,7 @@ export class StudentService {
     private readonly classStudentModelAction: ClassStudentModelAction,
     private readonly classModelAction: ClassModelAction,
     private readonly academicSessionModelAction: AcademicSessionModelAction,
+    private readonly accountCreationService: AccountCreationService,
   ) {
     this.logger = baseLogger.child({ context: StudentService.name });
   }
@@ -61,9 +63,7 @@ export class StudentService {
       );
       throw new ConflictException(sysMsg.STUDENT_EMAIL_CONFLICT);
     }
-    const registration_number =
-      createStudentDto.registration_number ||
-      (await this.generateStudentNumber());
+    const registration_number = await this.generateStudentNumber();
 
     const existingStudent = await this.studentModelAction.get({
       identifierOptions: { registration_number },
@@ -83,51 +83,67 @@ export class StudentService {
       photo_url = this.fileService.validatePhotoUrl(createStudentDto.photo_url);
     }
 
-    return this.dataSource.transaction(async (manager) => {
-      const savedUser = await this.userModelAction.create({
-        createPayload: {
-          first_name: createStudentDto.first_name,
-          last_name: createStudentDto.last_name,
-          middle_name: createStudentDto.middle_name,
-          email: createStudentDto.email,
-          phone: createStudentDto.phone,
-          gender: createStudentDto.gender,
-          dob: new Date(createStudentDto.date_of_birth),
-          homeAddress: createStudentDto.home_address,
-          password: hashedPassword,
-          role: [UserRole.STUDENT],
-          is_active: createStudentDto.is_active ?? true,
-        },
-        transactionOptions: {
-          useTransaction: true,
-          transaction: manager,
-        },
-      });
+    const { resetToken, resetTokenExpiry } = generateResetToken(24);
 
-      const savedStudent = await this.studentModelAction.create({
-        createPayload: {
-          user: { id: savedUser.id },
+    const { savedUser, savedStudent } = await this.dataSource.transaction(
+      async (manager) => {
+        const savedUser = await this.userModelAction.create({
+          createPayload: {
+            first_name: createStudentDto.first_name,
+            last_name: createStudentDto.last_name,
+            middle_name: createStudentDto.middle_name,
+            email: createStudentDto.email,
+            phone: createStudentDto.phone,
+            gender: createStudentDto.gender,
+            dob: new Date(createStudentDto.date_of_birth),
+            homeAddress: createStudentDto.home_address,
+            password: hashedPassword,
+            role: [UserRole.STUDENT],
+            is_active: createStudentDto.is_active ?? true,
+            reset_token: resetToken,
+            reset_token_expiry: resetTokenExpiry,
+          },
+          transactionOptions: {
+            useTransaction: true,
+            transaction: manager,
+          },
+        });
+
+        const savedStudent = await this.studentModelAction.create({
+          createPayload: {
+            user: { id: savedUser.id },
+            registration_number,
+            photo_url: photo_url,
+          },
+          transactionOptions: {
+            useTransaction: true,
+            transaction: manager,
+          },
+        });
+
+        this.logger.info(sysMsg.RESOURCE_CREATED, {
+          studentId: savedStudent.id,
           registration_number,
-          photo_url: photo_url,
-        },
-        transactionOptions: {
-          useTransaction: true,
-          transaction: manager,
-        },
-      });
+          email: savedUser.email,
+        });
 
-      this.logger.info(sysMsg.RESOURCE_CREATED, {
-        studentId: savedStudent.id,
-        registration_number,
-        email: savedUser.email,
-      });
+        return { savedUser, savedStudent };
+      },
+    );
 
-      return new StudentResponseDto(
-        savedStudent,
-        savedUser,
-        sysMsg.STUDENT_CREATED,
-      );
-    });
+    await this.accountCreationService.sendAccountCreationEmail(
+      `${savedUser.first_name} ${savedUser.last_name}`,
+      savedUser.email,
+      createStudentDto.password,
+      UserRole.STUDENT,
+      resetToken,
+    );
+
+    return new StudentResponseDto(
+      savedStudent,
+      savedUser,
+      sysMsg.STUDENT_CREATED,
+    );
   }
 
   // --- FIND ALL (with pagination and search) ---
