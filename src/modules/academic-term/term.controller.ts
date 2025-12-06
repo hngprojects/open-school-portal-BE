@@ -57,7 +57,7 @@ export class TermController {
   }
   @Get('active')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.PARENT, UserRole.STUDENT)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
