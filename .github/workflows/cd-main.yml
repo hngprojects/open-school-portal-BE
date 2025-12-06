@@ -36,6 +36,7 @@ jobs:
             pm2 stop osp-be-prod
             git pull origin main
             npm install
+            npm run migration:run 2>&1 | tee migration-log-prod.txt
             npm run build
             pm2 restart osp-be-prod --update-env
           EOF
