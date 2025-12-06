@@ -576,7 +576,7 @@ describe('SubjectService', () => {
   });
 
   describe('remove', () => {
-    it('should delete a subject successfully and unassign from all classes and grade submissions', async () => {
+    it('should delete a subject successfully', async () => {
       const existingSubject = {
         id: 'subject-1',
         name: 'Chemistry',

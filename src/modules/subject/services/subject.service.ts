@@ -17,7 +17,6 @@ import { AcademicSessionModelAction } from '../../academic-session/model-actions
 import { ClassSubject } from '../../class/entities/class-subject.entity';
 import { Class } from '../../class/entities/class.entity';
 import { ClassStudentModelAction } from '../../class/model-actions/class-student.action';
-import { GradeSubmission } from '../../grade/entities/grade-submission.entity';
 import { EventAction } from '../../notification/dto/event-trigger.dto';
 import { NotificationService } from '../../notification/services/notification.service';
 import {
@@ -224,18 +223,6 @@ export class SubjectService {
       if (!existingSubject) {
         throw new NotFoundException(sysMsg.SUBJECT_NOT_FOUND);
       }
-
-      // Unassign subject from all classes before deletion
-      // This prevents foreign key constraint errors
-      await manager.delete(ClassSubject, {
-        subject: { id },
-      });
-
-      // Delete grade submissions that reference this subject
-      // This will cascade delete associated grades
-      await manager.delete(GradeSubmission, {
-        subject: { id },
-      });
 
       // Delete subject
       await this.subjectModelAction.delete({
