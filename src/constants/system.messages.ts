@@ -33,6 +33,7 @@ export const USER_NOT_FOUND = 'user not found';
 export const ACCOUNT_DELETED = 'account deleted';
 export const USER_CREATED_SUCCESSFULLY = 'user created successfully';
 export const USER_UPDATED_SUCCESSFULLY = 'user updated successfully';
+export const ACCOUNT_CREATION_EMAIL_SENT = 'account creation email sent';
 
 // Email Verification
 export const EMAIL_VERIFICATION_SENT = 'email verification sent';

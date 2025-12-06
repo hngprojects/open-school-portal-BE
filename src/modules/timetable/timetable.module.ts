@@ -26,7 +26,7 @@ import { TimetableService } from './timetable.service';
       Teacher,
       Room,
     ]),
-    ClassModule,
+    forwardRef(() => ClassModule),
     forwardRef(() => NotificationModule),
   ],
   controllers: [TimetableController],

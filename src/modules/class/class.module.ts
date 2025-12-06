@@ -2,6 +2,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AcademicSessionModule } from '../academic-session/academic-session.module';
+import { NotificationModule } from '../notification/notification.module';
 import { StudentModule } from '../student/student.module';
 import { SubjectModule } from '../subject/subject.module';
 import { TeachersModule } from '../teacher/teacher.module';
@@ -25,6 +26,7 @@ import { ClassService } from './services/class.service';
     AcademicSessionModule,
     StudentModule,
     TeachersModule,
+    NotificationModule,
     forwardRef(() => SubjectModule),
   ],
   controllers: [ClassController, ClassSubjectController],
