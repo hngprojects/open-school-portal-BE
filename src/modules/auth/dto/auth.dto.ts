@@ -201,6 +201,27 @@ export class AuthMeResponseDto {
   @ApiProperty({ example: true })
   is_active: boolean;
 
+  @ApiProperty({
+    description:
+      'parent_id for authenticated user, undefined if user is not a parent',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  parent_id?: string;
+
+  @ApiProperty({
+    description:
+      'student_id for authenticated user, undefined if user is not a student',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  student_id?: string;
+
+  @ApiProperty({
+    description:
+      'teacher_id for authenticated user, undefined if user is not a teacher',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  teacher_id?: string;
+
   @ApiProperty({ example: '2024-01-15T10:30:00Z' })
   created_at: Date;
 
