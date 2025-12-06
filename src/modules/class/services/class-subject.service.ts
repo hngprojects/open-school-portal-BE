@@ -10,7 +10,9 @@ import { DataSource, FindOptionsWhere, In } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
+import { EventAction } from '../../notification/dto/event-trigger.dto';
 import { SubjectModelAction } from '../../subject/model-actions/subject.actions';
+import { SubjectService } from '../../subject/services/subject.service';
 import { TeacherModelAction } from '../../teacher/model-actions/teacher-actions';
 import {
   BulkCreateClassSubjectResponseDto,
@@ -27,6 +29,7 @@ export class ClassSubjectService {
     private readonly classModelAction: ClassModelAction,
     private readonly teacherModelAction: TeacherModelAction,
     private readonly subjectModelAction: SubjectModelAction,
+    private readonly subjectService: SubjectService,
     private readonly dataSource: DataSource,
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
   ) {
@@ -60,6 +63,31 @@ export class ClassSubjectService {
           transaction: manager,
         },
       });
+    });
+
+    newSubjects.forEach(async (subjectId) => {
+      try {
+        const subject = await this.subjectModelAction.get({
+          identifierOptions: { id: subjectId },
+        });
+
+        if (subject) {
+          this.subjectService
+            .notifyAffectedUsers(subject.id, subject.name, EventAction.UPDATED)
+            .catch((err) =>
+              this.logger.error('Failed to notify on new class-subject link', {
+                subjectId,
+                classId,
+                error: err,
+              }),
+            );
+        }
+      } catch (error) {
+        this.logger.error(
+          'Error preparing notification after class-subject creation.',
+          error,
+        );
+      }
     });
 
     return new BulkCreateClassSubjectResponseDto(
@@ -126,6 +154,20 @@ export class ClassSubjectService {
         useTransaction: false,
       },
     });
+
+    const subjectId = classSubject.subject.id;
+    const subjectName = classSubject.subject.name;
+
+    this.subjectService
+      .notifyAffectedUsers(subjectId, subjectName, EventAction.UPDATED)
+      .catch((error) =>
+        this.logger.error('Failed to notify on teacher assignment', {
+          id,
+          teacherId,
+          error: error,
+        }),
+      );
+
     return {
       message: sysMsg.TEACHER_ASSIGNED,
     };
@@ -138,6 +180,8 @@ export class ClassSubjectService {
       },
       relations: {
         teacher: true,
+        class: true,
+        subject: true,
       },
     });
     if (!classSubject)
@@ -158,6 +202,19 @@ export class ClassSubjectService {
         useTransaction: false,
       },
     });
+
+    const subjectId = classSubject.subject.id;
+    const subjectName = classSubject.subject.name;
+
+    this.subjectService
+      .notifyAffectedUsers(subjectId, subjectName, EventAction.UPDATED)
+      .catch((err) =>
+        this.logger.error('Failed to notify on teacher unassignment', {
+          id,
+          error: err,
+        }),
+      );
+
     return {
       message: sysMsg.TEACHER_UNASSIGNED_FROM_SUBJECT,
     };

@@ -1,10 +1,10 @@
 import {
+  BadRequestException,
   ConflictException,
+  HttpStatus,
   Inject,
   Injectable,
   NotFoundException,
-  BadRequestException,
-  HttpStatus,
 } from '@nestjs/common';
 import { isUUID } from 'class-validator';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
@@ -17,16 +17,22 @@ import {
   SessionStatus,
 } from '../../academic-session/entities/academic-session.entity';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
+import { EventAction } from '../../notification/dto/event-trigger.dto';
+import { NotificationService } from '../../notification/services/notification.service';
+import {
+  NotificationMetadata,
+  NotificationType,
+} from '../../notification/types/notification.types';
 import { Stream } from '../../stream/entities/stream.entity';
 import { StudentModelAction } from '../../student/model-actions/student-actions';
 import { TeacherModelAction } from '../../teacher/model-actions/teacher-actions';
 import {
+  AssignStudentsToClassDto,
+  ClassResponseDto,
   CreateClassDto,
+  StudentAssignmentResponseDto,
   TeacherAssignmentResponseDto,
   UpdateClassDto,
-  AssignStudentsToClassDto,
-  StudentAssignmentResponseDto,
-  ClassResponseDto,
 } from '../dto';
 import { ClassStudent } from '../entities/class-student.entity';
 import { ClassStudentModelAction } from '../model-actions/class-student.action';
@@ -34,8 +40,8 @@ import { ClassTeacherModelAction } from '../model-actions/class-teacher.action';
 import { ClassModelAction } from '../model-actions/class.actions';
 import {
   ICreateClassResponse,
-  IUpdateClassResponse,
   IGetClassByIdResponse,
+  IUpdateClassResponse,
 } from '../types/base-response.interface';
 
 import { ClassStudentValidationService } from './class-student-validation.service';
@@ -53,6 +59,7 @@ export class ClassService {
     private readonly teacherModelAction: TeacherModelAction,
     private readonly dataSource: DataSource,
     private readonly classStudentValidationService: ClassStudentValidationService,
+    private readonly notificationService: NotificationService,
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
   ) {
     this.logger = baseLogger.child({ context: ClassService.name });
@@ -73,11 +80,10 @@ export class ClassService {
       throw new NotFoundException(`Class with ID ${classId} not found`);
     }
 
-    // 2. Handle Session Logic (Default to active if null)
+    // Handle Session Logic (Default to active if null)
     const target_session = sessionId || (await this.getActiveSession());
 
-    // 3. Fetch Assignments with Relations
-    // We join 'class' here to access the 'stream' property
+    // Fetch Assignments with Relations
     const assignments = await this.classTeacherModelAction.list({
       filterRecordOptions: {
         class: { id: classId },
@@ -93,7 +99,7 @@ export class ClassService {
       },
     });
 
-    // 4. Map to DTO
+    // Map to DTO
     return assignments.payload.map((assignment) => {
       const streamList: Stream[] = assignment.class.streams || [];
       const streamNames = streamList.map((s) => s.name).join(', ');
@@ -395,6 +401,18 @@ export class ClassService {
       transactionOptions: { useTransaction: false },
     });
 
+    this.notifyClassUsers(
+      classId,
+      'Class Deactivation',
+      `Your assigned class, ${classEntity.name} ${classEntity.arm || ''}, has been deactivated/archived.`,
+      EventAction.UPDATED,
+    ).catch((err) =>
+      this.logger.error(
+        `Failed to notify users on class deletion ${classId}`,
+        err,
+      ),
+    );
+
     return {
       status_code: HttpStatus.OK,
       message: sysMsg.CLASS_DELETED,
@@ -515,6 +533,22 @@ export class ClassService {
       assigned,
       reactivated,
     });
+
+    if (assigned || reactivated) {
+      const actionText = reactivated ? 'reactivated' : 'assigned';
+      this.notifyClassUsers(
+        classId,
+        'New Class Enrollment',
+        `A student has been ${actionText} to ${classEntity.name} ${classEntity.arm || ''}.`,
+        EventAction.UPDATED,
+        studentId,
+      ).catch((err) =>
+        this.logger.error(
+          `Failed to notify users on student assignment ${studentId}`,
+          err,
+        ),
+      );
+    }
 
     return {
       message,
@@ -713,6 +747,20 @@ export class ClassService {
       message = `No students were assigned.`;
     }
 
+    if (assignedCount > 0) {
+      this.notifyClassUsers(
+        classId,
+        'Batch Enrollment Update',
+        `${assignedCount} students were newly enrolled or reactivated in ${classEntity.name} ${classEntity.arm || ''}.`,
+        EventAction.UPDATED,
+      ).catch((err) =>
+        this.logger.error(
+          `Failed to notify users on batch assignment ${classId}`,
+          err,
+        ),
+      );
+    }
+
     return {
       message,
       assigned: assignedCount,
@@ -889,5 +937,72 @@ export class ClassService {
     });
 
     return Array.from(uniqueClasses.values());
+  }
+
+  protected async notifyClassUsers(
+    classId: string,
+    title: string,
+    message: string,
+    action: EventAction,
+    targetStudentId?: string,
+  ): Promise<void> {
+    try {
+      const recipientIds = new Set<string>();
+
+      // 1. Get Students and Parents
+      const classStudents = await this.classStudentModelAction.list({
+        filterRecordOptions: {
+          class: { id: classId },
+          ...(targetStudentId && { student: { id: targetStudentId } }),
+          is_active: true,
+        },
+        relations: {
+          student: { user: true, parent: { user: true } },
+        },
+      });
+
+      classStudents.payload.forEach((cs) => {
+        if (cs.student?.user?.id) recipientIds.add(cs.student.user.id);
+        if (cs.student?.parent?.user?.id)
+          recipientIds.add(cs.student.parent.user.id);
+      });
+
+      // 2. Get Teachers
+      const classTeachers = await this.classTeacherModelAction.list({
+        filterRecordOptions: { class: { id: classId }, is_active: true },
+        relations: { teacher: { user: true } },
+      });
+
+      classTeachers.payload.forEach((ct) => {
+        if (ct.teacher?.user?.id) recipientIds.add(ct.teacher.user.id);
+      });
+
+      const notificationDtos = Array.from(recipientIds).map((userId) => {
+        const metadata: NotificationMetadata = {
+          action: action,
+          class_id: classId,
+        };
+
+        return {
+          recipient_id: userId,
+          title: title,
+          message: message,
+          type: NotificationType.ACADEMIC_UPDATE,
+          metadata: metadata,
+        };
+      });
+
+      await this.notificationService.createBulkNotifications(notificationDtos);
+
+      this.logger.info(
+        `Notifications created for ${recipientIds.size} users following class ${classId} change.`,
+        { classId, action },
+      );
+    } catch (error) {
+      this.logger.error(
+        `Error in notifyClassUsers for class ${classId}:`,
+        error,
+      );
+    }
   }
 }

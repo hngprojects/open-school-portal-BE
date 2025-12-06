@@ -148,6 +148,7 @@ export class NotificationService {
   async createBulkNotifications(
     dtos: CreateNotificationDto[],
   ): Promise<Notification[]> {
+    if (dtos.length === 0) return [];
     const notifications = dtos.map((dto) => ({
       recipient_id: dto.recipient_id,
       title: dto.title,
