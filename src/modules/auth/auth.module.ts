@@ -12,7 +12,6 @@ import { SessionModule } from '../session/session.module';
 import { Student } from '../student/entities/student.entity';
 import { Teacher } from '../teacher/entities/teacher.entity';
 import { UserModule } from '../user/user.module';
-import { UserService } from '../user/user.service';
 
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -39,7 +38,6 @@ import { JwtStrategy } from './strategies/jwt.strategy';
   controllers: [AuthController],
   providers: [
     AuthService,
-    UserService,
     JwtStrategy,
     JwtAuthGuard,
     RolesGuard,

@@ -16,6 +16,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
+import { IRequestWithUser } from '../../common/types';
 import config from '../../config/config';
 import { EmailTemplateID } from '../../constants/email-constants';
 import * as sysMsg from '../../constants/system.messages';
@@ -320,26 +321,9 @@ export class AuthService {
     return sysMsg.USER_ACTIVATED;
   }
 
-  async getProfile(accessToken: string) {
-    if (!accessToken) {
-      throw new UnauthorizedException(sysMsg.AUTHORIZATION_HEADER_MISSING);
-    }
-
-    // Extract token from "Bearer <token>"
-    const token = accessToken.replace('Bearer ', '');
-
-    const decryptedToken = await this.jwtService.verifyAsync(token, {
-      secret: config().jwt.secret,
-    });
-
-    if (!decryptedToken.email) {
-      this.logger.error(`${sysMsg.TOKEN_INVALID} or ${sysMsg.TOKEN_EXPIRED}`);
-      throw new UnauthorizedException(
-        `${sysMsg.TOKEN_INVALID} or ${sysMsg.TOKEN_EXPIRED}`,
-      );
-    }
-
-    const user = await this.userService.findByEmail(decryptedToken.email);
+  async getProfile(req: IRequestWithUser) {
+    const { id, parent_id, student_id, teacher_id } = req.user;
+    const user = await this.userService.findOne(id);
     if (!user) {
       this.logger.error(sysMsg.USER_NOT_FOUND);
       throw new UnauthorizedException(sysMsg.USER_NOT_FOUND);
@@ -355,6 +339,9 @@ export class AuthService {
       gender: user.gender,
       dob: user.dob,
       phone: user.phone,
+      parent_id,
+      student_id,
+      teacher_id,
       is_active: user.is_active,
       created_at: user.createdAt,
       updated_at: user.updatedAt,
