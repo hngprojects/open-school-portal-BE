@@ -9,4 +9,5 @@ export enum EmailTemplateID {
   CONTACT_USER_CONFIRMATION = 'contact-user-confirmation.njk',
   INVITE = 'invite.njk',
   SUPERADMIN_WELCOME = 'superadmin-welcome.njk',
+  ACCOUNT_CREATED = 'account-creation.njk',
 }

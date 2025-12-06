@@ -7,6 +7,7 @@ import {
   ApiOkResponse,
   ApiNotFoundResponse,
   ApiCreatedResponse,
+  ApiConflictResponse,
 } from '@nestjs/swagger';
 
 import { ClassSwagger } from './class.swagger';
@@ -96,6 +97,20 @@ export const DocsDeleteClass = () => {
   );
 };
 
+export const DocsAssignSingleStudent = () => {
+  const { operation, parameters, responses } =
+    ClassSwagger.endpoints.assignSingleStudent;
+
+  return applyDecorators(
+    ApiOperation(operation),
+    ApiParam(parameters.id),
+    ApiParam(parameters.studentId),
+    ApiOkResponse(responses.ok),
+    ApiNotFoundResponse(responses.notFound),
+    ApiConflictResponse(responses.conflict),
+  );
+};
+
 export const DocsAssignStudents = () => {
   const { operation, parameters, responses } =
     ClassSwagger.endpoints.assignStudents;
@@ -105,6 +120,7 @@ export const DocsAssignStudents = () => {
     ApiParam(parameters.id),
     ApiOkResponse(responses.ok),
     ApiNotFoundResponse(responses.notFound),
+    ApiConflictResponse(responses.conflict),
     ApiResponse(responses.badRequest),
   );
 };
@@ -121,6 +137,19 @@ export const DocsGetClassStudents = () => {
   );
 };
 
+export const DocsUnassignStudent = () => {
+  const { operation, parameters, responses } =
+    ClassSwagger.endpoints.unassignStudent;
+
+  return applyDecorators(
+    ApiOperation(operation),
+    ApiParam(parameters.id),
+    ApiParam(parameters.studentId),
+    ApiOkResponse(responses.ok),
+    ApiNotFoundResponse(responses.notFound),
+  );
+};
+
 export const DocsGetTeacherClasses = () => {
   const { operation, parameters, responses } =
     ClassSwagger.endpoints.getTeacherClasses;
@@ -130,5 +159,18 @@ export const DocsGetTeacherClasses = () => {
     ApiQuery(parameters.sessionId),
     ApiOkResponse(responses.ok),
     ApiResponse(responses.badRequest),
+  );
+};
+
+export const DocsGetClassByTeacherId = () => {
+  const { operation, parameters, responses } =
+    ClassSwagger.endpoints.getClassByTeacherId;
+
+  return applyDecorators(
+    ApiOperation(operation),
+    ApiParam(parameters.teacherId),
+    ApiQuery(parameters.sessionId),
+    ApiOkResponse(responses.ok),
+    ApiNotFoundResponse(responses.notFound),
   );
 };

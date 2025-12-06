@@ -1,8 +1,10 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AcademicSessionModule } from '../academic-session/academic-session.module';
+import { NotificationModule } from '../notification/notification.module';
 import { StudentModule } from '../student/student.module';
+import { SubjectModule } from '../subject/subject.module';
 import { TeachersModule } from '../teacher/teacher.module';
 
 import { ClassSubjectController } from './controllers/class-subject.controller';
@@ -14,6 +16,7 @@ import {
   ClassStudentModelAction,
   ClassSubjectModelAction,
 } from './model-actions';
+import { ClassStudentValidationService } from './services/class-student-validation.service';
 import { ClassSubjectService } from './services/class-subject.service';
 import { ClassService } from './services/class.service';
 
@@ -23,16 +26,24 @@ import { ClassService } from './services/class.service';
     AcademicSessionModule,
     StudentModule,
     TeachersModule,
+    NotificationModule,
+    forwardRef(() => SubjectModule),
   ],
   controllers: [ClassController, ClassSubjectController],
   providers: [
     ClassService,
+    ClassStudentValidationService,
     ClassModelAction,
     ClassTeacherModelAction,
     ClassStudentModelAction,
     ClassSubjectModelAction,
     ClassSubjectService,
   ],
-  exports: [ClassModelAction, ClassTeacherModelAction, ClassStudentModelAction],
+  exports: [
+    ClassModelAction,
+    ClassTeacherModelAction,
+    ClassStudentModelAction,
+    ClassSubjectModelAction,
+  ],
 })
 export class ClassModule {}

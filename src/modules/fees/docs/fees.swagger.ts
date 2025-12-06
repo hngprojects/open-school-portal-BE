@@ -10,6 +10,7 @@ import {
 } from '@nestjs/swagger';
 
 import { DeactivateFeeDto } from '../dto/deactivate-fee.dto';
+import { FeeStudentResponseDto } from '../dto/fee-students-response.dto';
 import {
   CreateFeeResponseDto,
   FeesListResponseDto,
@@ -18,6 +19,7 @@ import {
   ActivateFeeResponseDto,
 } from '../dto/fees-response.dto';
 import { CreateFeesDto, UpdateFeesDto } from '../dto/fees.dto';
+import { StudentFeeDetailsResponseDto } from '../dto/student-fee-details.dto';
 
 export function swaggerCreateFee() {
   return applyDecorators(
@@ -210,6 +212,104 @@ export function swaggerActivateFee() {
     ApiResponse({
       status: 404,
       description: 'Not found - Fee component not found',
+    }),
+  );
+}
+
+export function swaggerGetFeeStudents() {
+  return applyDecorators(
+    ApiTags('Fees'),
+    ApiOperation({
+      summary: 'Get students assigned to a fee',
+      description:
+        'Retrieve a list of students assigned to a specific fee component, either through class assignment or direct assignment.',
+    }),
+    ApiBearerAuth(),
+    ApiParam({
+      name: 'id',
+      description: 'The ID of the fee component',
+      example: 'f1e2d3c4-b5a6-7890-1234-567890abcdef',
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Students retrieved successfully',
+      type: FeeStudentResponseDto,
+      isArray: true,
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'Unauthorized - Invalid or missing token',
+    }),
+    ApiResponse({
+      status: 403,
+      description: 'Forbidden - User is not an admin',
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Not found - Fee component not found',
+    }),
+  );
+}
+
+export function swaggerGetActiveFeeComponents() {
+  return applyDecorators(
+    ApiTags('Fees'),
+    ApiOperation({
+      summary: 'Get active fee components',
+      description:
+        'Retrieve a list of all active fee components. This is useful for populating dropdowns or lists where only active fees should be selectable.',
+    }),
+    ApiBearerAuth(),
+    ApiQuery({ name: 'page', required: false, type: Number }),
+    ApiQuery({ name: 'limit', required: false, type: Number }),
+    ApiResponse({
+      status: 200,
+      description: 'Active fee components retrieved successfully',
+      type: FeesListResponseDto, // Reusing list response DTO or create a specific one if needed
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'Unauthorized - Invalid or missing token',
+    }),
+    ApiResponse({
+      status: 403,
+      description: 'Forbidden - User is not an admin',
+    }),
+  );
+}
+
+export function swaggerGetStudentFeeDetails() {
+  return applyDecorators(
+    ApiTags('Fees'),
+    ApiOperation({
+      summary: 'Get student fee details',
+      description:
+        'Retrieve detailed fee breakdown and payment history for a student in a specific term.',
+    }),
+    ApiBearerAuth(),
+    ApiParam({
+      name: 'studentId',
+      description: 'The ID of the student',
+      example: 'f1e2d3c4-b5a6-7890-1234-567890abcdef',
+    }),
+    ApiQuery({ name: 'term_id', required: true, type: String }),
+    ApiQuery({ name: 'session_id', required: true, type: String }),
+    ApiResponse({
+      status: 200,
+      description: 'Student fee details retrieved successfully',
+      type: StudentFeeDetailsResponseDto,
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'Unauthorized - Invalid or missing token',
+    }),
+    ApiResponse({
+      status: 403,
+      description: 'Forbidden - User is not an admin',
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Not found - Student or Term not found',
     }),
   );
 }

@@ -1,5 +1,5 @@
-import { PaginationMeta } from '@hng-sdk/orm';
 import {
+  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
@@ -10,24 +10,41 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
+import { IPaginationMeta } from '../../common/types/base-response.interface';
 import * as sysMsg from '../../constants/system.messages';
+import { ClassStudentModelAction } from '../class/model-actions/class-student.action';
+import { ClassSubjectModelAction } from '../class/model-actions/class-subject.action';
+import { AccountCreationService } from '../email/account-creation.service';
 import { UserRole } from '../shared/enums';
 import { FileService } from '../shared/file/file.service';
 import {
-  generateStrongPassword,
+  generateResetToken,
   hashPassword,
-} from '../shared/utils/password.util';
+  generateStrongPassword,
+} from '../shared/utils';
+import { StudentModelAction } from '../student/model-actions/student-actions';
 import { User } from '../user/entities/user.entity';
 import { UserModelAction } from '../user/model-actions/user-actions';
 
 import {
   CreateParentDto,
+  LinkStudentsDto,
   ListParentsDto,
   ParentResponseDto,
+  ParentStudentLinkResponseDto,
+  StudentBasicDto,
   UpdateParentDto,
+  StudentSubjectResponseDto,
+  StudentProfileDto,
 } from './dto';
 import { Parent } from './entities/parent.entity';
 import { ParentModelAction } from './model-actions/parent-actions';
+
+export interface IUserPayload {
+  id: string;
+  email: string;
+  roles: string[];
+}
 
 @Injectable()
 export class ParentService {
@@ -35,8 +52,12 @@ export class ParentService {
   constructor(
     private readonly parentModelAction: ParentModelAction,
     private readonly userModelAction: UserModelAction,
+    private readonly studentModelAction: StudentModelAction,
+    private readonly classStudentModelAction: ClassStudentModelAction,
+    private readonly classSubjectModelAction: ClassSubjectModelAction,
     private readonly dataSource: DataSource,
     private readonly fileService: FileService,
+    private readonly accountCreationService: AccountCreationService,
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
   ) {
     this.logger = baseLogger.child({ context: ParentService.name });
@@ -68,7 +89,9 @@ export class ParentService {
       photo_url = this.fileService.validatePhotoUrl(createDto.photo_url);
     }
 
-    return this.dataSource.transaction(async (manager) => {
+    const { resetToken, resetTokenExpiry } = generateResetToken(24);
+
+    const response = await this.dataSource.transaction(async (manager) => {
       // 4. Create User using model action within transaction
       const savedUser = await this.userModelAction.create({
         createPayload: {
@@ -83,6 +106,8 @@ export class ParentService {
           password: hashedPassword,
           role: [UserRole.PARENT],
           is_active: createDto.is_active ?? true,
+          reset_token: resetToken,
+          reset_token_expiry: resetTokenExpiry,
         },
         transactionOptions: {
           useTransaction: true,
@@ -104,7 +129,7 @@ export class ParentService {
       });
 
       // 6. Return response (Transform User/Parent entities into DTO)
-      const response = {
+      return {
         ...savedParent,
         first_name: savedUser.first_name,
         last_name: savedUser.last_name,
@@ -119,21 +144,28 @@ export class ParentService {
         created_at: savedParent.createdAt,
         updated_at: savedParent.updatedAt,
       };
+    });
 
-      this.logger.info(sysMsg.RESOURCE_CREATED, {
-        parentId: savedParent.id,
-        email: savedUser.email,
-      });
+    this.logger.info(sysMsg.RESOURCE_CREATED, {
+      parentId: response.id,
+      email: response.email,
+    });
+    await this.accountCreationService.sendAccountCreationEmail(
+      `${response.first_name} ${response.last_name}`,
+      response.email,
+      rawPassword,
+      UserRole.PARENT,
+      resetToken,
+    );
 
-      return plainToInstance(ParentResponseDto, response, {
-        excludeExtraneousValues: true,
-      });
+    return plainToInstance(ParentResponseDto, response, {
+      excludeExtraneousValues: true,
     });
   }
 
   async findAll(listParentsDto: ListParentsDto): Promise<{
     data: ParentResponseDto[];
-    paginationMeta: Partial<PaginationMeta>;
+    paginationMeta: Partial<IPaginationMeta>;
   }> {
     const { page = 1, limit = 10, search } = listParentsDto;
 
@@ -325,6 +357,72 @@ export class ParentService {
     });
   }
 
+  // --- GET STUDENT SUBJECTS ---
+  async getStudentSubjects(
+    studentId: string,
+    user: IUserPayload,
+  ): Promise<StudentSubjectResponseDto[]> {
+    const isAdmin = user.roles.includes(UserRole.ADMIN);
+    let parentId: string;
+
+    if (!isAdmin) {
+      const parent = await this.parentModelAction.get({
+        identifierOptions: { user_id: user.id },
+      });
+
+      if (!parent) {
+        throw new NotFoundException(sysMsg.PARENT_PROFILE_NOT_FOUND);
+      }
+      parentId = parent.id;
+    }
+
+    if (!isAdmin) {
+      const student = await this.studentModelAction.get({
+        identifierOptions: { id: studentId, parent: { id: parentId } },
+      });
+
+      if (!student) {
+        throw new NotFoundException(sysMsg.STUDENT_NOT_BELONG_TO_PARENT);
+      }
+    }
+
+    const classStudent = await this.classStudentModelAction.get({
+      identifierOptions: { student: { id: studentId }, is_active: true },
+      relations: { class: true },
+    });
+
+    if (!classStudent) {
+      this.logger.warn(
+        `Student ${studentId} is not assigned to any active class`,
+      );
+      return [];
+    }
+
+    const classId = classStudent.class.id;
+
+    const classSubjectsList = await this.classSubjectModelAction[
+      'repository'
+    ].find({
+      where: { class: { id: classId } },
+      relations: ['subject', 'teacher', 'teacher.user'],
+    });
+
+    return classSubjectsList.map((cs) => {
+      const teacherUser = cs.teacher?.user;
+      return plainToInstance(
+        StudentSubjectResponseDto,
+        {
+          subject_name: cs.subject.name,
+          teacher_name: teacherUser
+            ? `${teacherUser.first_name} ${teacherUser.last_name}`
+            : 'Not Assigned',
+          teacher_email: teacherUser ? teacherUser.email : 'N/A',
+        },
+        { excludeExtraneousValues: true },
+      );
+    });
+  }
+
   // --- HELPER METHOD TO TRANSFORM ENTITY TO DTO ---
   private transformToParentResponseDto(parent: Parent): ParentResponseDto {
     const { user } = parent;
@@ -359,7 +457,7 @@ export class ParentService {
     limit: number = 10,
   ): Promise<{
     payload: Parent[];
-    paginationMeta: Partial<PaginationMeta>;
+    paginationMeta: Partial<IPaginationMeta>;
   }> {
     const skip = (page - 1) * limit;
 
@@ -387,5 +485,252 @@ export class ParentService {
     };
 
     return { payload, paginationMeta };
+  }
+
+  // --- LINK STUDENTS TO PARENT ---
+  async linkStudentsToParent(
+    parentId: string,
+    linkDto: LinkStudentsDto,
+  ): Promise<ParentStudentLinkResponseDto> {
+    // 1. Validate parent exists and is not deleted
+    const parent = await this.parentModelAction.get({
+      identifierOptions: { id: parentId },
+    });
+
+    if (!parent || parent.deleted_at) {
+      this.logger.warn(`Parent not found with ID: ${parentId}`);
+      throw new NotFoundException(sysMsg.PARENT_NOT_FOUND);
+    }
+
+    // 2. Validate all students exist and are not deleted
+    const students = await Promise.all(
+      linkDto.student_ids.map(async (studentId) => {
+        const student = await this.studentModelAction.get({
+          identifierOptions: { id: studentId },
+        });
+
+        if (!student || student.is_deleted) {
+          this.logger.warn(`Student not found with ID: ${studentId}`);
+          throw new NotFoundException(`Student with ID ${studentId} not found`);
+        }
+
+        return student;
+      }),
+    );
+
+    // 3. Link students to parent in a transaction
+    await this.dataSource.transaction(async (manager) => {
+      for (const student of students) {
+        await this.studentModelAction.update({
+          identifierOptions: { id: student.id },
+          updatePayload: {
+            parent: { id: parentId },
+          },
+          transactionOptions: {
+            useTransaction: true,
+            transaction: manager,
+          },
+        });
+      }
+    });
+
+    this.logger.info(sysMsg.STUDENTS_LINKED_TO_PARENT, {
+      parentId,
+      studentIds: linkDto.student_ids,
+      totalLinked: linkDto.student_ids.length,
+    });
+
+    // 4. Return response
+    return plainToInstance(
+      ParentStudentLinkResponseDto,
+      {
+        parent_id: parentId,
+        linked_students: linkDto.student_ids,
+        total_linked: linkDto.student_ids.length,
+      },
+      { excludeExtraneousValues: true },
+    );
+  }
+
+  // --- GET LINKED STUDENTS (ADMIN VERSION) ---
+  async getLinkedStudents(parentId: string): Promise<StudentBasicDto[]> {
+    // 1. Validate parent exists and is not deleted
+    const parent = await this.parentModelAction.get({
+      identifierOptions: { id: parentId },
+    });
+
+    if (!parent || parent.deleted_at) {
+      this.logger.warn(`Parent not found with ID: ${parentId}`);
+      throw new NotFoundException(sysMsg.PARENT_NOT_FOUND);
+    }
+
+    // 2. Query students where parent_id = parentId and is_deleted = false
+    const students = await this.studentModelAction.list({
+      filterRecordOptions: {
+        parent: { id: parentId },
+        is_deleted: false,
+      },
+      relations: {
+        user: true,
+      },
+    });
+
+    this.logger.info(sysMsg.PARENT_STUDENTS_FETCHED, {
+      parentId,
+      studentCount: students.payload.length,
+    });
+
+    // 3. Transform to StudentBasicDto
+    return students.payload.map((student) => {
+      const { user } = student;
+      return plainToInstance(
+        StudentBasicDto,
+        {
+          id: student.id,
+          registration_number: student.registration_number,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          middle_name: user.middle_name,
+          full_name: `${user.first_name}${user.middle_name ? ' ' + user.middle_name : ''} ${user.last_name}`,
+          photo_url: student.photo_url,
+        },
+        { excludeExtraneousValues: true },
+      );
+    });
+  }
+
+  // --- UNLINK STUDENT FROM PARENT (ADMIN VERSION) ---
+  async unlinkStudentFromParent(
+    parentId: string,
+    studentId: string,
+  ): Promise<void> {
+    // 1. Validate parent exists
+    const parent = await this.parentModelAction.get({
+      identifierOptions: { id: parentId },
+    });
+
+    if (!parent || parent.deleted_at) {
+      this.logger.warn(`Parent not found with ID: ${parentId}`);
+      throw new NotFoundException(sysMsg.PARENT_NOT_FOUND);
+    }
+
+    // 2. Validate student exists
+    const student = await this.studentModelAction.get({
+      identifierOptions: { id: studentId },
+      relations: { parent: true },
+    });
+
+    if (!student || student.is_deleted) {
+      this.logger.warn(`Student not found with ID: ${studentId}`);
+      throw new NotFoundException(`Student with ID ${studentId} not found`);
+    }
+
+    // 3. Verify student is linked to this parent
+    if (!student.parent || student.parent.id !== parentId) {
+      this.logger.warn(
+        `Student ${studentId} is not linked to parent ${parentId}`,
+      );
+      throw new BadRequestException(sysMsg.STUDENT_NOT_LINKED_TO_PARENT);
+    }
+
+    // 4. Unlink student (set parent to null)
+    await this.studentModelAction.update({
+      identifierOptions: { id: studentId },
+      updatePayload: {
+        parent: null,
+      },
+      transactionOptions: {
+        useTransaction: false,
+      },
+    });
+
+    this.logger.info(sysMsg.STUDENT_UNLINKED_FROM_PARENT, {
+      parentId,
+      studentId,
+    });
+  }
+
+  // -- GET LINKED STUDENTS (PARENT VERSION) --
+  async getLinkedStudentProfileForParent(
+    parentId: string,
+    studentId: string,
+  ): Promise<StudentProfileDto> {
+    // Validate parent exists
+    const parent = await this.parentModelAction.get({
+      identifierOptions: { id: parentId },
+    });
+
+    if (!parent || parent.deleted_at) {
+      this.logger.warn(`Parent not found with ID: ${parentId}`);
+      throw new NotFoundException(sysMsg.PARENT_NOT_FOUND);
+    }
+
+    // Validate student exists and it belongs to the parent
+    const student = await this.studentModelAction.get({
+      identifierOptions: {
+        id: studentId,
+        parent: { id: parentId },
+        is_deleted: false,
+      },
+      relations: {
+        user: true,
+        stream: {
+          class: {
+            academicSession: true,
+            classSubjects: { subject: true, teacher: { user: true } },
+            timetable: true,
+          },
+        },
+      },
+    });
+
+    if (!student) {
+      this.logger.warn(`Either student does not
+          belog to parent or is deleted`);
+      throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
+    }
+
+    const { user, stream } = student;
+
+    if (!user) {
+      throw new Error('User relation not loaded for student');
+    }
+
+    return plainToInstance(
+      StudentProfileDto,
+      {
+        id: student.id,
+        registration_number: student.registration_number,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        middle_name: user.middle_name,
+        full_name: `${user.first_name}${user.middle_name ? ' ' + user.middle_name : ''} ${user.last_name}`,
+        photo_url: student.photo_url,
+        class_subjects:
+          stream?.class?.classSubjects?.map((cs) => ({
+            id: cs.id,
+            subject_id: cs.subject.id,
+            subject_name: cs.subject.name,
+            teacher_id: cs.teacher?.id || null,
+            teacher_name: cs.teacher?.user
+              ? `${cs.teacher.user.first_name} ${cs.teacher.user.last_name}`
+              : null,
+            teacher_assignment_date: cs.teacher_assignment_date || null,
+          })) || null,
+        timetable: stream?.class?.timetable
+          ? { id: stream.class.timetable.id }
+          : null,
+        class_details: stream?.class
+          ? { id: stream.class.id, name: stream.class.name }
+          : null,
+        academic_details: stream?.class?.academicSession
+          ? {
+              id: stream.class.academicSession.id,
+              session: stream.class.academicSession.name,
+            }
+          : null,
+      },
+      { excludeExtraneousValues: true },
+    );
   }
 }

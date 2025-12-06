@@ -7,7 +7,6 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
-  Matches,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -51,21 +50,8 @@ export class CreateStudentDto {
   middle_name?: string;
 
   @ApiProperty({
-    description:
-      'Registration number (format: STU-YYYY-XXXX, e.g., STU-2025-0014). Auto-generated if not provided.',
-    example: 'STU-2025-0014',
-    required: false,
-  })
-  @IsOptional()
-  @IsString()
-  @Matches(/^STU-\d{4}-\d{4}$/, {
-    message: 'Registration number must be in format STU-YYYY-XXXX',
-  })
-  registration_number?: string;
-
-  @ApiProperty({
     description: 'Email address',
-    example: 'favourchinaza110@gmail.com',
+    example: 'chinaza110@gmail.com',
   })
   @IsEmail()
   @IsNotEmpty()

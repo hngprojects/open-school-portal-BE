@@ -1,14 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import {
-  DataSource,
-  Repository,
-  EntityManager,
-  SelectQueryBuilder,
-  In,
-} from 'typeorm';
+import { DataSource, EntityManager, In } from 'typeorm';
 import { Logger } from 'winston';
 
 // import * as sysMsg from '../../constants/system.messages'; // Assuming sysMsg is imported and used in the service file
@@ -20,6 +13,9 @@ import {
 import { TermModelAction } from '../academic-term/model-actions';
 import { Class } from '../class/entities/class.entity'; // Added Class entity
 import { ClassModelAction } from '../class/model-actions/class.actions';
+import { FeeNotificationService } from '../notification/services';
+import { PaymentService } from '../payment/services/payment.service';
+import { StudentModelAction } from '../student/model-actions/student-actions';
 
 import { CreateFeesDto, QueryFeesDto, UpdateFeesDto } from './dto/fees.dto';
 import { Fees } from './entities/fees.entity';
@@ -43,26 +39,14 @@ const mockSysMsg = {
   fee_not_found: 'Fees component not found',
 };
 
-type MockQueryBuilder = {
-  leftJoinAndSelect: jest.Mock<MockQueryBuilder, [string, string]>;
-  leftJoin: jest.Mock<MockQueryBuilder, [string, string]>;
-  addSelect: jest.Mock<MockQueryBuilder, [string[]]>;
-  orderBy: jest.Mock<MockQueryBuilder, [string, 'ASC' | 'DESC']>;
-  andWhere: jest.Mock<MockQueryBuilder, [string, Record<string, unknown>?]>;
-  skip: jest.Mock<MockQueryBuilder, [number]>;
-  take: jest.Mock<MockQueryBuilder, [number]>;
-  getCount: jest.Mock<Promise<number>, []>;
-  getMany: jest.Mock<Promise<Fees[]>, []>;
-};
-
 describe('FeesService', () => {
   let service: FeesService;
   let feesModelAction: jest.Mocked<FeesModelAction>;
   let termModelAction: jest.Mocked<TermModelAction>;
   let classModelAction: jest.Mocked<ClassModelAction>;
+  let paymentService: jest.Mocked<PaymentService>;
+  let studentModelAction: jest.Mocked<StudentModelAction>;
   let logger: Partial<Logger>;
-  let mockQueryBuilder: MockQueryBuilder;
-  let mockFeesRepository: jest.Mocked<Repository<Fees>>;
 
   const mockLogger: Partial<Logger> = {
     child: jest.fn().mockReturnThis(),
@@ -132,34 +116,32 @@ describe('FeesService', () => {
 
   const mockFeesModelActionValue = {
     create: jest.fn(),
-    get: jest.fn(),
+    find: jest.fn(),
     save: jest.fn(),
     update: jest.fn(),
+    get: jest.fn(),
+    getFeeWithStudentAssignments: jest.fn(),
+    findAllFees: jest.fn(),
+    getActiveFeeComponents: jest.fn(),
+    getFeesForStudent: jest.fn(),
+  };
+
+  const mockPaymentServiceValue = {
+    fetchAllPayments: jest.fn(),
+  };
+
+  const mockStudentModelActionValue = {
+    get: jest.fn(),
   };
 
   const mockTermModelActionValue = { get: jest.fn() };
   const mockClassModelActionValue = { find: jest.fn() };
   const mockDataSourceValue = { transaction: jest.fn() };
+  const mockFeeNotificationService = {
+    createAndUpdateFeesNotification: jest.fn(),
+  };
 
   beforeEach(async () => {
-    mockQueryBuilder = {
-      leftJoinAndSelect: jest.fn().mockReturnThis(),
-      leftJoin: jest.fn().mockReturnThis(),
-      addSelect: jest.fn().mockReturnThis(),
-      orderBy: jest.fn().mockReturnThis(),
-      andWhere: jest.fn().mockReturnThis(),
-      skip: jest.fn().mockReturnThis(),
-      take: jest.fn().mockReturnThis(),
-      getCount: jest.fn(),
-      getMany: jest.fn(),
-    };
-
-    mockFeesRepository = {
-      createQueryBuilder: jest.fn(
-        () => mockQueryBuilder as unknown as SelectQueryBuilder<Fees>,
-      ),
-    } as unknown as jest.Mocked<Repository<Fees>>;
-
     mockDataSourceValue.transaction = jest
       .fn()
       .mockImplementation(
@@ -176,8 +158,13 @@ describe('FeesService', () => {
         },
         { provide: TermModelAction, useValue: mockTermModelActionValue },
         { provide: ClassModelAction, useValue: mockClassModelActionValue },
+        {
+          provide: FeeNotificationService,
+          useValue: mockFeeNotificationService,
+        },
+        { provide: PaymentService, useValue: mockPaymentServiceValue },
+        { provide: StudentModelAction, useValue: mockStudentModelActionValue },
         { provide: DataSource, useValue: mockDataSourceValue },
-        { provide: getRepositoryToken(Fees), useValue: mockFeesRepository },
         { provide: WINSTON_MODULE_PROVIDER, useValue: mockLogger },
       ],
     }).compile();
@@ -186,6 +173,8 @@ describe('FeesService', () => {
     feesModelAction = module.get(FeesModelAction);
     termModelAction = module.get(TermModelAction);
     classModelAction = module.get(ClassModelAction);
+    paymentService = module.get(PaymentService);
+    studentModelAction = module.get(StudentModelAction);
     logger = module.get(WINSTON_MODULE_PROVIDER);
   });
 
@@ -268,8 +257,13 @@ describe('FeesService', () => {
     ];
 
     beforeEach(() => {
-      (mockQueryBuilder.getCount as jest.Mock).mockResolvedValue(2);
-      (mockQueryBuilder.getMany as jest.Mock).mockResolvedValue(mockFees);
+      (feesModelAction.findAllFees as jest.Mock).mockResolvedValue({
+        fees: mockFees,
+        total: 2,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      });
     });
 
     it('should return all fees with default pagination and no filters', async () => {
@@ -280,26 +274,7 @@ describe('FeesService', () => {
 
       const result = await service.findAll(queryDto);
 
-      expect(mockFeesRepository.createQueryBuilder).toHaveBeenCalledWith('fee');
-      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
-        'fee.term',
-        'term',
-      );
-      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
-        'fee.classes',
-        'classes',
-      );
-      expect(mockQueryBuilder.leftJoin).toHaveBeenCalledWith(
-        'fee.createdBy',
-        'createdBy',
-      );
-      expect(mockQueryBuilder.addSelect).toHaveBeenCalled();
-      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
-        'fee.createdAt',
-        'DESC',
-      );
-      expect(mockQueryBuilder.skip).toHaveBeenCalledWith(0);
-      expect(mockQueryBuilder.take).toHaveBeenCalledWith(20);
+      expect(feesModelAction.findAllFees).toHaveBeenCalledWith(queryDto);
 
       expect(result).toEqual({
         fees: mockFees,
@@ -320,10 +295,19 @@ describe('FeesService', () => {
 
       await service.findAll(queryDto);
 
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'fee.status = :status',
-        { status: FeeStatus.INACTIVE },
-      );
+      const mockResult = {
+        fees: [mockFee],
+        total: 1,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      };
+
+      (feesModelAction.findAllFees as jest.Mock).mockResolvedValue(mockResult);
+
+      await service.findAll(queryDto);
+
+      expect(feesModelAction.findAllFees).toHaveBeenCalledWith(queryDto);
     });
 
     it('should filter by term_id when provided', async () => {
@@ -333,53 +317,87 @@ describe('FeesService', () => {
         term_id: 'term-456',
       };
 
-      await service.findAll(queryDto);
-
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'fee.term_id = :term_id',
-        { term_id: 'term-456' },
-      );
-    });
-
-    it('should filter by class_id when provided', async () => {
-      const queryDto: QueryFeesDto = {
+      const mockResult = {
+        fees: [mockFee],
+        total: 1,
         page: 1,
         limit: 20,
-        class_id: 'class-1',
+        totalPages: 1,
       };
 
+      (feesModelAction.findAllFees as jest.Mock).mockResolvedValue(mockResult);
+
       await service.findAll(queryDto);
 
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'classes.id = :class_id',
-        { class_id: 'class-1' },
-      );
+      expect(feesModelAction.findAllFees).toHaveBeenCalledWith(queryDto);
     });
 
-    it('should filter by search term on component_name or description', async () => {
-      const queryDto: QueryFeesDto = {
-        page: 1,
-        limit: 20,
+    const mockQueryDto: QueryFeesDto = {
+      page: 1,
+      limit: 20,
+    };
+
+    it('should apply filters correctly', async () => {
+      const queryWithFilters: QueryFeesDto = {
+        ...mockQueryDto,
+        status: FeeStatus.ACTIVE,
+        class_id: 'class-123',
+        term_id: 'term-123',
         search: 'tuition',
       };
 
-      await service.findAll(queryDto);
+      const mockResult = {
+        fees: [mockFee],
+        total: 1,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      };
 
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        '(fee.component_name ILIKE :search OR fee.description ILIKE :search)',
-        { search: `%tuition%` },
+      (feesModelAction.findAllFees as jest.Mock).mockResolvedValue(mockResult);
+
+      await service.findAll(queryWithFilters);
+
+      expect(feesModelAction.findAllFees).toHaveBeenCalledWith(
+        queryWithFilters,
       );
     });
 
+    it('should return paginated fees', async () => {
+      const mockResult = {
+        fees: [mockFee],
+        total: 1,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      };
+
+      (feesModelAction.findAllFees as jest.Mock).mockResolvedValue(mockResult);
+
+      const result = await service.findAll(mockQueryDto);
+
+      expect(feesModelAction.findAllFees).toHaveBeenCalledWith(mockQueryDto);
+      expect(result).toEqual(mockResult);
+    });
+
     it('should calculate totalPages correctly for multiple pages', async () => {
-      (mockQueryBuilder.getCount as jest.Mock).mockResolvedValue(25);
+      const mockResult = {
+        fees: mockFees,
+        total: 25,
+        page: 2,
+        limit: 10,
+        totalPages: 3,
+      };
       const queryDto: QueryFeesDto = { page: 2, limit: 10 };
+
+      (feesModelAction.findAllFees as jest.Mock).mockResolvedValue(mockResult);
 
       const result = await service.findAll(queryDto);
 
+      expect(feesModelAction.findAllFees).toHaveBeenCalledWith(queryDto);
       expect(result.totalPages).toBe(3);
-      expect(mockQueryBuilder.skip).toHaveBeenCalledWith(10);
-      expect(mockQueryBuilder.take).toHaveBeenCalledWith(10);
+      expect(result.page).toBe(2);
+      expect(result.limit).toBe(10);
     });
   });
 
@@ -636,6 +654,331 @@ describe('FeesService', () => {
       );
 
       expect(feesModelAction.update).not.toHaveBeenCalled();
+    });
+  });
+
+  // ================= GET STUDENTS FOR FEE =================
+  describe('getStudentsForFee', () => {
+    it('should return students from linked classes and direct assignments', async () => {
+      const mockStudent1 = {
+        id: 'student-1',
+        registration_number: 'REG001',
+        photo_url: 'photo1.jpg',
+        user: { first_name: 'John', last_name: 'Doe' },
+      };
+      const mockStudent2 = {
+        id: 'student-2',
+        registration_number: 'REG002',
+        photo_url: 'photo2.jpg',
+        user: { first_name: 'Jane', last_name: 'Smith' },
+      };
+
+      const mockFeeWithStudents = {
+        ...mockFee,
+        classes: [
+          {
+            name: 'Class 1',
+            academicSession: { academicYear: '2023/2024' },
+            student_assignments: [{ student: mockStudent1 }],
+          },
+        ],
+        direct_assignments: [{ student: mockStudent2 }],
+      };
+
+      (
+        feesModelAction.getFeeWithStudentAssignments as jest.Mock
+      ).mockResolvedValue(mockFeeWithStudents);
+
+      const result = await service.getStudentsForFee('fee-123');
+
+      expect(result).toHaveLength(2);
+      expect(result).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: 'student-1',
+            name: 'John Doe',
+            class: 'Class 1',
+            session: '2023/2024',
+          }),
+          expect.objectContaining({
+            id: 'student-2',
+            name: 'Jane Smith',
+            class: 'N/A',
+            session: '',
+          }),
+        ]),
+      );
+    });
+
+    it('should deduplicate students present in both class and direct assignments', async () => {
+      const mockStudent1 = {
+        id: 'student-1',
+        registration_number: 'REG001',
+        photo_url: 'photo1.jpg',
+        user: { first_name: 'John', last_name: 'Doe' },
+      };
+
+      const mockFeeWithDuplicates = {
+        ...mockFee,
+        classes: [
+          {
+            name: 'Class 1',
+            academicSession: { academicYear: '2023/2024' },
+            student_assignments: [{ student: mockStudent1 }],
+          },
+        ],
+        direct_assignments: [{ student: mockStudent1 }],
+      };
+
+      (
+        feesModelAction.getFeeWithStudentAssignments as jest.Mock
+      ).mockResolvedValue(mockFeeWithDuplicates);
+
+      const result = await service.getStudentsForFee('fee-123');
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual(
+        expect.objectContaining({
+          id: 'student-1',
+          name: 'John Doe',
+          class: 'Class 1', // Should prefer class info
+        }),
+      );
+    });
+
+    it('should throw NotFoundException if fee not found', async () => {
+      (
+        feesModelAction.getFeeWithStudentAssignments as jest.Mock
+      ).mockResolvedValue(null);
+
+      await expect(service.getStudentsForFee('fee-123')).rejects.toThrow(
+        new NotFoundException(mockSysMsg.fee_not_found),
+      );
+    });
+  });
+
+  // ================= GET ACTIVE FEE COMPONENTS =================
+  // ================= GET ACTIVE FEE COMPONENTS =================
+  describe('getActiveFeeComponents', () => {
+    it('should return active fee components mapped to DTO with pagination', async () => {
+      const mockActiveFees = [
+        {
+          ...mockFee,
+          id: 'fee-1',
+          component_name: 'Tuition',
+          amount: 50000,
+          term: {
+            name: 'First Term',
+            academicSession: { academicYear: '2023/2024' },
+          },
+        },
+        {
+          ...mockFee,
+          id: 'fee-2',
+          component_name: 'Library',
+          amount: 5000,
+          term: {
+            name: 'Second Term',
+            academicSession: { name: '2023/2024' },
+          },
+        },
+      ];
+
+      (feesModelAction.getActiveFeeComponents as jest.Mock).mockResolvedValue({
+        fees: mockActiveFees,
+        total: 2,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      });
+
+      const result = await service.getActiveFeeComponents({
+        page: 1,
+        limit: 20,
+      });
+
+      expect(feesModelAction.getActiveFeeComponents).toHaveBeenCalledWith(
+        1,
+        20,
+      );
+      expect(result.data).toHaveLength(2);
+      expect(result.total).toBe(2);
+      expect(result.page).toBe(1);
+      expect(result.limit).toBe(20);
+      expect(result.totalPages).toBe(1);
+      expect(result.data[0]).toEqual({
+        id: 'fee-1',
+        name: 'Tuition',
+        amount: 50000,
+        session: '2023/2024',
+        term: 'First Term',
+        frequency: 'Per Term',
+      });
+    });
+
+    it('should handle missing term or session info gracefully', async () => {
+      const mockActiveFees = [
+        {
+          ...mockFee,
+          id: 'fee-3',
+          component_name: 'Misc',
+          amount: 1000,
+          term: null,
+        },
+      ];
+
+      (feesModelAction.getActiveFeeComponents as jest.Mock).mockResolvedValue({
+        fees: mockActiveFees,
+        total: 1,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      });
+
+      const result = await service.getActiveFeeComponents({
+        page: 1,
+        limit: 20,
+      });
+
+      expect(result.data[0]).toEqual({
+        id: 'fee-3',
+        name: 'Misc',
+        amount: 1000,
+        session: '',
+        term: '',
+        frequency: 'Per Term',
+      });
+    });
+  });
+
+  // ================= GET STUDENT FEE DETAILS =================
+  describe('getStudentFeeDetails', () => {
+    const studentId = 'student-123';
+    const termId = 'term-123';
+    const sessionId = 'session-123';
+
+    const mockStudent = {
+      id: studentId,
+      registration_number: 'REG001',
+      user: { first_name: 'John', last_name: 'Doe' },
+      class_assignments: [
+        {
+          class: {
+            id: 'class-1',
+            name: 'Grade 1',
+            academicSession: { academicYear: '2023/2024' },
+          },
+        },
+      ],
+    };
+
+    const mockTerm = {
+      id: termId,
+      name: 'First Term',
+      academicSession: { id: sessionId, academicYear: '2023/2024' },
+    };
+
+    const mockFees = [
+      {
+        id: 'fee-1',
+        component_name: 'Tuition',
+        amount: 50000,
+      },
+      {
+        id: 'fee-2',
+        component_name: 'Library',
+        amount: 5000,
+      },
+    ];
+
+    const mockPayments = [
+      {
+        fee_component_id: 'fee-1',
+        amount_paid: 30000,
+        payment_date: new Date(),
+        payment_method: 'Bank Transfer',
+        transaction_id: 'TXN123',
+        fee_component: { component_name: 'Tuition' },
+      },
+    ];
+
+    it('should return student fee details with correct breakdown', async () => {
+      (studentModelAction.get as jest.Mock).mockResolvedValue(mockStudent);
+      (termModelAction.get as jest.Mock).mockResolvedValue(mockTerm);
+      (feesModelAction.getFeesForStudent as jest.Mock).mockResolvedValue(
+        mockFees,
+      );
+      (paymentService.fetchAllPayments as jest.Mock).mockResolvedValue({
+        payments: mockPayments,
+        total: 1,
+      });
+
+      const result = await service.getStudentFeeDetails(
+        studentId,
+        termId,
+        sessionId,
+      );
+
+      expect(result.student_info).toEqual({
+        student_id: studentId,
+        first_name: 'John',
+        last_name: 'Doe',
+        registration_number: 'REG001',
+        class: 'Grade 1',
+        term: 'First Term',
+        session: '2023/2024',
+      });
+
+      expect(result.fee_breakdown).toHaveLength(2);
+
+      // Tuition: 50000 - 30000 = 20000 outstanding (Partially Paid)
+      expect(result.fee_breakdown[0]).toEqual({
+        component_name: 'Tuition',
+        amount: 50000,
+        amount_paid: 30000,
+        outstanding_amount: 20000,
+        status: 'PARTIALLY_PAID',
+      });
+
+      // Library: 5000 - 0 = 5000 outstanding (Outstanding)
+      expect(result.fee_breakdown[1]).toEqual({
+        component_name: 'Library',
+        amount: 5000,
+        amount_paid: 0,
+        outstanding_amount: 5000,
+        status: 'OUTSTANDING',
+      });
+
+      expect(result.payment_history).toHaveLength(1);
+      expect(result.payment_history[0].amount_paid).toBe(30000);
+      expect(result.payment_history[0].term_label).toBe('First Term');
+    });
+
+    it('should throw BadRequestException if term does not belong to session', async () => {
+      (studentModelAction.get as jest.Mock).mockResolvedValue(mockStudent);
+      (termModelAction.get as jest.Mock).mockResolvedValue({
+        ...mockTerm,
+        academicSession: { id: 'other-session' },
+      });
+
+      await expect(
+        service.getStudentFeeDetails(studentId, termId, sessionId),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw NotFoundException if student not found', async () => {
+      (studentModelAction.get as jest.Mock).mockResolvedValue(null);
+      await expect(
+        service.getStudentFeeDetails(studentId, termId, sessionId),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw BadRequestException if term not found', async () => {
+      (studentModelAction.get as jest.Mock).mockResolvedValue(mockStudent);
+      (termModelAction.get as jest.Mock).mockResolvedValue(null);
+      await expect(
+        service.getStudentFeeDetails(studentId, termId, sessionId),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });

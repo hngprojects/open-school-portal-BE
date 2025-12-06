@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AcademicSessionModule } from '../academic-session/academic-session.module';
 import { ClassModule } from '../class/class.module';
+import { EmailModule } from '../email/email.module';
 import { FileModule } from '../shared/file/file.module';
 import { UserModule } from '../user/user.module';
 
@@ -11,7 +12,7 @@ import { Student } from './entities';
 import { StudentModelAction } from './model-actions';
 import { StudentService } from './services';
 
-//these import is added on the provide to enable sudent growth graph calculation
+//these import is added on the provide to enable student growth graph calculation
 
 @Module({
   imports: [
@@ -20,9 +21,10 @@ import { StudentService } from './services';
     FileModule,
     forwardRef(() => ClassModule),
     AcademicSessionModule,
+    EmailModule,
   ],
   controllers: [StudentController],
   providers: [StudentService, StudentModelAction],
-  exports: [StudentModelAction],
+  exports: [StudentModelAction, StudentService],
 })
 export class StudentModule {}

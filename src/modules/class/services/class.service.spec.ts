@@ -9,16 +9,24 @@ import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
-import { SessionStatus } from '../../academic-session/entities/academic-session.entity';
+// FIX 1: Imported AcademicSession for proper type casting
+import {
+  AcademicSession,
+  SessionStatus,
+} from '../../academic-session/entities/academic-session.entity';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
+import { NotificationService } from '../../notification/services/notification.service';
 import { StudentModelAction } from '../../student/model-actions/student-actions';
+import { TeacherModelAction } from '../../teacher/model-actions/teacher-actions';
+import { CreateClassDto, UpdateClassDto } from '../dto';
+import { ClassStudent } from '../entities/class-student.entity';
 import { ClassTeacher } from '../entities/class-teacher.entity';
 import { Class } from '../entities/class.entity';
 import { ClassStudentModelAction } from '../model-actions/class-student.action';
 import { ClassTeacherModelAction } from '../model-actions/class-teacher.action';
 import { ClassModelAction } from '../model-actions/class.actions';
-
-import { ClassService } from './class.service';
+import { ClassStudentValidationService } from '../services/class-student-validation.service';
+import { ClassService } from '../services/class.service';
 
 // Mock Data Constants
 const MOCK_CLASS_ID = '1';
@@ -33,6 +41,9 @@ const mockDataSource = {
   transaction: jest.fn().mockImplementation(async (callback) => {
     const mockManager = {
       findOne: jest.fn(),
+      save: jest
+        .fn()
+        .mockImplementation((entity, data) => Promise.resolve(data || entity)),
     };
     return callback(mockManager);
   }),
@@ -65,28 +76,52 @@ describe('ClassService', () => {
   let classModelAction: jest.Mocked<ClassModelAction>;
   let classTeacherModelAction: jest.Mocked<ClassTeacherModelAction>;
   let academicSessionModelAction: jest.Mocked<AcademicSessionModelAction>;
+  let mockStudentModelAction: jest.Mocked<StudentModelAction>;
+  let mockClassStudentModelAction: jest.Mocked<ClassStudentModelAction>;
+  let mockClassStudentValidationService: jest.Mocked<ClassStudentValidationService>;
+  let mockNotificationService: jest.Mocked<NotificationService>;
+  // FIX 2: Removed unused mockTeacherModelAction
   let mockLogger: jest.Mocked<Logger>;
 
-  const mockClassModelAction = {
+  const mockClassModelActionMethods = {
     get: jest.fn(),
     find: jest.fn(),
     create: jest.fn(),
     findAllWithSession: jest.fn(),
     findAllWithSessionRaw: jest.fn(),
     list: jest.fn(),
+    update: jest.fn(),
   };
 
-  const mockClassTeacherModelAction = {
-    list: jest.fn(),
-  };
-
-  const mockClassStudentModelAction = {
+  const mockClassTeacherModelActionMethods = {
     list: jest.fn(),
     create: jest.fn(),
   };
 
-  const mockStudentModelAction = {
+  const mockClassStudentModelActionMethods = {
+    list: jest.fn(),
+    create: jest.fn(),
+  };
+
+  const mockStudentModelActionMethods = {
     get: jest.fn(),
+    update: jest.fn().mockResolvedValue({}),
+  };
+
+  const mockTeacherModelActionMethods = {
+    get: jest.fn(),
+  };
+
+  const mockClassStudentValidationServiceMethods = {
+    validateClassExists: jest.fn(),
+    validateStudentExists: jest.fn(),
+    validateStudentAssignment: jest.fn(),
+    validateBatchStudentAssignment: jest.fn(),
+    getExistingAssignment: jest.fn(),
+  };
+
+  const mockNotificationServiceMethods = {
+    createBulkNotifications: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -104,19 +139,19 @@ describe('ClassService', () => {
         ClassService,
         {
           provide: ClassModelAction,
-          useValue: mockClassModelAction,
+          useValue: mockClassModelActionMethods,
         },
         {
           provide: ClassTeacherModelAction,
-          useValue: mockClassTeacherModelAction,
+          useValue: mockClassTeacherModelActionMethods,
         },
         {
           provide: ClassStudentModelAction,
-          useValue: mockClassStudentModelAction,
+          useValue: mockClassStudentModelActionMethods,
         },
         {
           provide: StudentModelAction,
-          useValue: mockStudentModelAction,
+          useValue: mockStudentModelActionMethods,
         },
         {
           provide: WINSTON_MODULE_PROVIDER,
@@ -131,12 +166,28 @@ describe('ClassService', () => {
           useValue: {
             list: jest.fn().mockResolvedValue({
               payload: [
-                { id: MOCK_ACTIVE_SESSION, name: '2024/2025 Academic Session' },
+                {
+                  id: MOCK_ACTIVE_SESSION,
+                  name: '2024/2025 Academic Session',
+                },
               ],
               paginationMeta: {},
             }),
             find: jest.fn().mockResolvedValue({ payload: [] }),
+            get: jest.fn(),
           },
+        },
+        {
+          provide: ClassStudentValidationService,
+          useValue: mockClassStudentValidationServiceMethods,
+        },
+        {
+          provide: NotificationService,
+          useValue: mockNotificationServiceMethods,
+        },
+        {
+          provide: TeacherModelAction,
+          useValue: mockTeacherModelActionMethods,
         },
       ],
     }).compile();
@@ -145,6 +196,13 @@ describe('ClassService', () => {
     classModelAction = module.get(ClassModelAction);
     classTeacherModelAction = module.get(ClassTeacherModelAction);
     academicSessionModelAction = module.get(AcademicSessionModelAction);
+    mockNotificationService = module.get(NotificationService);
+    mockStudentModelAction = module.get(StudentModelAction);
+    mockClassStudentModelAction = module.get(ClassStudentModelAction);
+    mockClassStudentValidationService = module.get(
+      ClassStudentValidationService,
+    );
+    // FIX 2: Removed unused assignment for mockTeacherModelAction
   });
 
   afterEach(() => {
@@ -231,10 +289,9 @@ describe('ClassService', () => {
   });
 
   describe('create', () => {
-    const createClassDto = {
+    const createClassDto: CreateClassDto = {
       name: 'Grade 10',
       arm: 'A',
-      // teacherIds: ['valid-uuid-1', 'valid-uuid-2'], // Uncomment if teacherIds are supported
     };
     const mockCreatedClass = {
       id: 'class-uuid-1',
@@ -319,7 +376,7 @@ describe('ClassService', () => {
 
   describe('updateClass', () => {
     const classId = 'class-uuid-1';
-    const updateDto = { name: 'JSS2', arm: 'B' };
+    const updateDto: UpdateClassDto = { name: 'JSS2', arm: 'B' };
     const mockAcademicSession = {
       id: 'session-uuid-1',
       name: '2026/2027',
@@ -427,7 +484,6 @@ describe('ClassService', () => {
 
   describe('getGroupedClasses', () => {
     it('should return grouped classes with status_code 200 and message', async () => {
-      // Mock grouped data
       const mockRawClasses = [
         {
           id: 'class-id-1',
@@ -441,9 +497,9 @@ describe('ClassService', () => {
           arm: 'B',
           academicSession: { id: 'session-id', name: '2027/2028' },
         },
-      ];
+      ] as unknown as Class[];
 
-      mockClassModelAction.list.mockResolvedValue({
+      classModelAction.list.mockResolvedValue({
         payload: mockRawClasses,
         paginationMeta: { total: 1, page: 1, limit: 20 },
       });
@@ -463,11 +519,12 @@ describe('ClassService', () => {
       expect(result.message).toBe(sysMsg.CLASS_FETCHED);
       expect(result.items).toEqual(expectedGrouped);
       expect(result.pagination).toBeDefined();
-      expect(mockClassModelAction.list).toHaveBeenCalled();
+
+      expect(classModelAction.list).toHaveBeenCalled();
     });
 
     it('should return status_code 200 and message for empty grouped classes', async () => {
-      mockClassModelAction.list.mockResolvedValue({
+      classModelAction.list.mockResolvedValue({
         payload: [],
         paginationMeta: { total: 0, page: 1, limit: 20 },
       });
@@ -476,7 +533,8 @@ describe('ClassService', () => {
 
       expect(result.items).toEqual([]);
       expect(result.pagination).toBeDefined();
-      expect(mockClassModelAction.list).toHaveBeenCalled();
+
+      expect(classModelAction.list).toHaveBeenCalled();
     });
   });
 
@@ -518,22 +576,18 @@ describe('ClassService', () => {
 
   describe('getTotalClasses', () => {
     it('should return the total number of classes filtered by sessionId, name, and arm', async () => {
-      // Arrange
       const sessionId = 'session-uuid-1';
       const name = 'JSS1';
       const arm = 'A';
       const mockTotal = 5;
 
-      // Mock the list method to return the expected paginationMeta
       classModelAction.list.mockResolvedValue({
         payload: [],
         paginationMeta: { total: mockTotal },
       });
 
-      // Act
       const result = await service.getTotalClasses(sessionId, name, arm);
 
-      // Assert
       expect(classModelAction.list).toHaveBeenCalledWith({
         filterRecordOptions: {
           academicSession: { id: sessionId },
@@ -549,20 +603,17 @@ describe('ClassService', () => {
     });
 
     it('should return zero if no classes match the filter', async () => {
-      // Arrange
       classModelAction.list.mockResolvedValue({
         payload: [],
         paginationMeta: { total: 0 },
       });
 
-      // Act
       const result = await service.getTotalClasses(
         'session-uuid-2',
         'JSS9',
         'B',
       );
 
-      // Assert
       expect(result).toEqual({
         message: sysMsg.TOTAL_CLASSES_FETCHED,
         total: 0,
@@ -577,7 +628,7 @@ describe('ClassService', () => {
       classModelAction.update = jest.fn();
     });
 
-    it('should successfully soft delete a class from the active session', async () => {
+    it('should successfully soft delete a class from the active session and trigger notification', async () => {
       classModelAction.get.mockResolvedValue({
         id: classId,
         name: 'JSS1',
@@ -585,6 +636,15 @@ describe('ClassService', () => {
         academicSession: { id: MOCK_ACTIVE_SESSION },
         is_deleted: false,
       } as unknown as Class);
+
+      mockClassStudentModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: {},
+      });
+      classTeacherModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: {},
+      });
 
       const result = await service.deleteClass(classId);
 
@@ -596,6 +656,14 @@ describe('ClassService', () => {
         },
         transactionOptions: { useTransaction: false },
       });
+
+      // FIX 3: Wrapped setImmediate in curly braces to avoid implicit return
+      await new Promise((resolve) => {
+        setImmediate(resolve);
+      });
+      expect(
+        mockNotificationService.createBulkNotifications,
+      ).toHaveBeenCalled();
 
       expect(result).toEqual({
         status_code: 200,
@@ -623,6 +691,442 @@ describe('ClassService', () => {
         BadRequestException,
       );
       expect(classModelAction.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('assignStudentToClass', () => {
+    const classId = 'class-uuid-1';
+    const studentId = 'student-uuid-1';
+    const sessionId = 'session-uuid-1';
+
+    const mockClassEntity = {
+      id: classId,
+      name: 'JSS1',
+      arm: 'A',
+      is_deleted: false,
+      academicSession: {
+        id: sessionId,
+        name: '2024/2025 Academic Session',
+      },
+    } as unknown as Class;
+
+    beforeEach(() => {
+      mockDataSource.transaction = jest
+        .fn()
+        .mockImplementation(async (callback) => {
+          const mockManager = {
+            findOne: jest.fn(),
+            save: jest.fn(),
+          };
+          return callback(mockManager);
+        });
+    });
+
+    it('should successfully assign a new student to a class and trigger notification', async () => {
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateStudentAssignment.mockResolvedValue(
+        undefined,
+      );
+      mockClassStudentValidationService.getExistingAssignment.mockResolvedValue(
+        null,
+      );
+      mockClassStudentModelAction.create.mockResolvedValue({} as ClassStudent);
+
+      mockClassStudentModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: {},
+      });
+      classTeacherModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: {},
+      });
+
+      const result = await service.assignStudentToClass(classId, studentId);
+
+      expect(
+        mockClassStudentValidationService.validateClassExists,
+      ).toHaveBeenCalledWith(classId);
+      expect(result.assigned).toBe(true);
+      expect(result.reactivated).toBe(false);
+      expect(result.message).toContain('assigned to class successfully');
+
+      // FIX 3: Wrapped setImmediate in curly braces
+      await new Promise((resolve) => {
+        setImmediate(resolve);
+      });
+      expect(
+        mockNotificationService.createBulkNotifications,
+      ).toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException if class is soft-deleted', async () => {
+      mockClassStudentValidationService.validateClassExists.mockRejectedValue(
+        new NotFoundException(sysMsg.CLASS_NOT_FOUND),
+      );
+
+      await expect(
+        service.assignStudentToClass(classId, studentId),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException if student is soft-deleted', async () => {
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateStudentAssignment.mockRejectedValue(
+        new NotFoundException('Student with ID student-uuid-1 not found.'),
+      );
+
+      await expect(
+        service.assignStudentToClass(classId, studentId),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ConflictException if student is already in another class', async () => {
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateStudentAssignment.mockRejectedValue(
+        new ConflictException(
+          'Cannot assign student: Student is already assigned to class JSS2 (B) in this academic session.',
+        ),
+      );
+
+      await expect(
+        service.assignStudentToClass(classId, studentId),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('should reactivate an inactive assignment and trigger notification', async () => {
+      const inactiveAssignment = {
+        id: 'assignment-uuid-1',
+        class: { id: classId },
+        student: { id: studentId },
+        session_id: sessionId,
+        is_active: false,
+        enrollment_date: new Date('2023-01-01'),
+      } as unknown as ClassStudent;
+
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateStudentAssignment.mockResolvedValue(
+        undefined,
+      );
+      mockClassStudentValidationService.getExistingAssignment.mockResolvedValue(
+        inactiveAssignment,
+      );
+
+      mockClassStudentModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: {},
+      });
+      classTeacherModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: {},
+      });
+
+      const result = await service.assignStudentToClass(classId, studentId);
+
+      expect(result.reactivated).toBe(true);
+      expect(result.assigned).toBe(true);
+      expect(result.message).toContain('reactivated');
+
+      // FIX 3: Wrapped setImmediate in curly braces
+      await new Promise((resolve) => {
+        setImmediate(resolve);
+      });
+      expect(
+        mockNotificationService.createBulkNotifications,
+      ).toHaveBeenCalled();
+    });
+
+    it('should skip if student is already actively assigned', async () => {
+      const activeAssignment = {
+        id: 'assignment-uuid-1',
+        class: { id: classId },
+        student: { id: studentId },
+        session_id: sessionId,
+        is_active: true,
+      } as unknown as ClassStudent;
+
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateStudentAssignment.mockResolvedValue(
+        undefined,
+      );
+      mockClassStudentValidationService.getExistingAssignment.mockResolvedValue(
+        activeAssignment,
+      );
+
+      const result = await service.assignStudentToClass(classId, studentId);
+
+      expect(result.assigned).toBe(false);
+      expect(result.reactivated).toBe(false);
+      expect(result.message).toContain('already assigned');
+      expect(
+        mockNotificationService.createBulkNotifications,
+      ).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('assignStudentsToClass', () => {
+    const classId = 'class-uuid-1';
+    const studentId1 = 'student-uuid-1';
+    const studentId2 = 'student-uuid-2';
+    const sessionId = 'session-uuid-1';
+
+    const mockClassEntity = {
+      id: classId,
+      name: 'JSS1',
+      arm: 'A',
+      is_deleted: false,
+      academicSession: {
+        id: sessionId,
+        name: '2024/2025 Academic Session',
+      },
+    } as unknown as Class;
+
+    beforeEach(() => {
+      mockDataSource.transaction = jest
+        .fn()
+        .mockImplementation(async (callback) => {
+          const mockManager = {
+            findOne: jest.fn(),
+            save: jest
+              .fn()
+              .mockImplementation((entity, data) =>
+                Promise.resolve(data || entity),
+              ),
+          };
+          return callback(mockManager);
+        });
+    });
+
+    it('should successfully assign multiple students to a class and trigger notification', async () => {
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateBatchStudentAssignment.mockResolvedValue(
+        undefined,
+      );
+      mockClassStudentValidationService.getExistingAssignment
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null);
+      mockClassStudentModelAction.create.mockResolvedValue({} as ClassStudent);
+
+      mockClassStudentModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: {},
+      });
+      classTeacherModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: {},
+      });
+
+      const result = await service.assignStudentsToClass(classId, {
+        studentIds: [studentId1, studentId2],
+      });
+
+      expect(result.assigned).toBe(2);
+      expect(result.skipped).toBe(0);
+      expect(result.message).toContain('Successfully assigned 2 student(s)');
+
+      // FIX 3: Wrapped setImmediate in curly braces
+      await new Promise((resolve) => {
+        setImmediate(resolve);
+      });
+      expect(
+        mockNotificationService.createBulkNotifications,
+      ).toHaveBeenCalled();
+    });
+
+    it('should remove duplicate student IDs', async () => {
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateBatchStudentAssignment.mockResolvedValue(
+        undefined,
+      );
+      mockClassStudentValidationService.getExistingAssignment
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null);
+      mockClassStudentModelAction.create.mockResolvedValue({} as ClassStudent);
+
+      mockClassStudentModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: {},
+      });
+      classTeacherModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: {},
+      });
+
+      await service.assignStudentsToClass(classId, {
+        studentIds: [studentId1, studentId1, studentId2],
+      });
+
+      expect(
+        mockClassStudentValidationService.validateBatchStudentAssignment,
+      ).toHaveBeenCalledWith(classId, [studentId1, studentId2], sessionId);
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Duplicate student IDs detected'),
+        expect.any(Object),
+      );
+    });
+  });
+
+  describe('getStudentsByClass', () => {
+    it('should return students for a class', async () => {
+      const classId = 'class-uuid-1';
+      const sessionId = 'session-uuid-1';
+
+      const mockClassEntity = {
+        id: classId,
+        academicSession: { id: sessionId },
+      } as unknown as Class;
+
+      const mockAssignments = [
+        {
+          student: {
+            id: 'student-1',
+            registration_number: 'REG-001',
+            user: { first_name: 'John', last_name: 'Doe' },
+          },
+          enrollment_date: new Date(),
+          is_active: true,
+        },
+      ] as unknown as ClassStudent[];
+
+      classModelAction.get.mockResolvedValue(mockClassEntity);
+      mockClassStudentModelAction.list.mockResolvedValue({
+        payload: mockAssignments,
+        paginationMeta: {},
+      });
+
+      const result = await service.getStudentsByClass(classId);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('John Doe');
+    });
+
+    it('should throw NotFoundException if class does not exist', async () => {
+      classModelAction.get.mockResolvedValue(null);
+
+      await expect(service.getStudentsByClass('wrong-id')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('getClassesByTeacher', () => {
+    const teacherId = 'teacher-uuid-123';
+    const sessionId = 'session-uuid-456';
+
+    it('should return classes assigned to teacher', async () => {
+      // FIX 4: Used proper casting to AcademicSession instead of 'as any'
+      const mockSession = {
+        id: sessionId,
+        name: '2024/2025',
+        status: SessionStatus.ACTIVE,
+      } as unknown as AcademicSession;
+
+      // FIX 4: Used proper casting to ClassTeacher instead of 'as any'
+      const mockAssignment = {
+        id: 'assignment-1',
+        assignment_date: new Date('2024-09-01'),
+        createdAt: new Date('2024-09-01'),
+        updatedAt: new Date('2024-09-15'),
+        class: {
+          id: 'class-1',
+          name: 'JSS1',
+          arm: 'A',
+          is_deleted: false,
+          academicSession: {
+            id: sessionId,
+            name: '2024/2025',
+          },
+        },
+      } as unknown as ClassTeacher;
+
+      academicSessionModelAction.list.mockResolvedValue({
+        payload: [mockSession],
+        paginationMeta: {},
+      });
+
+      classTeacherModelAction.list.mockResolvedValue({
+        payload: [mockAssignment],
+        paginationMeta: {},
+      });
+
+      const result = await service.getClassesByTeacher(teacherId);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('JSS1');
+    });
+  });
+
+  describe('unassignStudentFromClass', () => {
+    const classId = 'class-uuid-1';
+    const studentId = 'student-uuid-1';
+    const sessionId = 'session-uuid-1';
+
+    const mockClassEntity = {
+      id: classId,
+      name: 'JSS1',
+      academicSession: { id: sessionId },
+    } as unknown as Class;
+
+    it('should successfully unassign a student from a class', async () => {
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateStudentExists.mockResolvedValue(
+        undefined,
+      );
+      mockClassStudentValidationService.getExistingAssignment.mockResolvedValue(
+        {
+          id: 'assignment-id',
+          is_active: true,
+        } as ClassStudent,
+      );
+
+      const result = await service.unassignStudentFromClass(classId, studentId);
+
+      expect(
+        mockClassStudentValidationService.validateClassExists,
+      ).toHaveBeenCalledWith(classId);
+      expect(mockDataSource.transaction).toHaveBeenCalled();
+      expect(mockStudentModelAction.update).toHaveBeenCalledWith({
+        identifierOptions: { id: studentId, current_class_id: classId },
+        updatePayload: { current_class_id: null },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: expect.any(Object),
+        },
+      });
+      expect(result).toEqual({
+        message: sysMsg.STUDENT_UNASSIGNED_SUCCESSFULLY,
+      });
+    });
+
+    it('should throw NotFoundException if student is not assigned to the class', async () => {
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateStudentExists.mockResolvedValue(
+        undefined,
+      );
+      mockClassStudentValidationService.getExistingAssignment.mockResolvedValue(
+        null,
+      );
+
+      await expect(
+        service.unassignStudentFromClass(classId, studentId),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

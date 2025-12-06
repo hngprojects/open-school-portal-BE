@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
@@ -11,12 +12,14 @@ import { DataSource, Repository } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../constants/system.messages';
+import { AccountCreationService } from '../email/account-creation.service';
 import { UserRole } from '../shared/enums';
 import { FileService } from '../shared/file/file.service';
 import {
-  generateStrongPassword,
+  generateResetToken,
   hashPassword,
-} from '../shared/utils/password.util';
+  generateStrongPassword,
+} from '../shared/utils';
 import { User } from '../user/entities/user.entity';
 import { UserModelAction } from '../user/model-actions/user-actions';
 
@@ -39,6 +42,8 @@ export class TeacherService {
     private readonly userModelAction: UserModelAction,
     private readonly dataSource: DataSource,
     private readonly fileService: FileService,
+    private readonly accountCreationService: AccountCreationService,
+
     // Keep repository for complex queries and employment ID generation
     @InjectRepository(Teacher)
     private readonly teacherRepository: Repository<Teacher>,
@@ -100,6 +105,9 @@ export class TeacherService {
       );
     }
 
+    // Validate Teacher Age to be at least 18 years old
+    this.validateTeacherAge(createDto.date_of_birth);
+
     // 3. Prepare User data
     const rawPassword = createDto.password || generateStrongPassword(12);
     const hashedPassword = await hashPassword(rawPassword);
@@ -110,7 +118,9 @@ export class TeacherService {
       photo_url = this.fileService.validatePhotoUrl(createDto.photo_url);
     }
 
-    return this.dataSource.transaction(async (manager) => {
+    const { resetToken, resetTokenExpiry } = generateResetToken(24);
+
+    const response = await this.dataSource.transaction(async (manager) => {
       // 5. Create User using model action within transaction
       const savedUser = await this.userModelAction.create({
         createPayload: {
@@ -125,6 +135,8 @@ export class TeacherService {
           password: hashedPassword,
           role: [UserRole.TEACHER],
           is_active: createDto.is_active ?? true,
+          reset_token: resetToken,
+          reset_token_expiry: resetTokenExpiry,
         },
         transactionOptions: {
           useTransaction: true,
@@ -148,7 +160,7 @@ export class TeacherService {
       });
 
       // 7. Return response (Transform User/Teacher entities into DTO)
-      const response = {
+      return {
         ...savedTeacher,
         first_name: savedUser.first_name,
         last_name: savedUser.last_name,
@@ -164,16 +176,23 @@ export class TeacherService {
         created_at: savedTeacher.createdAt,
         updated_at: savedTeacher.updatedAt,
       };
+    });
+    this.logger.info(sysMsg.RESOURCE_CREATED, {
+      teacherId: response.id,
+      employmentId: response.employment_id,
+      email: response.email,
+    });
 
-      this.logger.info(sysMsg.RESOURCE_CREATED, {
-        teacherId: savedTeacher.id,
-        employmentId: savedTeacher.employment_id,
-        email: savedUser.email,
-      });
+    await this.accountCreationService.sendAccountCreationEmail(
+      `${response.first_name} ${response.last_name}`,
+      response.email,
+      rawPassword,
+      UserRole.TEACHER,
+      resetToken,
+    );
 
-      return plainToInstance(TeacherResponseDto, response, {
-        excludeExtraneousValues: true,
-      });
+    return plainToInstance(TeacherResponseDto, response, {
+      excludeExtraneousValues: true,
     });
   }
 
@@ -452,5 +471,29 @@ export class TeacherService {
         userId: teacher.user_id,
       });
     });
+  }
+
+  /**
+   * Validates that a person is at least the minimum required age
+   * @param dateOfBirth - Date of birth string in YYYY-MM-DD format
+   * @param minAge - Minimum required age (default: 18)
+   * @throws BadRequestException if age requirement is not met
+   */
+  private validateTeacherAge(dateOfBirth: string, minAge: number = 18): void {
+    const birthDate = new Date(dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
+      age--;
+    }
+
+    if (age < minAge) {
+      throw new BadRequestException(sysMsg.INVALID_TEACHER_AGE(minAge));
+    }
   }
 }

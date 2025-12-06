@@ -2,6 +2,7 @@ import { PaginationMeta } from '@hng-sdk/orm';
 import {
   ConflictException,
   HttpStatus,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
@@ -15,15 +16,18 @@ import { ClassStudentModelAction } from 'src/modules/class/model-actions/class-s
 import { ClassModelAction } from 'src/modules/class/model-actions/class.actions';
 
 import * as sysMsg from '../../../constants/system.messages';
+import { AccountCreationService } from '../../email/account-creation.service';
+import { IUserPayload } from '../../parent/parent.service';
 import { UserRole } from '../../shared/enums';
 import { FileService } from '../../shared/file/file.service';
-import { hashPassword } from '../../shared/utils/password.util';
+import { generateResetToken, hashPassword } from '../../shared/utils';
 import { UserModelAction } from '../../user/model-actions/user-actions';
 import {
   CreateStudentDto,
   StudentResponseDto,
   ListStudentsDto,
   PatchStudentDto,
+  StudentProfileResponseDto,
 } from '../dto';
 import { StudentGrowthReportResponseDto } from '../dto/student.growth.dto';
 import { Student } from '../entities';
@@ -41,6 +45,7 @@ export class StudentService {
     private readonly classStudentModelAction: ClassStudentModelAction,
     private readonly classModelAction: ClassModelAction,
     private readonly academicSessionModelAction: AcademicSessionModelAction,
+    private readonly accountCreationService: AccountCreationService,
   ) {
     this.logger = baseLogger.child({ context: StudentService.name });
   }
@@ -58,9 +63,7 @@ export class StudentService {
       );
       throw new ConflictException(sysMsg.STUDENT_EMAIL_CONFLICT);
     }
-    const registration_number =
-      createStudentDto.registration_number ||
-      (await this.generateStudentNumber());
+    const registration_number = await this.generateStudentNumber();
 
     const existingStudent = await this.studentModelAction.get({
       identifierOptions: { registration_number },
@@ -80,51 +83,67 @@ export class StudentService {
       photo_url = this.fileService.validatePhotoUrl(createStudentDto.photo_url);
     }
 
-    return this.dataSource.transaction(async (manager) => {
-      const savedUser = await this.userModelAction.create({
-        createPayload: {
-          first_name: createStudentDto.first_name,
-          last_name: createStudentDto.last_name,
-          middle_name: createStudentDto.middle_name,
-          email: createStudentDto.email,
-          phone: createStudentDto.phone,
-          gender: createStudentDto.gender,
-          dob: new Date(createStudentDto.date_of_birth),
-          homeAddress: createStudentDto.home_address,
-          password: hashedPassword,
-          role: [UserRole.STUDENT],
-          is_active: createStudentDto.is_active ?? true,
-        },
-        transactionOptions: {
-          useTransaction: true,
-          transaction: manager,
-        },
-      });
+    const { resetToken, resetTokenExpiry } = generateResetToken(24);
 
-      const savedStudent = await this.studentModelAction.create({
-        createPayload: {
-          user: { id: savedUser.id },
+    const { savedUser, savedStudent } = await this.dataSource.transaction(
+      async (manager) => {
+        const savedUser = await this.userModelAction.create({
+          createPayload: {
+            first_name: createStudentDto.first_name,
+            last_name: createStudentDto.last_name,
+            middle_name: createStudentDto.middle_name,
+            email: createStudentDto.email,
+            phone: createStudentDto.phone,
+            gender: createStudentDto.gender,
+            dob: new Date(createStudentDto.date_of_birth),
+            homeAddress: createStudentDto.home_address,
+            password: hashedPassword,
+            role: [UserRole.STUDENT],
+            is_active: createStudentDto.is_active ?? true,
+            reset_token: resetToken,
+            reset_token_expiry: resetTokenExpiry,
+          },
+          transactionOptions: {
+            useTransaction: true,
+            transaction: manager,
+          },
+        });
+
+        const savedStudent = await this.studentModelAction.create({
+          createPayload: {
+            user: { id: savedUser.id },
+            registration_number,
+            photo_url: photo_url,
+          },
+          transactionOptions: {
+            useTransaction: true,
+            transaction: manager,
+          },
+        });
+
+        this.logger.info(sysMsg.RESOURCE_CREATED, {
+          studentId: savedStudent.id,
           registration_number,
-          photo_url: photo_url,
-        },
-        transactionOptions: {
-          useTransaction: true,
-          transaction: manager,
-        },
-      });
+          email: savedUser.email,
+        });
 
-      this.logger.info(sysMsg.RESOURCE_CREATED, {
-        studentId: savedStudent.id,
-        registration_number,
-        email: savedUser.email,
-      });
+        return { savedUser, savedStudent };
+      },
+    );
 
-      return new StudentResponseDto(
-        savedStudent,
-        savedUser,
-        sysMsg.STUDENT_CREATED,
-      );
-    });
+    await this.accountCreationService.sendAccountCreationEmail(
+      `${savedUser.first_name} ${savedUser.last_name}`,
+      savedUser.email,
+      createStudentDto.password,
+      UserRole.STUDENT,
+      resetToken,
+    );
+
+    return new StudentResponseDto(
+      savedStudent,
+      savedUser,
+      sysMsg.STUDENT_CREATED,
+    );
   }
 
   // --- FIND ALL (with pagination and search) ---
@@ -134,19 +153,26 @@ export class StudentService {
     data: StudentResponseDto[];
     meta: Partial<PaginationMeta>;
   }> {
-    const { page = 1, limit = 10, search } = listStudentsDto;
+    const { page = 1, limit = 10, search, unassigned } = listStudentsDto;
 
-    // Use the custom search method for search, regular list for no search
-    const { payload: students, paginationMeta } = search
-      ? await this.searchStudentsWithModelAction(search, page, limit)
-      : await this.studentModelAction.list({
-          filterRecordOptions: {
-            is_deleted: false,
-          },
-          relations: { user: true, stream: true },
-          paginationPayload: { page, limit },
-          order: { createdAt: 'DESC' },
-        });
+    // Use query builder if we have search or unassigned filter (complex filtering)
+    // Otherwise use model action for simple filtering
+    const { payload: students, paginationMeta } =
+      search || unassigned !== undefined
+        ? await this.searchStudentsWithModelAction(
+            search || '',
+            page,
+            limit,
+            unassigned,
+          )
+        : await this.studentModelAction.list({
+            filterRecordOptions: {
+              is_deleted: false,
+            },
+            relations: { user: true, stream: true },
+            paginationPayload: { page, limit },
+            order: { createdAt: 'DESC' },
+          });
 
     const data = students.map(
       (student) => new StudentResponseDto(student, student.user),
@@ -154,6 +180,7 @@ export class StudentService {
 
     this.logger.info(`Fetched ${data.length} students`, {
       searchTerm: search,
+      unassigned,
       page,
       limit,
       total: paginationMeta.total,
@@ -304,10 +331,21 @@ export class StudentService {
   }
 
   // --- SEARCH STUDENTS (private method) ---
+  /**
+   * Search and filter students using query builder.
+   * Supports search by name/email/registration and filtering by assignment status.
+   *
+   * @param search - Search term (optional)
+   * @param page - Page number
+   * @param limit - Items per page
+   * @param unassigned - Filter by assignment status: true = unassigned only, false = assigned only, undefined = all
+   * @returns Paginated list of students
+   */
   private async searchStudentsWithModelAction(
     search: string,
     page: number = 1,
     limit: number = 10,
+    unassigned?: boolean,
   ): Promise<{
     payload: Student[];
     paginationMeta: Partial<PaginationMeta>;
@@ -321,11 +359,19 @@ export class StudentService {
       .orderBy('student.createdAt', 'DESC')
       .where('student.is_deleted IS NOT TRUE');
 
+    // Add search condition
     if (search && search.trim()) {
       queryBuilder.andWhere(
         '(user.first_name ILIKE :search OR user.last_name ILIKE :search OR user.email ILIKE :search OR student.registration_number ILIKE :search)',
         { search: `%${search}%` },
       );
+    }
+
+    // Add unassigned filter
+    if (unassigned === true) {
+      queryBuilder.andWhere('student.current_class_id IS NULL');
+    } else if (unassigned === false) {
+      queryBuilder.andWhere('student.current_class_id IS NOT NULL');
     }
 
     const total = await queryBuilder.getCount();
@@ -490,5 +536,58 @@ export class StudentService {
         report: aggregatedReport,
       },
     };
+  }
+
+  /**
+   * Retrieves the profile of the currently authenticated student.
+   * @param studentId - The ID of the student.
+   * @returns The student's complete profile.
+   * @throws {NotFoundException} If no student profile is linked to the user account.
+   */
+  async getMyProfile(
+    studentId: string,
+    authUser: IUserPayload,
+  ): Promise<StudentProfileResponseDto> {
+    const student = await this.studentModelAction.get({
+      identifierOptions: { id: studentId },
+      relations: {
+        user: true,
+        stream: {
+          class: {
+            academicSession: true,
+            teacher_assignment: true,
+            classSubjects: true,
+            timetable: {
+              schedules: true,
+            },
+          },
+        },
+      },
+    });
+
+    if (!student || student.is_deleted) {
+      this.logger.warn(`Student profile not found with ID: ${studentId}`);
+      throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
+    }
+
+    // --- Ownership Check ---
+    // A student can only access their own profile.
+    if (
+      authUser.roles.includes(UserRole.STUDENT) &&
+      student.user.id !== authUser.id
+    ) {
+      this.logger.warn(
+        `Forbidden access attempt to student profile ${studentId} by user ${authUser.id}`,
+      );
+      throw new ForbiddenException(sysMsg.FORBIDDEN);
+    }
+
+    this.logger.info(`Fetched student profile for student ID: ${studentId}`);
+
+    return new StudentProfileResponseDto(
+      student,
+      student.user,
+      sysMsg.PROFILE_RETRIEVED,
+    );
   }
 }

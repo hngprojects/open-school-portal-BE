@@ -2,7 +2,10 @@ import { HttpStatus } from '@nestjs/common';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { ClassResponseDto } from '../dto/create-class.dto';
-import { StudentAssignmentResponseDto } from '../dto/student-assignment.dto';
+import {
+  StudentAssignmentResponseDto,
+  AssignSingleStudentResponseDto,
+} from '../dto/student-assignment.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
 
 /**
@@ -315,6 +318,39 @@ export const ClassSwagger = {
         },
       },
     },
+    assignSingleStudent: {
+      operation: {
+        summary: 'Assign a single student to a class',
+        description:
+          'Assigns a single student to a specific class. The student is automatically assigned to the class in the same academic session the class belongs to. If the student was previously assigned and deactivated, the assignment will be reactivated.',
+      },
+      parameters: {
+        id: {
+          name: 'id',
+          description: 'The Class ID',
+        },
+        studentId: {
+          name: 'studentId',
+          description: 'The Student ID',
+        },
+      },
+      responses: {
+        ok: {
+          status: HttpStatus.OK,
+          description: 'Student assigned successfully',
+          type: AssignSingleStudentResponseDto,
+        },
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          description: 'Class or student not found',
+        },
+        conflict: {
+          status: HttpStatus.CONFLICT,
+          description:
+            'Student is already assigned to another class in this session',
+        },
+      },
+    },
     assignStudents: {
       operation: {
         summary: 'Assign students to a class',
@@ -339,6 +375,7 @@ export const ClassSwagger = {
                 example: 'Successfully assigned 3 student(s) to class',
               },
               assigned: { type: 'number', example: 3 },
+              skipped: { type: 'number', example: 0 },
               classId: { type: 'string' },
             },
           },
@@ -346,6 +383,11 @@ export const ClassSwagger = {
         notFound: {
           status: HttpStatus.NOT_FOUND,
           description: 'Class or student not found',
+        },
+        conflict: {
+          status: HttpStatus.CONFLICT,
+          description:
+            'One or more students are already assigned to another class in this session',
         },
         badRequest: {
           status: HttpStatus.BAD_REQUEST,
@@ -376,6 +418,43 @@ export const ClassSwagger = {
         },
       },
     },
+    unassignStudent: {
+      operation: {
+        summary: 'Unassign a student from a class',
+        description:
+          'Unassigns a student from their current class. Sets current_class_id to null and deactivates the class assignment.',
+      },
+      parameters: {
+        id: {
+          name: 'id',
+          description: 'The Class ID',
+        },
+        studentId: {
+          name: 'studentId',
+          description: 'The Student ID',
+        },
+      },
+      responses: {
+        ok: {
+          status: HttpStatus.OK,
+          description: sysMsg.STUDENT_UNASSIGNED_SUCCESSFULLY,
+          schema: {
+            type: 'object',
+            properties: {
+              message: {
+                type: 'string',
+                example: sysMsg.STUDENT_UNASSIGNED_SUCCESSFULLY,
+              },
+            },
+          },
+        },
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          description:
+            'Class or student not found, or student not assigned to this class',
+        },
+      },
+    },
     getTeacherClasses: {
       operation: {
         summary: 'Get classes assigned to the authenticated teacher',
@@ -401,6 +480,89 @@ export const ClassSwagger = {
         badRequest: {
           status: HttpStatus.BAD_REQUEST,
           description: 'Teacher profile not found for the authenticated user',
+        },
+      },
+    },
+    getClassByTeacherId: {
+      operation: {
+        summary: 'Get classes assigned to a specific teacher',
+        description:
+          'Returns all classes assigned to a specific teacher ID with assignment dates. Validates that the teacher exists. Returns an empty array if the teacher has no class assignments. Available to both Admin and Teacher roles. Filters by active session by default, but can be filtered by a specific sessionId via query parameter.',
+      },
+      parameters: {
+        teacherId: {
+          name: 'teacherId',
+          description: 'The Teacher ID (UUID)',
+        },
+        sessionId: {
+          name: 'session_id',
+          in: 'query',
+          required: false,
+          description:
+            'Academic session ID to filter by (optional, defaults to active session)',
+          schema: { type: 'string' },
+        },
+      },
+      responses: {
+        ok: {
+          description:
+            'List of classes assigned to the teacher with assignment_date, created_at, and updated_at timestamps',
+          schema: {
+            type: 'object',
+            properties: {
+              message: {
+                type: 'string',
+                example: sysMsg.TEACHER_CLASS_FETCHED,
+              },
+              data: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string', example: 'class-uuid' },
+                    name: { type: 'string', example: 'JSS1' },
+                    arm: { type: 'string', example: 'A' },
+                    academicSession: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string', example: 'session-uuid' },
+                        name: { type: 'string', example: '2024/2025' },
+                      },
+                    },
+                    assignment_date: {
+                      type: 'string',
+                      format: 'date-time',
+                      example: '2024-09-01T08:00:00Z',
+                    },
+                    created_at: {
+                      type: 'string',
+                      format: 'date-time',
+                      example: '2024-09-01T08:00:00Z',
+                    },
+                    updated_at: {
+                      type: 'string',
+                      format: 'date-time',
+                      example: '2024-09-01T08:00:00Z',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          description: 'Teacher not found or Academic session not found',
+          schema: {
+            type: 'object',
+            properties: {
+              status_code: { type: 'integer', example: 404 },
+              message: {
+                type: 'string',
+                example: sysMsg.TEACHER_NOT_FOUND,
+              },
+            },
+          },
         },
       },
     },

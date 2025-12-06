@@ -1,26 +1,34 @@
 import {
+  Body,
   Controller,
+  Delete,
   Get,
+  Param,
+  Patch,
   Post,
   Put,
-  Patch,
-  Delete,
-  Body,
-  Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiExcludeEndpoint } from '@nestjs/swagger';
+import { ApiExcludeEndpoint, ApiTags } from '@nestjs/swagger';
 
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UserRole } from '../shared/enums';
 
-import { AddScheduleDocs, EditScheduleDocs, GetTimetableDocs } from './docs';
+import {
+  AddScheduleDocs,
+  EditScheduleDocs,
+  GetAllTimetableDocs,
+  GetTimetableDocs,
+  UnassignRoomDocs,
+} from './docs';
 import {
   AddScheduleDto,
   GetTimetableResponseDto,
   UpdateScheduleDto,
 } from './dto/timetable.dto';
+import { DayOfWeek } from './enums/timetable.enums';
 import { TimetableService } from './timetable.service';
 
 @ApiTags('Timetables')
@@ -51,10 +59,24 @@ export class TimetableController {
     return this.timetableService.editSchedule(scheduleId, dto);
   }
 
-  @ApiExcludeEndpoint()
-  @Get()
-  findAll() {
-    return this.timetableService.findAll();
+  @Patch('schedule/:schedule_id/unassign-room')
+  @UseGuards(JwtAuthGuard)
+  @Roles(UserRole.ADMIN)
+  @UnassignRoomDocs()
+  unassignRoom(@Param('schedule_id') scheduleId: string) {
+    return this.timetableService.unassignRoom(scheduleId);
+  }
+
+  @Get('view-time-table')
+  @UseGuards(JwtAuthGuard)
+  @Roles(UserRole.STUDENT, UserRole.ADMIN, UserRole.TEACHER)
+  @GetAllTimetableDocs()
+  getAll(
+    @Query('page') page = 1,
+    @Query('limit') limit = 20,
+    @Query('day') day?: DayOfWeek,
+  ) {
+    return this.timetableService.getAll(page, limit, day);
   }
 
   @Get('class/:classId')
