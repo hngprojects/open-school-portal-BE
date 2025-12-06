@@ -8,7 +8,6 @@ import {
   Injectable,
   NotFoundException,
   UnauthorizedException,
-  forwardRef,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -17,6 +16,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
+import { IRequestWithUser } from '../../common/types';
 import config from '../../config/config';
 import { EmailTemplateID } from '../../constants/email-constants';
 import * as sysMsg from '../../constants/system.messages';
@@ -24,10 +24,7 @@ import { EmailService } from '../email/email.service';
 import { EmailPayload } from '../email/email.types';
 import { InviteStatus } from '../invites/entities/invites.entity';
 import { InviteModelAction } from '../invites/invite.model-action';
-import { ParentService } from '../parent/parent.service';
 import { SessionService } from '../session/session.service';
-import { StudentService } from '../student/services';
-import { TeacherService } from '../teacher/teacher.service';
 import { UserService } from '../user/user.service';
 
 import {
@@ -51,14 +48,6 @@ export class AuthService {
     private readonly sessionService: SessionService,
     private readonly configService: ConfigService,
     private readonly inviteModelAction: InviteModelAction,
-    @Inject(forwardRef(() => StudentService))
-    private readonly studentService: StudentService,
-
-    @Inject(forwardRef(() => ParentService))
-    private readonly parentService: ParentService,
-
-    @Inject(forwardRef(() => TeacherService))
-    private readonly teacherService: TeacherService,
   ) {
     this.logger = logger.child({ context: AuthService.name });
   }
@@ -332,55 +321,16 @@ export class AuthService {
     return sysMsg.USER_ACTIVATED;
   }
 
-  async getProfile(accessToken: string) {
-    if (!accessToken) {
-      throw new UnauthorizedException(sysMsg.AUTHORIZATION_HEADER_MISSING);
-    }
-
-    // Extract token from "Bearer <token>"
-    const token = accessToken.replace('Bearer ', '');
-
-    const decryptedToken = await this.jwtService.verifyAsync(token, {
-      secret: config().jwt.secret,
-    });
-
-    if (!decryptedToken.email) {
-      this.logger.error(`${sysMsg.TOKEN_INVALID} or ${sysMsg.TOKEN_EXPIRED}`);
-      throw new UnauthorizedException(
-        `${sysMsg.TOKEN_INVALID} or ${sysMsg.TOKEN_EXPIRED}`,
-      );
-    }
-
-    const user = await this.userService.findByEmail(decryptedToken.email);
+  async getProfile(req: IRequestWithUser) {
+    const { id, parent_id, student_id, teacher_id } = req.user;
+    const user = await this.userService.findOne(id);
     if (!user) {
       this.logger.error(sysMsg.USER_NOT_FOUND);
       throw new UnauthorizedException(sysMsg.USER_NOT_FOUND);
     }
 
-    let profileId: string | null;
-
-    if (user.role.includes(UserRole.STUDENT)) {
-      const studentProfile = await this.studentService.findByUserId(user.id);
-      if (studentProfile) {
-        profileId = studentProfile.id;
-      }
-    } else if (user.role.includes(UserRole.PARENT)) {
-      const parentProfile = await this.parentService.findOne(user.id);
-      if (parentProfile) {
-        profileId = parentProfile.id;
-      }
-    } else if (user.role.includes(UserRole.TEACHER)) {
-      const teacherProfile = await this.teacherService.findOne(user.id);
-      if (teacherProfile) {
-        profileId = teacherProfile.id;
-      }
-    }
-
-    const finalId = profileId || user.id;
-
     return {
       id: user.id,
-      user_id: finalId,
       email: user.email,
       first_name: user.first_name,
       last_name: user.last_name,
@@ -389,6 +339,9 @@ export class AuthService {
       gender: user.gender,
       dob: user.dob,
       phone: user.phone,
+      parent_id,
+      student_id,
+      teacher_id,
       is_active: user.is_active,
       created_at: user.createdAt,
       updated_at: user.updatedAt,

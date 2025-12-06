@@ -5,6 +5,8 @@ export interface IRequestWithUser extends Request {
     id: string;
     userId: string;
     teacher_id?: string;
+    student_id?: string;
+    parent_id?: string;
     roles: UserRole[];
   };
 }
