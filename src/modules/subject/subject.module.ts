@@ -13,7 +13,7 @@ import { SubjectService } from './services/subject.service';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Subject, ClassSubject]),
-    forwardRef(() => AcademicSessionModule),
+    AcademicSessionModule,
     forwardRef(() => ClassModule),
   ],
   controllers: [SubjectController],

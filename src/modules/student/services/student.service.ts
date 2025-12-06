@@ -574,16 +574,4 @@ export class StudentService {
       sysMsg.PROFILE_RETRIEVED,
     );
   }
-  async findByUserId(userId: string): Promise<StudentResponseDto | null> {
-    const student = await this.studentModelAction.get({
-      identifierOptions: { user: { id: userId } }, // Note: query by user.id FK relation
-      relations: { user: true, stream: true },
-    });
-
-    if (!student || student.is_deleted) {
-      return null; // or throw here if you want strict behavior
-    }
-
-    return new StudentResponseDto(student, student.user);
-  }
 }
