@@ -62,6 +62,16 @@ export class AttendanceService {
     'December',
   ];
 
+  protected weekdayNames = [
+    'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+  ];
+
   constructor(
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
     private readonly attendanceModelAction: AttendanceModelAction,
@@ -700,6 +710,7 @@ export class AttendanceService {
     days_half_day: number;
     attendance_details: Array<{
       date: string;
+      weekday: string;
       status: string;
       check_in_time?: string;
       check_out_time?: string;
@@ -770,11 +781,18 @@ export class AttendanceService {
           break;
       }
 
+      const dateStr =
+        typeof record.date === 'string'
+          ? record.date
+          : record.date.toISOString().split('T')[0];
+
+      // Get weekday from the date
+      const recordDate = new Date(dateStr);
+      const weekday = this.weekdayNames[recordDate.getDay()];
+
       return {
-        date:
-          typeof record.date === 'string'
-            ? record.date
-            : record.date.toISOString().split('T')[0],
+        date: dateStr,
+        weekday,
         status: record.status,
         check_in_time: record.check_in_time
           ? record.check_in_time.toISOString()
