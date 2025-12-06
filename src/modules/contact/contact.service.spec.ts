@@ -334,17 +334,14 @@ describe('ContactService', () => {
       await service.create(mockCreateContactDto);
       const totalTime = Date.now() - startTime;
 
-      // If emails were sent in parallel, total time should be ~100ms + overhead
-      // If sequential, it would be ~200ms + overhead
-      // Sequential time would be: 2 * emailDelay = 200ms
-      // With transaction, DB operations, and logging overhead, parallel execution
-      // should still be reasonable. We verify it's not excessively slow.
-      // In test environments, overhead can be significant, so we use a more lenient check
+      // If emails were sent in parallel, total time should be ~100ms + overhead.
+      // If sequential, it would be ~200ms + overhead.
+      // To confirm parallel-like behavior while allowing for overhead, we'll assert
+      // that the total time is less than the theoretical sequential time.
       const sequentialTime = emailDelay * 2;
-      const maxExpectedTime = sequentialTime + 200; // Allow 200ms overhead buffer
-      expect(totalTime).toBeLessThan(maxExpectedTime);
+      expect(totalTime).toBeLessThan(sequentialTime);
 
-      // Verify emails were called (parallel execution is verified by Promise.allSettled in service)
+      // Verify both email sending functions were called.
       expect(mockEmailService.sendMail).toHaveBeenCalledTimes(2);
     });
 
