@@ -40,3 +40,6 @@ logs/
 # package-lock.json
 package-lock.json
 config.bat
+
+.vscode/
+public/fonts/
